@@ -271,7 +271,7 @@ class Parse():
 		except RuntimeError as msg:
 			logging.warning("|%s| Fit did not converge (%s)", label, str(msg), exc_info=False)
 			coeff = p0
-			hist_fit = np.array([x for x in range(0, len(bin_centers))])
+			hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
 		return {"bin":bin_centers, "freq":freq, "mean":coeff[1], "std":coeff[2], "var":coeff[2]**2, "bins":bins, "fit":hist_fit}
 
 	def PrintFN(self):
