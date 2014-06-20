@@ -33,10 +33,10 @@ class ChooseFiles(Frame):
 
         self.FileListBoxFrame = Frame(self)
         self.FileListBoxFrameLabelVar = StringVar()
-        self.FileListBoxFrameLabelVar.set("Output dir: %s"% (self.opts.out_dir) )
         self.FileListBoxFrameLabel = Label(self.FileListBoxFrame, \
                                               textvariable=self.FileListBoxFrameLabelVar )
         self.FileListBoxFrameLabel.grid(row=0, column=0)
+        self.UpdateFileListBoxFrameLabel()
 
         self.LoggingFrame = Frame(self)
         self.Logging = Text(self.LoggingFrame, height=20)
@@ -131,7 +131,10 @@ class ChooseFiles(Frame):
         outdir = filedialog.askdirectory(title="Select Output File(s)", initialdir=self.opts.out_dir)
         if os.path.exists(outdir):
             self.opts.out_dir = outdir
-        self.FileListBoxFrameLabelVar.set("Output dir: %s"% (self.opts.out_dir) )
+            self.UpdateFileListBoxFrameLabel()
+
+    def UpdateFileListBoxFrameLabel(self):
+        self.FileListBoxFrameLabelVar.set("Output to: %s/%s_*.txt"% (self.opts.out_dir, self.opts.outfile) )
 
         
     def createOptions(self):
@@ -185,6 +188,7 @@ class ChooseFiles(Frame):
         
     def checkOutputFileName(self, event):
         self.opts.outfile = self.OutputFileName.get()
+        self.UpdateFileListBoxFrameLabel()
 
     def checkColumnEntry(self, event):
         try:
