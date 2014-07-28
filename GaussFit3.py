@@ -282,7 +282,7 @@ class Parse():
 		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms.txt"), 'wt')
 		for x in self.X: ofh.write("\t".join( ("Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x) )+"\t" )
 		ofh.write('\n')
-		for i in range(0, len( self.XY[list(self.XY.keys()).index(0)]['hist']['bin'] ) ):
+		for i in range(0, len( self.XY[list(self.XY.keys())[0]]['hist']['bin'] ) ):
 			for x in self.X: ofh.write("\t".join( ("%0.4f"%self.XY[x]['hist']['bin'][i], \
 						"%0.2d"%self.XY[x]['hist']['freq'][i], \
 						"%0.2d"%self.XY[x]['hist']['fit'][i]) )+"\t" )
@@ -302,7 +302,7 @@ class Parse():
 				ofh.write("\t".join(('%0.4f'%x,'%d'%data[x][0],'%0.2f'%data[x][1]))+"\n")
 	def WriteFN(self):
 		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_FN.txt"), 'wt')
-		cols = ["1/V"] + ['Y_%d'%x for x in range(1,len(self.XY[list(self.XY.keys()).index(0)]['FN'] )+1)]
+		cols = ["1/V"] + ['Y_%d'%x for x in range(1,len( self.XY[list(self.XY.keys())[0]]['FN'] )+1)]
 		ofh.write("\t".join(cols)+"\n")
 		for x in self.X:
 			if x == 0.0:
@@ -325,7 +325,7 @@ class Parse():
 		if log:	key,label ='LogY','LogJ'
 		else:	key, label ='Y','data'
 		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt"), 'wt')
-		cols = ["Potential (V)"] + ['Y_%d'%x for x in range(1,len(self.XY[list(self.XY.keys()).index(0)][key] )+1)]
+		cols = ["Potential (V)"] + ['Y_%d'%x for x in range(1,len(self.XY[list(self.XY.keys())[0]][key] )+1)]
 		ofh.write("\t".join(cols)+"\n")
 		for x in self.X:
 			ofh.write("\t".join(["%0.4f"%x]+list(map(str,self.XY[x][key])))+"\n")
