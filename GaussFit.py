@@ -216,6 +216,32 @@ class Parse():
 		self.X = np.array(self.XY.keys())
 		self.X.sort()
 		self.FN["neg"], self.FN["pos"] = self.findmin()
+		self.R = self.dorect()
+
+	def dorect(self):
+		R = {}
+		for x in self.X:
+			if x == 0:
+				R[x]['r']=[1]
+				R[x]['hist']={}
+			if x < 0:
+				continue
+			if -1*x not in X:
+				logging.warn("(Rectification) Didn't find a negative voltage for %d.", x)
+				continue
+			else:
+				R[x]['r'] = []
+				if len(self.XY[x]) != len(self.XY[-1*x]):
+					logging.warn("(Rectification) Length of Y values differs for +/-%d.",x)
+					continue
+				for i in range(0, len(self.XY[x])):
+					R[x]['r'].append( self.XY[x][i]/self.XY[-1*x][i] )
+		for x in R:
+			if x == 0:
+				continue
+			R[x]['hist'] = self.dohistogram(R[x]['r'],"R")
+			print(R[x]['r'])
+		return R
 
 	def findmin(self):
 		neg_min_x, pos_min_x = [],[]

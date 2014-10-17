@@ -223,6 +223,28 @@ class Parse():
 		self.X = np.array(sorted(self.XY.keys()))
 		self.X.sort()
 		self.FN["neg"], self.FN["pos"] = self.findmin()
+		self.R = self.dorect()
+
+	def dorect(self):
+		R = {}
+		for x in self.X:
+			if x <= 0: continue
+			elif -1*x not in self.X:
+				logging.warn("(Rectification) Didn't find a negative voltage for %d.", x)
+				continue
+			ypos, yneg = self.XY[x]["Y"], self.XY[-1*x]["Y"]
+			if len(ypos) != len(yneg):
+				logging.warn("(Rectification) Length of Y values differs for +/-%d.",x)
+				continue
+			r = []
+			for i in range(0, len(ypos)):
+				r.append( abs(ypos[i]/yneg[i]) )	
+			R[x]={'r': np.array(r)}
+		for x in R:
+			R[x]['hist'] = self.dohistogram(R[x]['r'],"R")
+		R['X'] = np.array(sorted(R.keys()))
+		return R
+
 
 	def findmin(self):
 		neg_min_x, pos_min_x = [],[]
@@ -288,6 +310,15 @@ class Parse():
 						"%0.2d"%self.XY[x]['hist']['fit'][i]) )+"\t" )
 			ofh.write('\n')
 		ofh.close()
+		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_R_Histograms.txt"), 'wt')
+		for x in self.R['X']: ofh.write("\t".join( ("|R| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x) )+"\t" )
+		ofh.write('\n')
+		for i in range(0, len( self.R[list(self.R.keys())[0]]['hist']['bin'] ) ):
+			for x in self.R['X']: ofh.write("\t".join( ("%0.4f"%self.XY[x]['hist']['bin'][i], \
+						"%0.2d"%self.XY[x]['hist']['freq'][i], \
+						"%0.2d"%self.XY[x]['hist']['fit'][i]) )+"\t" )
+			ofh.write('\n')
+		ofh.close()
 
 	def WriteVtrans(self):
 		for key in ('pos', 'neg'):
@@ -320,6 +351,13 @@ class Parse():
 		for x in self.X:
 			ofh.write("\t".join(('%f'%x,'%f'%self.XY[x]['hist']['mean'],'%f'%self.XY[x]['hist']['var']))+"\n")
 		ofh.close()
+		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_R_Gauss.txt"), 'wt')
+		ofh.write("\t".join(("Potential (V)","|R|","Variance"))+"\n")
+		Y = []
+		Yerr = []
+		for x in self.R['X']:
+			ofh.write("\t".join(('%f'%x,'%f'%self.R[x]['hist']['mean'],'%f'%self.R[x]['hist']['var']))+"\n")
+		ofh.close()
 
 	def WriteData(self, log=False):
 		if log:	key,label ='LogY','LogJ'
@@ -329,6 +367,15 @@ class Parse():
 		ofh.write("\t".join(cols)+"\n")
 		for x in self.X:
 			ofh.write("\t".join(["%0.4f"%x]+list(map(str,self.XY[x][key])))+"\n")
+		ofh.close()
+
+	def WriteRData(self):
+		key,label = 'r', 'R_data'
+		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt"), 'wt')
+		cols = ["Potential (V)"] + ['Y_%d'%x for x in range(1,len(self.R[list(self.R.keys())[0]][key] )+1)]
+		ofh.write("\t".join(cols)+"\n")
+		for x in self.R['X']:
+			ofh.write("\t".join(["%0.4f"%x]+list(map(str,self.R[x][key])))+"\n")
 		ofh.close()
 
 	def PlotData(self, key, ax, sym, **kw):
@@ -344,7 +391,6 @@ class Parse():
 			ax.set_xlabel("Potenial (V)")
 			ax.set_ylabel("Current Density (A/cm^2)")
 		if key == 'LogY':
-			#if self.opts.compliance != np.inf:ax.set_ylim( ymax=np.log10(self.opts.compliance) )
 			ax.set_title("Semilog Plot of Initial Data")
 			ax.set_xlabel("Potenial (V)")
 			ax.set_ylabel("Current Density log10(A/cm^2)")
@@ -398,6 +444,7 @@ def Go(opts):
 				parser.WriteGauss()
 				parser.WriteData()
 				parser.WriteData(True)
+				parser.WriteRData()
 				parser.WriteHistograms()
 		if opts.plot:
 				logging.info("Generating plots...")
