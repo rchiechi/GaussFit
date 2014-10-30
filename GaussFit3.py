@@ -22,6 +22,7 @@ def ShowUsage():
 		Ideally, feed it *_data.txt files and it will take V and J. It can extract X- and 
 		Y-values from any two columns. Setting a compliance limit excludes Y > compliance
 		from gaussian fits and rescales plots for display, but it rarely influences fits.%(rs)s
+		The maxr parameter is needed to filter out huge values that occur when a junction shorts.
 
 		%(b)scmd	command		help (default)%(rs)s
 		%(g)s-h	--help		This help
@@ -30,6 +31,7 @@ def ShowUsage():
 		-d	--delimeter	Delimeter in input files (default: tab)
 		-X	--Xcol		The column with X-values (default:1)
 		-Y	--Ycol		The column wiht Y-Values (default:3)
+		-m	--maxr		Maximum allowable value of R (default:10)
 		-o	--output	Outputfile (taken from first input)
 		-p	--plot		Plot data save to a png file
 		-n	--nowrite	Don't write output files (implies -p)
@@ -50,9 +52,9 @@ class Opts:
 
 	def __init__(self):
 		try:
-			opts, self.in_files = gnu_getopt(sys.argv[1:], "hb:l:d:o:X:,Y:pc:nd:G", ["help" , "bins", \
+			opts, self.in_files = gnu_getopt(sys.argv[1:], "hb:l:d:o:X:,Y:m:pc:nd:G", ["help" , "bins", \
 									"loglevel=",\
-									"delimeter=","output=", "Xcol", "Ycol",
+									"delimeter=","output=", "Xcol", "Ycol", "maxr"
 									"plot", "compliance", "nowrite","dir:","GUI"])
 		except GetoptError:
 			error("Invalid option(s)")
@@ -65,6 +67,7 @@ class Opts:
 		LOG = False
 		self.Xcol = 0
 		self.Ycol = 2
+		self.maxr = 10.0
 		self.bins = 50
 		self.delim='\t'
 		self.plot=False
@@ -108,6 +111,8 @@ class Opts:
 				self.Xcol = int(arg)-1
 			if opt in ('-Y', '--Ycol'):
 				self.Ycol = int(arg)-1
+			if opt in ('-m', '--maxr'):
+				self.maxr = float(arg)
 			if opt in ('-p', '--plot'):
 				self.plot=True
 			if opt in ('-c', '--compliance'):
@@ -238,6 +243,10 @@ class Parse():
 				continue
 			r = []
 			for i in range(0, len(ypos)):
+				_r = abs(ypos[i]/yneg[i])
+				if _r > self.opts.maxr:
+					logging.warn("Rejecting R=%0.4f at V=%0.2f because it exceeds maxR (%f)", _r, x, self.opts.maxr)
+					continue
 				r.append( abs(ypos[i]/yneg[i]) )	
 			R[x]={'r': np.array(r)}
 		for x in R:
