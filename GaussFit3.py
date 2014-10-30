@@ -245,7 +245,7 @@ class Parse():
 			for i in range(0, len(ypos)):
 				_r = abs(ypos[i]/yneg[i])
 				if _r > self.opts.maxr:
-					logging.warn("Rejecting R=%0.4f at V=%0.2f because it exceeds maxR (%f)", _r, x, self.opts.maxr)
+					logging.warn("Rejecting R=%0.4f at V=%0.2f because it exceeds maxR (%0.1f)", _r, x, self.opts.maxr)
 					continue
 				r.append( abs(ypos[i]/yneg[i]) )	
 			R[x]={'r': np.array(r)}
