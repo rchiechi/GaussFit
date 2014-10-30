@@ -314,7 +314,7 @@ class Parse():
 		for x in self.R['X']: ofh.write("\t".join( ("|R| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x) )+"\t" )
 		ofh.write('\n')
 		for i in range(0, len( self.R[list(self.R.keys())[0]]['hist']['bin'] ) ):
-			for x in self.R['X']: ofh.write("\t".join( ("%0.4f"%self.XY[x]['hist']['bin'][i], \
+			for x in self.R['X']: ofh.write("\t".join( ("%0.4f"%self.R[x]['hist']['bin'][i], \
 						"%0.2d"%self.XY[x]['hist']['freq'][i], \
 						"%0.2d"%self.XY[x]['hist']['fit'][i]) )+"\t" )
 			ofh.write('\n')
