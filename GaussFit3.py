@@ -244,9 +244,9 @@ class Parse():
 			r = []
 			for i in range(0, len(ypos)):
 				_r = abs(ypos[i]/yneg[i])
-				if _r > self.opts.maxr:
-					logging.warn("Rejecting R=%0.4f at V=%0.2f because it exceeds maxR (%0.1f)", _r, x, self.opts.maxr)
-					continue
+				#if _r > self.opts.maxr:
+				#	logging.warn("Rejecting R=%0.4f at V=%0.2f because it exceeds maxR (%0.1f)", _r, x, self.opts.maxr)
+				#	continue
 				r.append( abs(ypos[i]/yneg[i]) )	
 			R[x]={'r': np.array(r)}
 		for x in R:
@@ -288,10 +288,14 @@ class Parse():
 		return A*np.exp(-(x-mu)**2/(2.*sigma**2))
 	
 	def dohistogram(self, Y, label=""):
-		y_compliance = np.nonzero(abs(Y) > self.opts.compliance)
-		if len(y_compliance[0]) and label == "J":
-			logging.warn("Tossing %d data points for %s histogram!", len(y_compliance[0]), label)
-			Y = Y[y_compliance]
+		j_compliance = np.nonzero(abs(Y) > self.opts.compliance)
+		r_compliance = np.nonzero(abs(Y) > self.opts.maxr)
+		if len(j_compliance[0]) and label == "J":
+			logging.warn("Tossing %d data points > %0.1f for %s histogram!", len(j_compliance[0]), self.opts.compliance, label)
+			Y = Y[j_compliance]
+		if len(r_compliance[0]) and label == "R":
+			logging.warn("Tossing %d data points > %0.1f for %s histogram!", len(r_compliance[0]), self.opts.maxr, label)
+			Y = Y[r_compliance]
 		logging.debug("%d points to consider.", len(Y))
 		freq, bins = np.histogram(Y, bins=self.opts.bins, density=False)      
 		p0 = [1., Y.mean(), Y.std()]
