@@ -251,6 +251,7 @@ class Parse():
 			R[x]={'r': np.array(r)}
 		for x in R:
 			R[x]['hist'] = self.dohistogram(R[x]['r'],"R")
+			#print(R[x]['hist'])
 		R['X'] = np.array(sorted(R.keys()))
 		return R
 
@@ -292,10 +293,10 @@ class Parse():
 		r_compliance = np.nonzero(abs(Y) > self.opts.maxr)
 		if len(j_compliance[0]) and label == "J":
 			logging.warn("Tossing %d data points > %0.1f for %s histogram!", len(j_compliance[0]), self.opts.compliance, label)
-			Y = Y[j_compliance]
+			Y = Y[np.nonzero(abs(Y) <= self.opts.compliance)]
 		if len(r_compliance[0]) and label == "R":
 			logging.warn("Tossing %d data points > %0.1f for %s histogram!", len(r_compliance[0]), self.opts.maxr, label)
-			Y = Y[r_compliance]
+			Y = Y[np.nonzero(abs(Y) <= self.opts.maxr)]
 		logging.debug("%d points to consider.", len(Y))
 		freq, bins = np.histogram(Y, bins=self.opts.bins, density=False)      
 		p0 = [1., Y.mean(), Y.std()]
