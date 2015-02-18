@@ -36,13 +36,17 @@ def ShowUsage():
 		-p	--plot		Plot data save to a png file
 		-n	--nowrite	Don't write output files (implies -p)
 		-c	--compliance	set compliance limit for gaussian fits (default: inf)
-		-d      --dir           Output directory (merged with --output)
+		-D      --dir           Output directory (merged with --output)
 		-G      --GUI           Launch the GUI%(rs)s
+		-S	--smooth	Compute Vtrans from the derivitve of the cubic spline
+
 	''' % {'path':os.path.basename(sys.argv[0]) ,'rs':RS,'y':YELLOW,'b':BLUE,'r':RED,'t':TEAL,'g':GREEN,'w':WHITE})
 	sys.exit()
 try:
 	from scipy.optimize import curve_fit
+	from scipy.interpolate import UnivariateSpline
 	import numpy as np
+
 except ImportError as msg:
 	print("\n\t\t%s> > > Error importing numpy/scipy! %s%s%s < < <%s" % (RED,RS,str(msg),RED,RS))
 	ShowUsage()
@@ -52,10 +56,10 @@ class Opts:
 
 	def __init__(self):
 		try:
-			opts, self.in_files = gnu_getopt(sys.argv[1:], "hb:l:d:o:X:,Y:m:pc:nd:G", ["help" , "bins", \
+			opts, self.in_files = gnu_getopt(sys.argv[1:], "hb:l:d:o:X:,Y:m:pc:nD:GS", ["help" , "bins", \
 									"loglevel=",\
 									"delimeter=","output=", "Xcol", "Ycol", "maxr"
-									"plot", "compliance", "nowrite","dir:","GUI"])
+									"plot", "compliance", "nowrite","dir:","GUI","smooth"])
 		except GetoptError:
 			error("Invalid option(s)")
 			ShowUsage()
@@ -75,6 +79,7 @@ class Opts:
 		self.compliance=np.inf
 		self.GUI=False
 		self.out_dir = os.environ['PWD']
+		self.smooth = False
 
 		if len(self.in_files):
 			template = os.path.basename(self.in_files[0])
@@ -128,6 +133,8 @@ class Opts:
                                     ShowUsage()
 			if opt in ('-G', '--GUI'):
                                 self.GUI = True
+			if opt in ('-S', '--smooth'):
+                                self.smooth = True
 
 ##                self.logger = logging.getLogger('CLI')
 		if LOG:
@@ -264,18 +271,37 @@ class Parse():
 			i += 1
 			try:
 				pos,neg = {},{}
+				x_neg, y_neg, x_pos, y_pos = [],[],[],[]
 				for x in self.X:
 					if abs(self.XY[x]['Y'][i]).max() >= self.opts.compliance:
 						tossed += 1
 						continue
 					y = self.XY[x]['FN'][i]
-					if x < 0: neg[y] = x
-					if x > 0: pos[y] = x
+					if x < 0: 
+						neg[y] = x
+						x_neg.append(x)
+						y_neg.append(y)
+					if x > 0: 
+						pos[y] = x
+						x_pos.append(x)
+						y_pos.append(y)
+
 				if not len(neg.keys()) or not len(pos.keys()):
 					logging.warn("Skipping empty column in FN calculation.")
 					continue
-				neg_min_x.append(neg[np.nanmin(list(neg.keys()))])
-				pos_min_x.append(pos[np.nanmin(list(pos.keys()))])
+
+				splneg = UnivariateSpline( x_neg, y_neg, k=4  )
+				splpos = UnivariateSpline( x_pos, y_pos, k=4 )
+				#print("Spline:",splneg(x_neg))
+				#print("Data:",y_neg)
+				#print("DI/DV roots (-):",splneg.derivative().roots())
+				#print("DI/DV roots (+):",splpos.derivative().roots())
+				if self.opts.smooth:
+					neg_min_x.append(np.nanmin(splneg.derivative().roots()[0]))
+					pos_min_x.append(np.nanmin(splpos.derivative().roots()[0]))
+				else:
+					neg_min_x.append(neg[np.nanmin(list(neg.keys()))])
+					pos_min_x.append(pos[np.nanmin(list(pos.keys()))])
 			except IndexError:
 				break
 		
