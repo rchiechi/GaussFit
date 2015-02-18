@@ -134,7 +134,7 @@ class Opts:
 			if opt in ('-G', '--GUI'):
                                 self.GUI = True
 			if opt in ('-M', '--min'):
-                                self.smooth = True
+                                self.smooth = False
 
 ##                self.logger = logging.getLogger('CLI')
 		if LOG:
@@ -316,6 +316,7 @@ class Parse():
 				#print("DI/DV roots (-):",splneg.derivative().roots())
 				#print("DI/DV roots (+):",splpos.derivative().roots())
 				if self.opts.smooth:
+					logging.debug("Using interpolation on FN")
 					rootneg = np.nanmin(splneg.derivative().roots())
 					neg_min_x.append(rootneg[0])
 					rootpos = np.nanmin(splpos.derivative().roots())
