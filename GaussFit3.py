@@ -319,16 +319,14 @@ class Parse():
 					try:
 						logging.debug("Using interpolation on FN")
 						rootneg = np.nanmin(splneg.derivative().roots())
-						neg_min_x.append(rootneg[0])
+						neg_min_x.append(rootneg)
 						rootpos = np.nanmin(splpos.derivative().roots())
-						pos_min_x.append(rootpos[0])
-						if not rootneg[0] or rootpos[0]:
+						pos_min_x.append(rootpos)
+						if not rootneg or rootpos:
 							logging.warn("No minimum found in FN derivative.")
-						logging.debug("FN neg roots: "+str(len(rootneg)))
-						logging.debug("FN pos roots: "+str(len(rootpos)))
-					except IndexError as msg:
-						logging.warn("Error computing Vtrans "+str(msg))
-					except ValueError as msg:
+						#logging.debug("FN neg roots: "+str(len(rootneg)))
+						#logging.debug("FN pos roots: "+str(len(rootpos)))
+					except Exception as msg:
 						logging.warn("Error computing Vtrans "+str(msg))
 				else:
 					neg_min_x.append(neg[np.nanmin(list(neg.keys()))])
