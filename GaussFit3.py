@@ -316,15 +316,18 @@ class Parse():
 				#print("DI/DV roots (-):",splneg.derivative().roots())
 				#print("DI/DV roots (+):",splpos.derivative().roots())
 				if self.opts.smooth:
-					logging.debug("Using interpolation on FN")
-					rootneg = np.nanmin(splneg.derivative().roots())
-					neg_min_x.append(rootneg[0])
-					rootpos = np.nanmin(splpos.derivative().roots())
-					pos_min_x.append(rootpos[0])
-					if not rootneg[0] or rootpos[0]:
-						logging.warn("No minimum found in FN derivative.")
-					logging.debug("FN neg roots: "+str(len(rootneg)))
-					logging.debug("FN pos roots: "+str(len(rootpos)))
+					try:
+						logging.debug("Using interpolation on FN")
+						rootneg = np.nanmin(splneg.derivative().roots())
+						neg_min_x.append(rootneg[0])
+						rootpos = np.nanmin(splpos.derivative().roots())
+						pos_min_x.append(rootpos[0])
+						if not rootneg[0] or rootpos[0]:
+							logging.warn("No minimum found in FN derivative.")
+						logging.debug("FN neg roots: "+str(len(rootneg)))
+						logging.debug("FN pos roots: "+str(len(rootpos)))
+					except IndexError as msg:
+						logging.warn("Error computing Vtrans "+str(msg))
 				else:
 					neg_min_x.append(neg[np.nanmin(list(neg.keys()))])
 					pos_min_x.append(pos[np.nanmin(list(pos.keys()))])
