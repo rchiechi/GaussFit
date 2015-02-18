@@ -328,6 +328,8 @@ class Parse():
 						logging.debug("FN pos roots: "+str(len(rootpos)))
 					except IndexError as msg:
 						logging.warn("Error computing Vtrans "+str(msg))
+					except ValueError as msg:
+						logging.warn("Error computing Vtrans "+str(msg))
 				else:
 					neg_min_x.append(neg[np.nanmin(list(neg.keys()))])
 					pos_min_x.append(pos[np.nanmin(list(pos.keys()))])
