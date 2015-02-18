@@ -38,7 +38,7 @@ def ShowUsage():
 		-c	--compliance	set compliance limit for gaussian fits (default: inf)
 		-D      --dir           Output directory (merged with --output)
 		-G      --GUI           Launch the GUI
-		-S	--smooth	Compute Vtrans from the derivitve of the cubic spline%(rs)s
+		-M	--min		Compute Vtrans from the min(Y) instead of the derivitve of the cubic spline%(rs)s
 
 	''' % {'path':os.path.basename(sys.argv[0]) ,'rs':RS,'y':YELLOW,'b':BLUE,'r':RED,'t':TEAL,'g':GREEN,'w':WHITE})
 	sys.exit()
@@ -56,10 +56,10 @@ class Opts:
 
 	def __init__(self):
 		try:
-			opts, self.in_files = gnu_getopt(sys.argv[1:], "hb:l:d:o:X:,Y:m:pc:nD:GS", ["help" , "bins", \
+			opts, self.in_files = gnu_getopt(sys.argv[1:], "hb:l:d:o:X:,Y:m:pc:nD:GM", ["help" , "bins", \
 									"loglevel=",\
 									"delimeter=","output=", "Xcol", "Ycol", "maxr"
-									"plot", "compliance", "nowrite","dir:","GUI","smooth"])
+									"plot", "compliance", "nowrite","dir:","GUI","min"])
 		except GetoptError:
 			error("Invalid option(s)")
 			ShowUsage()
@@ -79,7 +79,7 @@ class Opts:
 		self.compliance=np.inf
 		self.GUI=False
 		self.out_dir = os.environ['PWD']
-		self.smooth = False
+		self.smooth = True
 
 		if len(self.in_files):
 			template = os.path.basename(self.in_files[0])
@@ -133,7 +133,7 @@ class Opts:
                                     ShowUsage()
 			if opt in ('-G', '--GUI'):
                                 self.GUI = True
-			if opt in ('-S', '--smooth'):
+			if opt in ('-M', '--min'):
                                 self.smooth = True
 
 ##                self.logger = logging.getLogger('CLI')
@@ -265,7 +265,7 @@ class Parse():
 	
 	def dodjdv(self):
 		spls = {}
-		xs = np.linspace(self.X.min(), self.X.max(), 500)
+		xs = np.linspace(self.X.min(), self.X.max(), 100)
 		for x in xs:
 			spls[x] = []
 		i = -1
@@ -455,17 +455,17 @@ class Parse():
 		if key == "FN":
 			xax = 1/xax
 			ax.set_title("Fowler Nordheim Plot of Initial Data")
-			ax.set_xlabel("1/V")
-			ax.set_ylabel("ln(I/V^2)")
+			ax.set_xlabel(r'$V^{-1}$')
+			ax.set_ylabel(r'$ln(\frac{I}{V^2})$')
 		if key == 'Y':
 			if self.opts.compliance != np.inf: ax.set_ylim( (-1*self.opts.compliance, self.opts.compliance) )
 			ax.set_title("Initial Data")
 			ax.set_xlabel("Potenial (V)")
-			ax.set_ylabel("Current Density (A/cm^2)")
+			ax.set_ylabel(r'Current Density ($A cm^{-2}$)')
 		if key == 'LogY':
 			ax.set_title("Semilog Plot of Initial Data")
 			ax.set_xlabel("Potenial (V)")
-			ax.set_ylabel("Current Density log10(A/cm^2)")
+			ax.set_ylabel(r'Current Density $log_{10}|J(A cm^{-2})|')
 		i = -1
 		while True:
 			i += 1
@@ -478,7 +478,8 @@ class Parse():
 		xax.sort()
 		ax.set_title("Derivitive of Initial Data")
 		ax.set_xlabel("Potential (V)")
-		ax.set_ylabel("dJ/dV")
+		ax.set_ylabel(r'\d{J}{V}')
+		ax.set_ylim(-0.25,0.25)
 		i = -1
 		while True:
 			i += 1
@@ -490,7 +491,7 @@ class Parse():
 	def PlotHist(self,ax):
 		ax.set_title("Gaussian Fit and Intial Data")
 		ax.set_xlabel('Potential (V)')
-		ax.set_ylabel('Current Density (Log10 |A/cm^2|)')
+		ax.set_ylabel(r'Current Density $log_{10}|J(A cm^{-2})|')
 		Y, Yerr = [],[]
 		for x in self.X:
 			Y.append(self.XY[x]["hist"]["mean"])
@@ -498,7 +499,7 @@ class Parse():
 		ax.errorbar(self.X, Y, yerr=Yerr, lw=3.0, color='k')
 
 	def PlotVtrans(self,ax):
-		ax.set_title("Histogram and fit of Vtrans")
+		ax.set_title(r'Histogram and fit of $V_{trans}$')
 		ax.set_xlabel('Vtrans')
 		ax.set_ylabel('Frequency')
 		for key in ('pos','neg'):
