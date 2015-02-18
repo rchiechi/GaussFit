@@ -465,7 +465,7 @@ class Parse():
 		if key == 'LogY':
 			ax.set_title("Semilog Plot of Initial Data")
 			ax.set_xlabel("Potenial (V)")
-			ax.set_ylabel(r'Current Density $log_{10}|J(A cm^{-2})|$')
+			ax.set_ylabel(r'Current Density $log_{10}|J(\mathrm{A cm^{-2}})|$')
 		i = -1
 		while True:
 			i += 1
@@ -478,7 +478,7 @@ class Parse():
 		xax.sort()
 		ax.set_title("Derivitive of Initial Data")
 		ax.set_xlabel("Potential (V)")
-		ax.set_ylabel(r'$\d{J}{V}$')
+		ax.set_ylabel(r'$\frac{dJ}{dV}$')
 		ax.set_ylim(-0.05,0.25)
 		i = -1
 		while True:
@@ -491,7 +491,7 @@ class Parse():
 	def PlotHist(self,ax):
 		ax.set_title("Gaussian Fit and Intial Data")
 		ax.set_xlabel('Potential (V)')
-		ax.set_ylabel(r'Current Density $log_{10}|J(A cm^{-2})|$')
+		ax.set_ylabel(r'Current Density $log_{10}|J(\mathrm{A cm}^{-2})|$')
 		Y, Yerr = [],[]
 		for x in self.X:
 			Y.append(self.XY[x]["hist"]["mean"])
@@ -507,11 +507,11 @@ class Parse():
 			ax.plot(self.FN[key]['bin'], self.FN[key]['fit'], lw=2.0, color='b', label='Fit')
 
 	def DoPlots(self, plt):
-		fig = plt.figure(figsize=(15,10))
-		ax1 = fig.add_axes([0.1, 0.55, 0.4, 0.4])
-		ax2 = fig.add_axes([0.6, 0.55, 0.4, 0.4])
-		ax3 = fig.add_axes([0.1, 0.05, 0.4, 0.4])
-		ax4 = fig.add_axes([0.6, 0.05, 0.4, 0.4])
+		fig = plt.figure(figsize=(16,10))
+		ax1 = fig.add_axes([0.06, 0.55, 0.4, 0.4])
+		ax2 = fig.add_axes([0.56, 0.55, 0.4, 0.4])
+		ax3 = fig.add_axes([0.06, 0.05, 0.4, 0.4])
+		ax4 = fig.add_axes([0.56, 0.05, 0.4, 0.4])
 		#self.PlotData('Y', ax1, '-')
 		self.PlotDJDV(ax1)
 		self.PlotData('LogY',ax2,':',lw=0.25, color='c')
