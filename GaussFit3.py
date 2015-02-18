@@ -465,7 +465,7 @@ class Parse():
 		if key == 'LogY':
 			ax.set_title("Semilog Plot of Initial Data")
 			ax.set_xlabel("Potenial (V)")
-			ax.set_ylabel(r'Current Density $log_{10}|J(A cm^{-2})|')
+			ax.set_ylabel(r'Current Density $log_{10}|J(A cm^{-2})|$')
 		i = -1
 		while True:
 			i += 1
@@ -478,8 +478,8 @@ class Parse():
 		xax.sort()
 		ax.set_title("Derivitive of Initial Data")
 		ax.set_xlabel("Potential (V)")
-		ax.set_ylabel(r'\d{J}{V}')
-		ax.set_ylim(-0.25,0.25)
+		ax.set_ylabel(r'$\d{J}{V}$')
+		ax.set_ylim(-0.05,0.25)
 		i = -1
 		while True:
 			i += 1
@@ -491,7 +491,7 @@ class Parse():
 	def PlotHist(self,ax):
 		ax.set_title("Gaussian Fit and Intial Data")
 		ax.set_xlabel('Potential (V)')
-		ax.set_ylabel(r'Current Density $log_{10}|J(A cm^{-2})|')
+		ax.set_ylabel(r'Current Density $log_{10}|J(A cm^{-2})|$')
 		Y, Yerr = [],[]
 		for x in self.X:
 			Y.append(self.XY[x]["hist"]["mean"])
@@ -500,7 +500,7 @@ class Parse():
 
 	def PlotVtrans(self,ax):
 		ax.set_title(r'Histogram and fit of $V_{trans}$')
-		ax.set_xlabel('Vtrans')
+		ax.set_xlabel(r'$V_{trans}$')
 		ax.set_ylabel('Frequency')
 		for key in ('pos','neg'):
 			ax.bar(self.FN[key]['bin'], self.FN[key]['freq'], width=0.01, color='g')
