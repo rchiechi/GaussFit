@@ -37,8 +37,8 @@ def ShowUsage():
 		-n	--nowrite	Don't write output files (implies -p)
 		-c	--compliance	set compliance limit for gaussian fits (default: inf)
 		-D      --dir           Output directory (merged with --output)
-		-G      --GUI           Launch the GUI%(rs)s
-		-S	--smooth	Compute Vtrans from the derivitve of the cubic spline
+		-G      --GUI           Launch the GUI
+		-S	--smooth	Compute Vtrans from the derivitve of the cubic spline%(rs)s
 
 	''' % {'path':os.path.basename(sys.argv[0]) ,'rs':RS,'y':YELLOW,'b':BLUE,'r':RED,'t':TEAL,'g':GREEN,'w':WHITE})
 	sys.exit()
@@ -236,6 +236,7 @@ class Parse():
 		self.X.sort()
 		self.FN["neg"], self.FN["pos"] = self.findmin()
 		self.R = self.dorect()
+		self.DJDV = self.dodjdv()
 
 	def dorect(self):
 		R = {}
@@ -261,7 +262,25 @@ class Parse():
 			#print(R[x]['hist'])
 		R['X'] = np.array(sorted(R.keys()))
 		return R
-
+	
+	def dodjdv(self):
+		spls = {}
+		xs = np.linspace(self.X.min(), self.X.max(), 500)
+		for x in xs:
+			spls[x] = []
+		i = -1
+		while True:
+			try:
+				i += 1
+				y = []
+				for x in self.X:
+					y.append(self.XY[x]['Y'][i])
+				spl = UnivariateSpline( self.X, y, k=4).derivative()
+				for x in spls:
+					spls[x].append(spl(x))
+			except IndexError:
+				break
+		return spls
 
 	def findmin(self):
 		neg_min_x, pos_min_x = [],[]
@@ -409,6 +428,19 @@ class Parse():
 			ofh.write("\t".join(["%0.4f"%x]+list(map(str,self.XY[x][key])))+"\n")
 		ofh.close()
 
+	def WriteDJDV(self):
+		#if log:	key,label ='LogY','LogJ'
+		#else:	key, label ='Y','data'
+		label = 'DJDV'
+		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt"), 'wt')
+		cols = ["Potential (V)"] + ['DJDV_%d'%x for x in range(1,len(self.DJDV[list(self.DJDV.keys())[0]])+1)]
+		ofh.write("\t".join(cols)+"\n")
+		X = list(self.DJDV.keys())
+		X.sort()
+		for x in X:
+			ofh.write("\t".join(["%0.4f"%x]+list(map(str,self.DJDV[x])))+"\n")
+		ofh.close()
+
 	def WriteRData(self):
 		key,label = 'r', 'R_data'
 		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt"), 'wt')
@@ -441,6 +473,19 @@ class Parse():
 				ax.plot(xax,[self.XY[x][key][i] for x in self.X], sym, **kw)
 			except IndexError:
 				break
+	def PlotDJDV(self,ax):
+		xax = list(self.DJDV.keys())
+		xax.sort()
+		ax.set_title("Derivitive of Initial Data")
+		ax.set_xlabel("Potential (V)")
+		ax.set_ylabel("dJ/dV")
+		i = -1
+		while True:
+			i += 1
+			try:
+				ax.plot(xax, [self.DJDV[x][i] for x in xax], "-")
+			except IndexError:
+				break
 
 	def PlotHist(self,ax):
 		ax.set_title("Gaussian Fit and Intial Data")
@@ -466,7 +511,8 @@ class Parse():
 		ax2 = fig.add_axes([0.55, 0.55, 0.4, 0.4])
 		ax3 = fig.add_axes([0.05, 0.05, 0.4, 0.4])
 		ax4 = fig.add_axes([0.55, 0.05, 0.4, 0.4])
-		self.PlotData('Y', ax1, '-')
+		#self.PlotData('Y', ax1, '-')
+		self.PlotDJDV(ax1)
 		self.PlotData('LogY',ax2,':',lw=0.25, color='c')
 		self.PlotData('FN', ax3, 'x', ms=2)
 		self.PlotHist(ax2)
@@ -483,6 +529,7 @@ def Go(opts):
 				parser.WriteFN()
 				parser.WriteGauss()
 				parser.WriteData()
+				parser.WriteDJDV()
 				parser.WriteData(True)
 				parser.WriteRData()
 				parser.WriteHistograms()
