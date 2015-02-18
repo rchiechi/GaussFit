@@ -21,8 +21,8 @@ def ShowUsage():
 		%(y)sThis program expects all X values in one column and all Y values in another.
 		Ideally, feed it *_data.txt files and it will take V and J. It can extract X- and 
 		Y-values from any two columns. Setting a compliance limit excludes Y > compliance
-		from gaussian fits and rescales plots for display, but it rarely influences fits.%(rs)s
-		The maxr parameter is needed to filter out huge values that occur when a junction shorts.
+		from gaussian fits and rescales plots for display, but it rarely influences fits.
+		The maxr parameter is needed to filter out huge values that occur when a junction shorts.%(rs)s
 
 		%(b)scmd	command		help (default)%(rs)s
 		%(g)s-h	--help		This help
@@ -292,7 +292,7 @@ class Parse():
 				pos,neg = {},{}
 				x_neg, y_neg, x_pos, y_pos = [],[],[],[]
 				for x in self.X:
-					if abs(self.XY[x]['Y'][i]).max() >= self.opts.compliance:
+					if abs(self.XY[x]['Y'][i]).max() >= self.opts.compliance and not self.opts.smooth:
 						tossed += 1
 						continue
 					y = self.XY[x]['FN'][i]
@@ -316,8 +316,14 @@ class Parse():
 				#print("DI/DV roots (-):",splneg.derivative().roots())
 				#print("DI/DV roots (+):",splpos.derivative().roots())
 				if self.opts.smooth:
-					neg_min_x.append(np.nanmin(splneg.derivative().roots()[0]))
-					pos_min_x.append(np.nanmin(splpos.derivative().roots()[0]))
+					rootneg = np.nanmin(splneg.derivative().roots()[0])
+					neg_min_x.append(rootneg[0])
+					rootpos = np.nanmin(splpos.derivative().roots()[0])
+					pos_min_x.append(rootpos[0])
+					if not rootneg[0] or rootpos[0]:
+						logging.warn("No minimum found in FN derivative.")
+					logging.debug("FN neg roots: "+str(len(rootneg)))
+					logging.debug("FN pos roots: "+str(len(rootpos)))
 				else:
 					neg_min_x.append(neg[np.nanmin(list(neg.keys()))])
 					pos_min_x.append(pos[np.nanmin(list(pos.keys()))])
@@ -501,7 +507,7 @@ class Parse():
 	def PlotVtrans(self,ax):
 		ax.set_title(r'Histogram and fit of $V_{trans}$')
 		ax.set_xlabel(r'$V_{trans}$')
-		ax.set_ylabel('Frequency')
+		ax.set_ylabel('Counts')
 		for key in ('pos','neg'):
 			ax.bar(self.FN[key]['bin'], self.FN[key]['freq'], width=0.01, color='g')
 			ax.plot(self.FN[key]['bin'], self.FN[key]['fit'], lw=2.0, color='b', label='Fit')
