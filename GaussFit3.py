@@ -508,10 +508,10 @@ class Parse():
 
 	def DoPlots(self, plt):
 		fig = plt.figure(figsize=(15,10))
-		ax1 = fig.add_axes([0.05, 0.55, 0.4, 0.4])
-		ax2 = fig.add_axes([0.55, 0.55, 0.4, 0.4])
-		ax3 = fig.add_axes([0.05, 0.05, 0.4, 0.4])
-		ax4 = fig.add_axes([0.55, 0.05, 0.4, 0.4])
+		ax1 = fig.add_axes([0.1, 0.55, 0.4, 0.4])
+		ax2 = fig.add_axes([0.6, 0.55, 0.4, 0.4])
+		ax3 = fig.add_axes([0.1, 0.05, 0.4, 0.4])
+		ax4 = fig.add_axes([0.6, 0.05, 0.4, 0.4])
 		#self.PlotData('Y', ax1, '-')
 		self.PlotDJDV(ax1)
 		self.PlotData('LogY',ax2,':',lw=0.25, color='c')
