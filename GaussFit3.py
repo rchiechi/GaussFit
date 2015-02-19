@@ -466,7 +466,7 @@ class Parse():
 			xax = 1/xax
 			ax.set_title("Fowler Nordheim Plot of Initial Data")
 			ax.set_xlabel(r'$V^{-1}$')
-			ax.set_ylabel(r'$ln(\frac{J}{V^2})$')
+			ax.set_ylabel(r'$\mathregular{ln(\frac{J}{V^2})}$')
 		if key == 'Y':
 			if self.opts.compliance != np.inf: ax.set_ylim( (-1*self.opts.compliance, self.opts.compliance) )
 			ax.set_title("Initial Data")
@@ -488,7 +488,7 @@ class Parse():
 		xax.sort()
 		ax.set_title("Derivitive of Initial Data")
 		ax.set_xlabel("Potential (V)")
-		ax.set_ylabel(r'$\frac{dJ}{dV}$')
+		ax.set_ylabel(r'$\mathregular{\frac{dJ}{dV}}$')
 		ax.set_ylim(-0.05,0.2)
 		i = -1
 		while True:
