@@ -475,7 +475,7 @@ class Parse():
 		if key == 'LogY':
 			ax.set_title("Semilog Plot of Initial Data")
 			ax.set_xlabel("Potenial (V)")
-			ax.set_ylabel(r'Current Density $log_{10}|J(\mathrm{A cm^{-2}})|$')
+			ax.set_ylabel(r'Current Density $\mathregular{log_{10}|J(\mathrm{A cm^{-2}})|}$')
 		i = -1
 		while True:
 			i += 1
