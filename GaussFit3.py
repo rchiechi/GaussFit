@@ -282,6 +282,15 @@ class Parse():
 				break
 		return spls
 
+	def getminroot(self, spl):
+		splvals = {}
+		for r in spl.derivative().roots():
+			splvals[float(spl(r))] = r
+		if not splvals:
+			return False
+		# Because we cannot fit 1/V the plots are flipped, so we take the max of the FN
+		return splvals[np.nanmax(list(splvals.keys()))]
+
 	def findmin(self):
 		neg_min_x, pos_min_x = [],[]
 		i = -1
@@ -309,25 +318,18 @@ class Parse():
 					logging.warn("Skipping empty column in FN calculation.")
 					continue
 
-				splneg = UnivariateSpline( x_neg, y_neg, k=4  )
-				splpos = UnivariateSpline( x_pos, y_pos, k=4 )
-				#print("Spline:",splneg(x_neg))
-				#print("Data:",y_neg)
-				#print("DI/DV roots (-):",splneg.derivative().roots())
-				#print("DI/DV roots (+):",splpos.derivative().roots())
 				if self.opts.smooth:
-					try:
-						logging.debug("Using interpolation on FN")
-						rootneg = np.nanmin(splneg.derivative().roots())
+					splneg = UnivariateSpline( x_neg, y_neg, k=4  )
+					splpos = UnivariateSpline( x_pos, y_pos, k=4 )
+					logging.debug("Using interpolation on FN")
+					rootneg = self.getminroot(splneg)
+					if rootneg:
 						neg_min_x.append(rootneg)
-						rootpos = np.nanmin(splpos.derivative().roots())
+					rootpos = self.getminroot(splpos)
+					if rootpos:
 						pos_min_x.append(rootpos)
-						if not rootneg or rootpos:
-							logging.warn("No minimum found in FN derivative.")
-						#logging.debug("FN neg roots: "+str(len(rootneg)))
-						#logging.debug("FN pos roots: "+str(len(rootpos)))
-					except Exception as msg:
-						logging.warn("Error computing Vtrans "+str(msg))
+					if not rootneg or not rootpos:
+						logging.warn("No minimum found in FN derivative (-):%s, (+):%s" % (rootneg, rootpos) )
 				else:
 					neg_min_x.append(neg[np.nanmin(list(neg.keys()))])
 					pos_min_x.append(pos[np.nanmin(list(pos.keys()))])
