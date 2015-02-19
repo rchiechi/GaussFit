@@ -319,13 +319,11 @@ class Parse():
 					continue
 
 				if self.opts.smooth:
-					splneg = UnivariateSpline( x_neg, y_neg, k=4  )
-					splpos = UnivariateSpline( x_pos, y_pos, k=4 )
 					logging.debug("Using interpolation on FN")
-					rootneg = self.getminroot(splneg)
+					rootneg = self.getminroot(UnivariateSpline( x_neg, y_neg, k=4 ))
 					if rootneg:
 						neg_min_x.append(rootneg)
-					rootpos = self.getminroot(splpos)
+					rootpos = self.getminroot(UnivariateSpline( x_pos, y_pos, k=4 ))
 					if rootpos:
 						pos_min_x.append(rootpos)
 					if not rootneg or not rootpos:
@@ -468,7 +466,7 @@ class Parse():
 			xax = 1/xax
 			ax.set_title("Fowler Nordheim Plot of Initial Data")
 			ax.set_xlabel(r'$V^{-1}$')
-			ax.set_ylabel(r'$ln(\frac{I}{V^2})$')
+			ax.set_ylabel(r'$ln(\frac{J}{V^2})$')
 		if key == 'Y':
 			if self.opts.compliance != np.inf: ax.set_ylim( (-1*self.opts.compliance, self.opts.compliance) )
 			ax.set_title("Initial Data")
@@ -491,7 +489,7 @@ class Parse():
 		ax.set_title("Derivitive of Initial Data")
 		ax.set_xlabel("Potential (V)")
 		ax.set_ylabel(r'$\frac{dJ}{dV}$')
-		ax.set_ylim(-0.05,0.25)
+		ax.set_ylim(-0.05,0.2)
 		i = -1
 		while True:
 			i += 1
@@ -501,7 +499,7 @@ class Parse():
 				break
 
 	def PlotHist(self,ax):
-		ax.set_title("Gaussian Fit and Intial Data")
+		ax.set_title("Gaussian Fit and Raw Data")
 		ax.set_xlabel('Potential (V)')
 		ax.set_ylabel(r'Current Density $log_{10}|J(\mathrm{A cm}^{-2})|$')
 		Y, Yerr = [],[]
