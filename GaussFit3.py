@@ -166,6 +166,7 @@ class Parse():
 		self.compliance_traces = []
 		self.ohmic = []
 		self.DJDV = {}
+		self.filtered = []
 		self.R = {}
 
 	def isfloat(self,f):
@@ -254,7 +255,7 @@ class Parse():
 				   "FN":np.array(fn) }
 		self.X = np.array(sorted(self.XY.keys()))
 		self.X.sort()
-		self.DJDV = self.dodjdv() # This must come first for self.ohmic to be populated
+		self.DJDV, self.filtered = self.dodjdv() # This must come first for self.ohmic to be populated
 		self.FN["neg"], self.FN["pos"] = self.findmin()
 		self.R = self.dorect()
 
@@ -285,21 +286,25 @@ class Parse():
 	
 	def dodjdv(self):
 		spls = {}
+		filtered = [('Potential', 'dY/dV', 'Y')]
 		for x in np.linspace(self.X.min(), self.X.max(), 100): spls[x] = []
 		i = -1
 		while True:
 			i += 1
 			try:
-				y = []
+				y,yf = [],[]
 				for x in self.X: y.append(self.XY[x]['Y'][i])
 				spl = UnivariateSpline( self.X, y, k=4).derivative()
 				for x in spls: spls[x].append(spl(x))
 				if spl(self.X.min()) < 0 or spl(self.X.max()) < 0:
 					self.ohmic.append(i)
+				else:
+					for x in self.X:
+						filtered.append( (x, spl(x), self.XY[x]['Y'][i]) )
 			except IndexError:
 				break
 		logging.info("Non-tunneling traces: %s" % len(self.ohmic))
-		return spls
+		return spls, filtered
 
 	def getminroot(self, spl):
 		splvals = {}
@@ -474,6 +479,12 @@ class Parse():
 			ofh.write("\t".join(["%0.4f"%x]+list(map(str,self.DJDV[x])))+"\n")
 		ofh.close()
 
+	def WriteFiltered(self):
+		label = 'filtered'
+		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt"), 'wt')
+		for l in self.filtered:
+			ofh.write("\t".join(list(map(str,l)))+"\n")
+
 	def WriteRData(self):
 		key,label = 'r', 'R_data'
 		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt"), 'wt')
@@ -567,6 +578,7 @@ def Go(opts):
 				parser.WriteGauss()
 				parser.WriteData()
 				parser.WriteDJDV()
+				parser.WriteFiltered()
 				parser.WriteData(True)
 				parser.WriteRData()
 				parser.WriteHistograms()
