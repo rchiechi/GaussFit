@@ -38,7 +38,8 @@ def ShowUsage():
 		-c	--compliance	set compliance limit for gaussian fits (default: inf)
 		-D      --dir           Output directory (merged with --output)
 		-G      --GUI           Launch the GUI
-		-M	--min		Compute Vtrans from the min(Y) instead of the derivitve of the cubic spline%(rs)s
+		-M	--min		Compute Vtrans from the min(Y) instead of the derivitve of the cubic spline
+		-s	--skip		Skip plots with negative dJ/dV values at Vmin/Vmax for Vtrans calcuation%(rs)s
 
 	''' % {'path':os.path.basename(sys.argv[0]) ,'rs':RS,'y':YELLOW,'b':BLUE,'r':RED,'t':TEAL,'g':GREEN,'w':WHITE})
 	sys.exit()
@@ -56,16 +57,17 @@ class Opts:
 
 	def __init__(self):
 		try:
-			opts, self.in_files = gnu_getopt(sys.argv[1:], "hb:l:d:o:X:,Y:m:pc:nD:GM", ["help" , "bins", \
-									"loglevel=",\
-									"delimeter=","output=", "Xcol", "Ycol", "maxr"
-									"plot", "compliance", "nowrite","dir:","GUI","min"])
+			opts, self.in_files = gnu_getopt(sys.argv[1:], 
+					"hb:l:d:o:X:,Y:m:pc:nD:GMs", ["help" , "bins", \
+					"loglevel=",\
+					"delimeter=","output=", "Xcol", "Ycol", "maxr"
+					"plot", "compliance", "nowrite","dir:","GUI","min","skip"])
 		except GetoptError:
 			error("Invalid option(s)")
 			ShowUsage()
 		
 
-		#Set Defaults
+		# Set Defaults
 		
 		LOGLEVEL = logging.INFO
 		LOG = False
@@ -80,6 +82,8 @@ class Opts:
 		self.GUI=False
 		self.out_dir = os.environ['PWD']
 		self.smooth = True
+		self.skipohmic = False
+		# # #
 
 		if len(self.in_files):
 			template = os.path.basename(self.in_files[0])
@@ -135,6 +139,8 @@ class Opts:
                                 self.GUI = True
 			if opt in ('-M', '--min'):
                                 self.smooth = False
+			if opt in ('-s', '--skip'):
+				self.skipohmic = True
 
 ##                self.logger = logging.getLogger('CLI')
 		if LOG:
@@ -157,7 +163,11 @@ class Parse():
 		self.XY ={}
 		self.X = np.array([])
 		self.FN = {}
-		self.compliance_traces = []	
+		self.compliance_traces = []
+		self.ohmic = []
+		self.DJDV = {}
+		self.R = {}
+
 	def isfloat(self,f):
 		try:
 			float(f)
@@ -184,7 +194,11 @@ class Parse():
 		uniqueX = {}
 		for fn in fns:
 			logging.info("Parsing %s%s%s", TEAL,fn,YELLOW)
-			fh = open(fn, 'rt')
+			try:
+				fh = open(fn, 'rt')
+			except FileNotFoundError:
+				logging.error("%s not found." % fn)
+				continue
 			firstline = self.splitline(fh.readline())
 			numcol = len(firstline)
 			if numcol < Ycol:
@@ -218,9 +232,15 @@ class Parse():
 					z = np.NAN
 					if x != 0.0: logging.error("Couldn't comput FN for %f, %f", x, y, exc_info=True)
 				self.parsed[line_idx]=(x,y,z)
-				if x in uniqueX.keys(): uniqueX[x][line_idx]=(y,z)
-				else: uniqueX[x]={line_idx:(y,z)}
+				if x in uniqueX.keys(): 
+					uniqueX[x][line_idx]=(y,z)
+				else: 
+					uniqueX[x]={line_idx:(y,z)}
 				line_idx += 1
+
+		if not len(uniqueX):
+			logging.error("No files parsed.")
+			sys.exit()
 
 		for x in uniqueX:
 			logging.debug('Pulling Y where X=%0.2f', x)
@@ -234,9 +254,9 @@ class Parse():
 				   "FN":np.array(fn) }
 		self.X = np.array(sorted(self.XY.keys()))
 		self.X.sort()
+		self.DJDV = self.dodjdv() # This must come first for self.ohmic to be populated
 		self.FN["neg"], self.FN["pos"] = self.findmin()
 		self.R = self.dorect()
-		self.DJDV = self.dodjdv()
 
 	def dorect(self):
 		R = {}
@@ -265,21 +285,20 @@ class Parse():
 	
 	def dodjdv(self):
 		spls = {}
-		xs = np.linspace(self.X.min(), self.X.max(), 100)
-		for x in xs:
-			spls[x] = []
+		for x in np.linspace(self.X.min(), self.X.max(), 100): spls[x] = []
 		i = -1
 		while True:
+			i += 1
 			try:
-				i += 1
 				y = []
-				for x in self.X:
-					y.append(self.XY[x]['Y'][i])
+				for x in self.X: y.append(self.XY[x]['Y'][i])
 				spl = UnivariateSpline( self.X, y, k=4).derivative()
-				for x in spls:
-					spls[x].append(spl(x))
+				for x in spls: spls[x].append(spl(x))
+				if spl(self.X.min()) < 0 or spl(self.X.max()) < 0:
+					self.ohmic.append(i)
 			except IndexError:
 				break
+		logging.info("Non-tunneling traces: %s" % len(self.ohmic))
 		return spls
 
 	def getminroot(self, spl):
@@ -295,8 +314,12 @@ class Parse():
 		neg_min_x, pos_min_x = [],[]
 		i = -1
 		tossed = 0
+		if self.opts.skipohmic:
+			logging.info("Skipping %s non-tunneling traces for Vtrans calculation." % len(self.ohmic))
 		while True:
 			i += 1
+			if i in self.ohmic and self.opts.skipohmic:
+				continue
 			try:
 				pos,neg = {},{}
 				x_neg, y_neg, x_pos, y_pos = [],[],[],[]
@@ -494,7 +517,10 @@ class Parse():
 		while True:
 			i += 1
 			try:
-				ax.plot(xax, [self.DJDV[x][i] for x in xax], "-")
+				if i not in self.ohmic:
+					ax.plot(xax, [self.DJDV[x][i] for x in xax], "-", lw=2)
+				else:
+					ax.plot(xax, [self.DJDV[x][i] for x in xax], "-", lw=0.5, color='c')
 			except IndexError:
 				break
 
