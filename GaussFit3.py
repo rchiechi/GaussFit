@@ -45,9 +45,10 @@ def ShowUsage():
 	''' % {'path':os.path.basename(sys.argv[0]) ,'rs':RS,'y':YELLOW,'b':BLUE,'r':RED,'t':TEAL,'g':GREEN,'w':WHITE})
 	sys.exit()
 try:
-	from scipy.optimize import curve_fit
+	from scipy.optimize import curve_fit,OptimizeWarning
 	from scipy.interpolate import UnivariateSpline
 	import numpy as np
+	warnings.filterwarnings('ignore','.*Covariance of the parameters.*',OptimizeWarning)
 
 except ImportError as msg:
 	print("\n\t\t%s> > > Error importing numpy/scipy! %s%s%s < < <%s" % (RED,RS,str(msg),RED,RS))
@@ -265,9 +266,14 @@ class Parse():
 				   "FN":np.array(fn) }
 		self.X = np.array(sorted(self.XY.keys()))
 		self.X.sort()
+		logging.info("Done parsing input data")
+		print("* * * * * * Computing dY/dX  * * * * * * * *")
 		self.DJDV, self.filtered = self.dodjdv() # This must come first for self.ohmic to be populated
+		print("* * * * * * Computing Vtrans * * * * * * * *")
 		self.FN["neg"], self.FN["pos"] = self.findmin()
+		print("* * * * * * Computing |R|  * * * * * * * * *")
 		self.R = self.dorect()
+		print("* * * * * * * * * * * * * * * * * * *")
 
 	def dorect(self):
 		R = {}
@@ -300,6 +306,10 @@ class Parse():
 		else:
 			vhigh = self.opts.vcutoff
 			vlow = -1*self.opts.vcutoff
+		
+		if vhigh > self.X.max() or vlow < self.X.min():
+			logging.warn("Vcutoff is out of range of input data")
+
 		spls = {}
 		filtered = [('Potential', 'dY/dV', 'Y')]
 		for x in np.linspace(self.X.min(), self.X.max(), 100): spls[x] = []
@@ -411,6 +421,7 @@ class Parse():
 	def PrintFN(self):
 		for key in ('pos', 'neg'):
 			print("|Vtrans %s| mean: %0.4f variance: %f" % (key, self.FN[key]['mean'], self.FN[key]['var']) )
+		print("* * * * * * * * * * * * * * * * * * *")
 
 	def WriteHistograms(self):
 		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms.txt"), 'wt')
@@ -546,7 +557,7 @@ class Parse():
 				if i not in self.ohmic:
 					ax.plot(xax, [self.DJDV[x][i] for x in xax], "-", lw=2)
 				else:
-					ax.plot(xax, [self.DJDV[x][i] for x in xax], "-", lw=0.5, color='c')
+					ax.plot(xax, [self.DJDV[x][i] for x in xax], "-", lw=0.5, color='grey')
 			except IndexError:
 				break
 
@@ -597,6 +608,7 @@ def Go(opts):
 				parser.WriteData(True)
 				parser.WriteRData()
 				parser.WriteHistograms()
+		parser.PrintFN()
 		if opts.plot:
 				logging.info("Generating plots...")
 				try:
@@ -605,7 +617,6 @@ def Go(opts):
 						plt.show()
 				except ImportError as msg:
 						logging.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
-		parser.PrintFN()
 	
 
 if __name__ == "__main__":
