@@ -30,7 +30,7 @@ BLUE="\033[1;34m"
 RS="\033[0m"
 CL="\033[2K"
 
-import sys,os,logging,warnings
+import sys,os,logging,warnings,csv
 from getopt import gnu_getopt, GetoptError
 
 warnings.filterwarnings('ignore','.*divide by zero.*',RuntimeWarning)
@@ -69,6 +69,7 @@ try:
 	from scipy.optimize import curve_fit,OptimizeWarning
 	from scipy.interpolate import UnivariateSpline
 	import numpy as np
+	# SciPy throws a useless warning for noisy J/V traces
 	warnings.filterwarnings('ignore','.*Covariance of the parameters.*',OptimizeWarning)
 
 except ImportError as msg:
@@ -77,7 +78,7 @@ except ImportError as msg:
 
 
 class Opts:
-
+	''' Parse commandline options and perform some basic checks.'''
 	def __init__(self):
 		try:
 			opts, self.in_files = gnu_getopt(sys.argv[1:], 
@@ -90,11 +91,8 @@ class Opts:
 			print(RED+"Invalid option(s)"+RS)
 			ShowUsage()
 		
-
 		# Set Defaults
-		
 		LOGLEVEL = logging.INFO
-		LOG = False
 		self.Xcol = 0
 		self.Ycol = 2
 		self.maxr = 10.0
@@ -173,22 +171,28 @@ class Opts:
 					print(RED+"\n\t\t> > > vcutoff must be a number! < < <"+RS)
 					ShowUsage()
 
-
-##                self.logger = logging.getLogger('CLI')
+		# Set up terminal logging. Set LOG to a file for debugging.
+		LOG = False
 		if LOG:
 			logging.basicConfig(level=LOGLEVEL,format = '%(asctime)s %(process)d %(levelname)s %(message)s', filename=LOG,filemode='a+')
-##		elif self.GUI:
-##			print("Loading GUI settings")
-##			logging.basicConfig(level=LOGLEVEL,format = os.path.basename(sys.argv[0])+' %(levelname)s %(message)s')
 		else:
 			logging.basicConfig(level=LOGLEVEL,format = GREEN+os.path.basename(sys.argv[0]+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE)
 
 		if not len(self.in_files) and not self.GUI:
 			print(RED+"\n\t\t> > > No input files! < < < "+RS)
 			ShowUsage()
+		# Setup CSV parser dialect
+		csv.register_dialect('JV', delimiter=self.delim, 
+				quoting=csv.QUOTE_MINIMAL)
 
 class Parse():
-
+	'''
+	This is the main parsing class that takes input data
+	in the form of text files, parses them into dictionary
+	and list attributes and provides methods for performing
+	operations: Gaussian fits, F-N calculations, Rectification,
+	Vtrans, and dJ/DV.
+	'''
 	def __init__(self,opts):
 		self.opts = opts
 		self.parsed = {}
@@ -200,19 +204,12 @@ class Parse():
 		self.DJDV = {}
 		self.filtered = []
 		self.R = {}
-
 	def isfloat(self,f):
 		try:
 			float(f)
 			return True
 		except ValueError:
 			return False
-	def splitline(self,l):
-		columns = []
-		for n in l.strip('\n').strip('\r').split(self.opts.delim):
-			if n:
-				columns.append(n)
-		return columns
 	def tofloat(self, f):
 		try:
 			f = float(f)
@@ -221,6 +218,8 @@ class Parse():
 		return f
 		
 	def ReadFiles(self, fns):
+		''' Walk through input files and parse
+		them into attributes '''
 		Ycol = self.opts.Ycol
 		Xcol = self.opts.Xcol
 		line_idx = 0
@@ -228,28 +227,35 @@ class Parse():
 		for fn in fns:
 			logging.info("Parsing %s%s%s", TEAL,fn,YELLOW)
 			try:
-				fh = open(fn, 'rt')
+				rows = []
+				with open(fn, 'rt', newline='') as csvfile:
+					for row in csv.reader(csvfile, dialect='JV'):
+						rows.append(row)
 			except FileNotFoundError:
 				logging.error("%s not found." % fn)
 				continue
-			firstline = self.splitline(fh.readline())
-			numcol = len(firstline)
+			except csv.ERROR:
+				logging.error("Error parsing %s" % fn)
+				continue
+			labels = []
+			numcol = 0
+			for label in rows[0]:
+				if label:
+					numcol +=1 # Only count non-empty columns
+					if not self.isfloat(label):
+						labels.append(label)
 			if numcol < Ycol:
 				logging.critical("Ycol > total number of columns! (%d > %d)", Ycol, numcol)
 				logging.warn("%sNot importing:%s %s!", RED, YELLOW,fn)
 				continue
 			logging.debug("Found "+str(numcol)+" columns in "+fn)
-			labels = []
-			if self.isfloat(firstline[0]):
-				logging.debug("No labels found in first row.")
-				fh.seek(0)
-			else:
+			if 0 < len(labels) >= Ycol:
 				logging.debug("Assuming first row is column labels")
-				for l in firstline:
-					labels.append(l)
-				logging.info("Y column is %s." , labels[Ycol])
-			for l in fh.readlines():
-				row = self.splitline(l)
+				logging.info('Y column is "%s"' % labels[Ycol])
+				del(rows[0])
+			else:
+				logging.debug("No labels found in first row.")
+			for row in rows:
 				if len(row) < numcol:
 					logging.warning("Mismatch in %s, expecting %d colums, got %d", labels[Ycol], numcol, len(row))
 					continue
@@ -258,7 +264,6 @@ class Parse():
 					logging.warn("Treating invalid Y %f as NAN", y)
 				if x == np.NAN:
 					logging.warn("Treating invalid X %f as NAN", x)
-
 				try:
 					z = np.log( abs(y)/x**2 )
 				except:
@@ -273,9 +278,12 @@ class Parse():
 
 		if not len(uniqueX):
 			logging.error("No files parsed.")
-			sys.exit()
+			sys.exit() # Otherwise we loop over an empty uniqueX forever
 
 		for x in uniqueX:
+			# Gather each unique X (usually Voltage) value
+			# and pull the Y (usually current-density) values
+			# associated with it
 			logging.debug('Pulling Y where X=%0.2f', x)
 			y, fn = [], []
 			for i in sorted(uniqueX[x].keys()): y.append(uniqueX[x][i][0]), fn.append(uniqueX[x][i][1])
@@ -289,7 +297,7 @@ class Parse():
 		self.X.sort()
 		logging.info("Done parsing input data")
 		print("* * * * * * Computing dY/dX  * * * * * * * *")
-		self.DJDV, self.filtered = self.dodjdv() # This must come first for self.ohmic to be populated
+		self.DJDV, self.filtered = self.dodjdv() # This must come first for self.ohmic to be populated!
 		print("* * * * * * Computing Vtrans * * * * * * * *")
 		self.FN["neg"], self.FN["pos"] = self.findmin()
 		print("* * * * * * Computing |R|  * * * * * * * * *")
@@ -297,6 +305,17 @@ class Parse():
 		print("* * * * * * * * * * * * * * * * * * *")
 
 	def dorect(self):
+		''' 
+		Divide each value of Y at +V by Y at -V
+		and build a histogram of rectification, R
+		WARNING: There is no way to ensure that
+		each value of Y is being divided by the
+		corresponding value from the same J/V trace
+		because we cannot guarantee that all input
+		files are formatted identically and have 
+		identical, complete sweeps with the same
+		spacing of V.
+		'''
 		R = {}
 		for x in self.X:
 			if x <= 0: continue
@@ -305,32 +324,32 @@ class Parse():
 				continue
 			ypos, yneg = self.XY[x]["Y"], self.XY[-1*x]["Y"]
 			if len(ypos) != len(yneg):
+				# TODO: This should never be allowed to happen by the input parser!
 				logging.warn("(Rectification) Length of Y values differs for +/-%d.",x)
 				continue
 			r = []
 			for i in range(0, len(ypos)):
+				# NOTE: We do not filter for maxr here, rather in the Gaussian calcualtion
 				_r = abs(ypos[i]/yneg[i])
-				#if _r > self.opts.maxr:
-				#	logging.warn("Rejecting R=%0.4f at V=%0.2f because it exceeds maxR (%0.1f)", _r, x, self.opts.maxr)
-				#	continue
 				r.append( abs(ypos[i]/yneg[i]) )	
 			R[x]={'r': np.array(r)}
 		for x in R:
 			R[x]['hist'] = self.dohistogram(R[x]['r'],"R")
-			#print(R[x]['hist'])
 		R['X'] = np.array(sorted(R.keys()))
 		return R
 	
 	def dodjdv(self):
+		'''
+		Fit a spline function to X/Y data and 
+		compute dY/dX
+		'''
 		if self.opts.vcutoff < 0:
 			vlow,vhigh = self.X.min(),self.X.max()
 		else:
 			vhigh = self.opts.vcutoff
 			vlow = -1*self.opts.vcutoff
-		
 		if vhigh > self.X.max() or vlow < self.X.min():
 			logging.warn("Vcutoff is out of range of input data")
-
 		spls = {}
 		filtered = [('Potential', 'dY/dV', 'Y')]
 		for x in np.linspace(self.X.min(), self.X.max(), 100): spls[x] = []
@@ -340,12 +359,16 @@ class Parse():
 			try:
 				y,yf = [],[]
 				for x in self.X: y.append(self.XY[x]['Y'][i])
+				# k (smoothing)  must be 4 for 
+				# the derivative to be cubic (k=3)
 				spl = UnivariateSpline( self.X, y, k=4).derivative()
 				for x in spls: spls[x].append(spl(x))
 				if spl(vlow) <= 0 or spl(vhigh) <= 0:
-					self.ohmic.append(i)
+					# record in the index where dY/dX is negative at vcutoff
+					self.ohmic.append(i)  
 				else:
 					for x in self.X:
+						# filtered is a list containing only "clean" traces
 						filtered.append( (x, spl(x), self.XY[x]['Y'][i]) )
 			except IndexError:
 				break
@@ -353,19 +376,32 @@ class Parse():
 		return spls, filtered
 
 	def getminroot(self, spl):
+		'''
+		Return the root of the first derivative of a spline function
+		that results in the lowest value of ln(Y/X^2) vs. 1/X
+		'''
 		splvals = {}
 		for r in spl.derivative().roots():
 			splvals[float(spl(r))] = r
 		if not splvals:
 			return False
-		# Because we cannot fit 1/V the plots are flipped, so we take the max of the FN
+		# Because UnivariateSpline crashes when we use 
+		# 1/X, the plots are flipped so we take the max
 		return splvals[np.nanmax(list(splvals.keys()))]
 
 	def findmin(self):
+		'''
+		Find the toughs of ln(Y/X^2) vs. 1/X plots
+		i.e., Vtrans, by either interpolating the data with
+		a spline function and finding X where dY/dX = 0
+		that gives the most negative value of Y (opts.smooth)
+		or simply the most negative value of Y (! opts.smooth)
+		'''
 		neg_min_x, pos_min_x = [],[]
 		i = -1
 		tossed = 0
 		if self.opts.skipohmic:
+			# Vtrans has no physical meaning for curves with negative derivatives
 			logging.info("Skipping %s non-tunneling traces for Vtrans calculation." % len(self.ohmic))
 		while True:
 			i += 1
@@ -375,6 +411,7 @@ class Parse():
 				pos,neg = {},{}
 				x_neg, y_neg, x_pos, y_pos = [],[],[],[]
 				for x in self.X:
+					# Without smoothing, we have to toss shorts or we get nonsense values
 					if abs(self.XY[x]['Y'][i]).max() >= self.opts.compliance and not self.opts.smooth:
 						tossed += 1
 						continue
@@ -391,7 +428,6 @@ class Parse():
 				if not len(neg.keys()) or not len(pos.keys()):
 					logging.warn("Skipping empty column in FN calculation.")
 					continue
-
 				if self.opts.smooth:
 					logging.debug("Using interpolation on FN")
 					rootneg = self.getminroot(UnivariateSpline( x_neg, y_neg, k=4 ))
@@ -414,10 +450,22 @@ class Parse():
 		return self.dohistogram(neg_min_x, "Vtrans(-)"), self.dohistogram(pos_min_x, "Vtrans(+)")
 
 	def gauss(self, x, *p):
+		'''
+		Return a gaussian function
+		'''
 		A, mu, sigma = p
 		return A*np.exp(-(x-mu)**2/(2.*sigma**2))
 	
 	def dohistogram(self, Y, label=""):
+		'''
+		Return a histogram of Y-values and a gaussian
+		fit of the histogram, excluding values that
+		exceed either the compliance limit (for current
+		or current-density) or the ceiling for R. We 
+		would like to include all data in the histogram,
+		but outliers sometimes confuse the fitting
+		routine, which defeats the purpose of machine-fitting
+		'''
 		j_compliance = np.nonzero(abs(Y) > self.opts.compliance)
 		r_compliance = np.nonzero(abs(Y) > self.opts.maxr)
 		if len(j_compliance[0]) and label == "J":
@@ -431,6 +479,8 @@ class Parse():
 		p0 = [1., Y.mean(), Y.std()]
 		bin_centers = (bins[:-1] + bins[1:])/2
 		try:
+			# NOTE: maxfev is hard-coded at 10000 because larger values are slow
+			# and don't offer any advantage, but we still want to iterate to find the best fit
 			coeff, var_matrix = curve_fit(self.gauss, bin_centers, freq, p0=p0, maxfev=10000)
 			hist_fit = self.gauss(bin_centers, *coeff)
 		except RuntimeError as msg:
@@ -440,106 +490,213 @@ class Parse():
 		return {"bin":bin_centers, "freq":freq, "mean":coeff[1], "std":coeff[2], "var":coeff[2]**2, "bins":bins, "fit":hist_fit}
 
 	def PrintFN(self):
+		'''
+		Print Vtrans values to the command line for convinience
+		'''
 		for key in ('pos', 'neg'):
 			print("|Vtrans %s| mean: %0.4f variance: %f" % (key, self.FN[key]['mean'], self.FN[key]['var']) )
 		print("* * * * * * * * * * * * * * * * * * *")
 
+	############################################
+	# Method for writing/plotting parsed data  #
+	############################################
+
+	# NOTE: We make a lot of assumptions about input data in writing column headers
+	# and plot axes. Perhaps in the future these can be customized, but that is a 
+	# substantial underatking.
+
 	def WriteHistograms(self):
-		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms.txt"), 'wt')
-		for x in self.X: ofh.write("\t".join( ("Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x) )+"\t" )
-		ofh.write('\n')
-		for i in range(0, len( self.XY[list(self.XY.keys())[0]]['hist']['bin'] ) ):
-			for x in self.X: ofh.write("\t".join( ("%0.4f"%self.XY[x]['hist']['bin'][i], \
-						"%0.2d"%self.XY[x]['hist']['freq'][i], \
-						"%0.2d"%self.XY[x]['hist']['fit'][i]) )+"\t" )
-			ofh.write('\n')
-		ofh.close()
-		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_R_Histograms.txt"), 'wt')
-		for x in self.R['X']: ofh.write("\t".join( ("|R| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x) )+"\t" )
-		ofh.write('\n')
-		for i in range(0, len( self.R[list(self.R.keys())[0]]['hist']['bin'] ) ):
-			for x in self.R['X']: ofh.write("\t".join( ("%0.4f"%self.R[x]['hist']['bin'][i], \
-						"%0.2d"%self.R[x]['hist']['freq'][i], \
-						"%0.2d"%self.R[x]['hist']['fit'][i]) )+"\t" )
-			ofh.write('\n')
-		ofh.close()
+		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms.txt")
+		with open(fn, 'w', newline='') as csvfile:
+			writer = csv.writer(csvfile, dialect='JV')
+			headers = []
+			for x in self.X: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
+			writer.writerow(headers)
+			for i in range(0, len( self.XY[list(self.XY.keys())[0]]['hist']['bin'] ) ):
+				row = []
+				for x in self.X: row += ["%0.4f"%self.XY[x]['hist']['bin'][i], 
+						         "%0.2d"%self.XY[x]['hist']['freq'][i],
+							 "%0.2d"%self.XY[x]['hist']['fit'][i]]
+				writer.writerow(row)
+		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_R_Histograms.txt")
+		with open(fn, 'w', newline='') as csvfile:
+			writer = csv.writer(csvfile, dialect='JV')
+			headers = []
+			for x in self.R['X']: headers += ["|R| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
+			writer.writerow(headers)
+			for i in range(0, len( self.R[list(self.R.keys())[0]]['hist']['bin'] ) ):
+				row = []
+				for x in self.R['X']: row += ["%0.4f"%self.R[x]['hist']['bin'][i],
+						         "%0.2d"%self.R[x]['hist']['freq'][i],
+						         "%0.2d"%self.R[x]['hist']['fit'][i]]
+				writer.writerow(row)
+
+#	def WriteHistogramsOLD(self):
+#		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms.txt"), 'wt')
+#		for x in self.X: ofh.write("\t".join( ("Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x) )+"\t" )
+#		ofh.write('\n')
+#		for i in range(0, len( self.XY[list(self.XY.keys())[0]]['hist']['bin'] ) ):
+#			for x in self.X: ofh.write("\t".join( ("%0.4f"%self.XY[x]['hist']['bin'][i], \
+#						"%0.2d"%self.XY[x]['hist']['freq'][i], \
+#						"%0.2d"%self.XY[x]['hist']['fit'][i]) )+"\t" )
+#			ofh.write('\n')
+#		ofh.close()
+#		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_R_Histograms.txt"), 'wt')
+#		for x in self.R['X']: ofh.write("\t".join( ("|R| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x) )+"\t" )
+#		ofh.write('\n')
+#		for i in range(0, len( self.R[list(self.R.keys())[0]]['hist']['bin'] ) ):
+#			for x in self.R['X']: ofh.write("\t".join( ("%0.4f"%self.R[x]['hist']['bin'][i], \
+#						"%0.2d"%self.R[x]['hist']['freq'][i], \
+#						"%0.2d"%self.R[x]['hist']['fit'][i]) )+"\t" )
+#			ofh.write('\n')
+#		ofh.close()
+
 
 	def WriteVtrans(self):
 		for key in ('pos', 'neg'):
-			ofh = open(os.path.join(self.opts.out_dir, self.opts.outfile+"_Vtrans_"+key+".txt"), 'wt')
-			ofh.write("\t".join( ("Vtrans (eV)", \
-					"Frequency", \
-					"Gauss Fit (mean: %0.4f, variance: %f)"%(self.FN[key]['mean'], self.FN[key]['var'])) )+"\n")
-			data = {}
-			for i in range(0, len(self.FN[key]['bin'])):
-				data[self.FN[key]['bin'][i]] = (self.FN[key]['freq'][i],self.FN[key]['fit'][i])
-			for x in sorted(data.keys()):
-				ofh.write("\t".join(('%0.4f'%x,'%d'%data[x][0],'%0.2f'%data[x][1]))+"\n")
+			fn = os.path.join(self.opts.out_dir, self.opts.outfile+"_Vtrans_"+key+".txt")
+			with open(fn, 'w', newline='') as csvfile:
+				writer = csv.writer(csvfile, dialect='JV')
+				writer.writerow(["Vtrans (eV)","Frequency",
+					"Gauss Fit (mean: %0.4f, variance: %f)"%(self.FN[key]['mean'], self.FN[key]['var'])])
+				data = {}
+				for i in range(0, len(self.FN[key]['bin'])):
+					data[self.FN[key]['bin'][i]] = (self.FN[key]['freq'][i],self.FN[key]['fit'][i])
+				for x in sorted(data.keys()):
+					writer.writerow(['%0.4f'%x,'%d'%data[x][0],'%0.2f'%data[x][1]])
+					
+#	def WriteVtransOLD(self):
+#		for key in ('pos', 'neg'):
+#			ofh = open(os.path.join(self.opts.out_dir, self.opts.outfile+"_Vtrans_"+key+".txt"), 'wt')
+#			ofh.write("\t".join( ("Vtrans (eV)", \
+#					"Frequency", \
+#					"Gauss Fit (mean: %0.4f, variance: %f)"%(self.FN[key]['mean'], self.FN[key]['var'])) )+"\n")
+#			data = {}
+#			for i in range(0, len(self.FN[key]['bin'])):
+#				data[self.FN[key]['bin'][i]] = (self.FN[key]['freq'][i],self.FN[key]['fit'][i])
+#			for x in sorted(data.keys()):
+#				ofh.write("\t".join(('%0.4f'%x,'%d'%data[x][0],'%0.2f'%data[x][1]))+"\n")
+
 	def WriteFN(self):
-		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_FN.txt"), 'wt')
-		cols = ["1/V"] + ['Y_%d'%x for x in range(1,len( self.XY[list(self.XY.keys())[0]]['FN'] )+1)]
-		ofh.write("\t".join(cols)+"\n")
-		for x in self.X:
-			if x == 0.0:
-				continue
-			y = map(str, self.XY[x]['FN'])
-			ofh.write("%0.4f\t" % (1/x))
-			ofh.write("\t".join(y)+"\n")
-		ofh.close()
+		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_FN.txt")
+		with open(fn, 'w', newline='') as csvfile:
+			writer = csv.writer(csvfile, dialect='JV')
+			writer.writerow(["1/V"] + ['Y_%d'%x for x in range(1,len( self.XY[list(self.XY.keys())[0]]['FN'] )+1)])
+			for x in self.X:
+				if x == 0.0:
+					continue
+				y = map(str, self.XY[x]['FN'])
+				writer.writerow(["%0.4f\t" % (1/x)] + list(y))
+	
+#	def WriteFNOLD(self):
+#		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_FN.txt"), 'wt')
+#		cols = ["1/V"] + ['Y_%d'%x for x in range(1,len( self.XY[list(self.XY.keys())[0]]['FN'] )+1)]
+#		ofh.write("\t".join(cols)+"\n")
+#		for x in self.X:
+#			if x == 0.0:
+#				continue
+#			y = map(str, self.XY[x]['FN'])
+#			ofh.write("%0.4f\t" % (1/x))
+#			ofh.write("\t".join(y)+"\n")
+#		ofh.close()
 
 	def WriteGauss(self):
-		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_Gauss.txt"), 'wt')
-		ofh.write("\t".join(("Potential (V)","Log|J|","Variance"))+"\n")
-		Y = []
-		Yerr = []
-		for x in self.X:
-			ofh.write("\t".join(('%f'%x,'%f'%self.XY[x]['hist']['mean'],'%f'%self.XY[x]['hist']['var']))+"\n")
-		ofh.close()
-		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_R_Gauss.txt"), 'wt')
-		ofh.write("\t".join(("Potential (V)","|R|","Variance"))+"\n")
-		Y = []
-		Yerr = []
-		for x in self.R['X']:
-			ofh.write("\t".join(('%f'%x,'%f'%self.R[x]['hist']['mean'],'%f'%self.R[x]['hist']['var']))+"\n")
-		ofh.close()
+		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Gauss.txt")
+		with open(fn, 'w', newline='') as csvfile:
+			writer = csv.writer(csvfile, dialect='JV')
+			writer.writerow(["Potential (V)","Log|J|","Variance"])
+			Y = []
+			Yerr = []
+			for x in self.X:
+				writer.writerow(['%f'%x,'%f'%self.XY[x]['hist']['mean'],'%f'%self.XY[x]['hist']['var']])
+		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_R_Gauss.txt")
+		with open(fn, 'w', newline='') as csvfile:
+			writer = csv.writer(csvfile, dialect='JV')
+			writer.writerow(["Potential (V)","|R|","Variance"])
+			Y = []
+			Yerr = []
+			for x in self.R['X']:
+				writer.writerow(['%f'%x,'%f'%self.R[x]['hist']['mean'],'%f'%self.R[x]['hist']['var']])
+
+#	def WriteGaussOLD(self):
+#		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_Gauss.txt"), 'wt')
+#		ofh.write("\t".join(("Potential (V)","Log|J|","Variance"))+"\n")
+#		Y = []
+#		Yerr = []
+#		for x in self.X:
+#			ofh.write("\t".join(('%f'%x,'%f'%self.XY[x]['hist']['mean'],'%f'%self.XY[x]['hist']['var']))+"\n")
+#		ofh.close()
+#		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_R_Gauss.txt"), 'wt')
+#		ofh.write("\t".join(("Potential (V)","|R|","Variance"))+"\n")
+#		Y = []
+#		Yerr = []
+#		for x in self.R['X']:
+#			ofh.write("\t".join(('%f'%x,'%f'%self.R[x]['hist']['mean'],'%f'%self.R[x]['hist']['var']))+"\n")
+#		ofh.close()
+#
+#	def WriteDataOld(self, log=False):
+#		if log:	key,label ='LogY','LogJ'
+#		else:	key, label ='Y','J'
+#		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt"), 'wt')
+#		cols = ["Potential (V)"] + ['Y_%d'%x for x in range(1,len(self.XY[list(self.XY.keys())[0]][key] )+1)]
+#		ofh.write("\t".join(cols)+"\n")
+#		for x in self.X:
+#			ofh.write("\t".join(["%0.4f"%x]+list(map(str,self.XY[x][key])))+"\n")
+#		ofh.close()
 
 	def WriteData(self, log=False):
 		if log:	key,label ='LogY','LogJ'
-		else:	key, label ='Y','data'
-		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt"), 'wt')
-		cols = ["Potential (V)"] + ['Y_%d'%x for x in range(1,len(self.XY[list(self.XY.keys())[0]][key] )+1)]
-		ofh.write("\t".join(cols)+"\n")
-		for x in self.X:
-			ofh.write("\t".join(["%0.4f"%x]+list(map(str,self.XY[x][key])))+"\n")
-		ofh.close()
+		else:	key, label ='Y','J'
+		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt")
+		with open(fn,'w', newline='') as csvfile:
+			writer = csv.writer(csvfile, dialect='JV')
+			writer.writerow(["Potential (V)"] + ['Y_%d'%x for x in range(1,len(self.XY[list(self.XY.keys())[0]][key] )+1)])
+			for x in self.X:
+				writer.writerow(["%0.4f"%x]+list(map(str,self.XY[x][key])))
 
 	def WriteDJDV(self):
-		#if log:	key,label ='LogY','LogJ'
-		#else:	key, label ='Y','data'
 		label = 'DJDV'
-		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt"), 'wt')
-		cols = ["Potential (V)"] + ['DJDV_%d'%x for x in range(1,len(self.DJDV[list(self.DJDV.keys())[0]])+1)]
-		ofh.write("\t".join(cols)+"\n")
-		X = list(self.DJDV.keys())
-		X.sort()
-		for x in X:
-			ofh.write("\t".join(["%0.4f"%x]+list(map(str,self.DJDV[x])))+"\n")
-		ofh.close()
+		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt")
+		with open(fn,'w', newline='') as csvfile:
+			writer = csv.writer(csvfile, dialect='JV')
+			writer.writerow(["Potential (V)"] + ['DJDV_%d'%x for x in range(1,len(self.DJDV[list(self.DJDV.keys())[0]])+1)])
+			X = list(self.DJDV.keys())
+			X.sort()
+			for x in X:
+				writer.writerow(["%0.4f"%x]+list(map(str,self.DJDV[x])))
+#	def WriteDJDVOLD(self):
+#		#if log:	key,label ='LogY','LogJ'
+#		#else:	key, label ='Y','data'
+#		label = 'DJDV'
+#		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt"), 'wt')
+#		cols = ["Potential (V)"] + ['DJDV_%d'%x for x in range(1,len(self.DJDV[list(self.DJDV.keys())[0]])+1)]
+#		ofh.write("\t".join(cols)+"\n")
+#		X = list(self.DJDV.keys())
+#		X.sort()
+#		for x in X:
+#			ofh.write("\t".join(["%0.4f"%x]+list(map(str,self.DJDV[x])))+"\n")
+#		ofh.close()
 
 	def WriteFiltered(self):
 		label = 'filtered'
-		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt"), 'wt')
-		for l in self.filtered:
-			ofh.write("\t".join(list(map(str,l)))+"\n")
+		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt")
+		with open(fn,'w', newline='') as csvfile:
+			writer = csv.writer(csvfile, dialect='JV')
+			for l in self.filtered:
+				writer.writerow(list(map(str,l)))
 
 	def WriteRData(self):
 		key,label = 'r', 'R_data'
-		ofh = open(os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt"), 'wt')
-		cols = ["Potential (V)"] + ['Y_%d'%x for x in range(1,len(self.R[list(self.R.keys())[0]][key] )+1)]
-		ofh.write("\t".join(cols)+"\n")
-		for x in self.R['X']:
-			ofh.write("\t".join(["%0.4f"%x]+list(map(str,self.R[x][key])))+"\n")
-		ofh.close()
+		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt")
+		with open(fn,'w', newline='') as csvfile:
+			writer = csv.writer(csvfile, dialect='JV')
+			writer.writerow(["Potential (V)"] + ['Y_%d'%x for x in range(1,len(self.R[list(self.R.keys())[0]][key] )+1)])
+			for x in self.R['X']:
+				writer.writerow(["%0.4f"%x]+list(map(str,self.R[x][key])))
+
+	#		   #
+	# Plotting methods #
+	#		   #
 
 	def PlotData(self, key, ax, sym, **kw):
 		xax = self.X
@@ -616,29 +773,33 @@ class Parse():
 
 
 def Go(opts):
-		parser = Parse(opts)
-		parser.ReadFiles(opts.in_files)
-		if opts.write:	
-				logging.info("Writing files...")
-				parser.WriteVtrans()
-				parser.WriteFN()
-				parser.WriteGauss()
-				parser.WriteData()
-				parser.WriteDJDV()
-				parser.WriteFiltered()
-				parser.WriteData(True)
-				parser.WriteRData()
-				parser.WriteHistograms()
-		parser.PrintFN()
-		if opts.plot:
-				logging.info("Generating plots...")
-				try:
-						import matplotlib.pyplot as plt
-						parser.DoPlots(plt)
-						plt.show()
-				except ImportError as msg:
-						logging.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
-	
+	'''
+	Call this function to execute the parsing engine
+	i.e., as main()
+	'''
+	parser = Parse(opts)
+	parser.ReadFiles(opts.in_files)
+	if opts.write:	
+			logging.info("Writing files...")
+			parser.WriteVtrans()
+			parser.WriteFN()
+			parser.WriteGauss()
+			parser.WriteData()
+			parser.WriteDJDV()
+			parser.WriteFiltered()
+			parser.WriteData(True)
+			parser.WriteRData()
+			parser.WriteHistograms()
+	parser.PrintFN()
+	if opts.plot:
+			logging.info("Generating plots...")
+			try:
+					import matplotlib.pyplot as plt
+					parser.DoPlots(plt)
+					plt.show()
+			except ImportError as msg:
+					logging.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
+
 
 if __name__ == "__main__":
 		opts = Opts()
