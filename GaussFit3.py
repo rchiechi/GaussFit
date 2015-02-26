@@ -42,7 +42,7 @@ def ShowUsage():
 		%(y)sThis program expects all X values in one column and all Y values in another.
 		Ideally, feed it *_data.txt files and it will take V and J. It can extract X- and 
 		Y-values from any two columns. Setting a compliance limit excludes Y > compliance
-		from gaussian fits and rescales plots for display, but it rarely influences fits.
+		from gaussian fits, but it rarely influences fits and can truncate data if set too low.
 		The maxr parameter is needed to filter out huge values that occur when a junction shorts.%(rs)s
 
 		%(b)scmd	command		help (default)%(rs)s
@@ -149,6 +149,7 @@ class Opts:
 				self.plot=True
 			if opt in ('-c', '--compliance'):
 				self.compliance=float(arg)
+				#print(RED+"\n\t\t> > > This feature is broken and -c is ignored! < < <"+RS)
 			if opt in ('-n', '--nowrite'):
 				self.write=False
 				self.plot=True
@@ -465,11 +466,11 @@ class Parse():
 		but outliers sometimes confuse the fitting
 		routine, which defeats the purpose of machine-fitting
 		'''
-		j_compliance = np.nonzero(abs(Y) > self.opts.compliance)
+		j_compliance = np.nonzero(Y > self.opts.compliance) #BROKEN
 		r_compliance = np.nonzero(abs(Y) > self.opts.maxr)
 		if len(j_compliance[0]) and label == "J":
 			logging.warn("Tossing %d data points > %0.1f for %s histogram!", len(j_compliance[0]), self.opts.compliance, label)
-			Y = Y[np.nonzero(abs(Y) <= self.opts.compliance)]
+			Y = Y[np.nonzero(Y <= self.opts.compliance)]
 		if len(r_compliance[0]) and label == "R":
 			logging.warn("Tossing %d data points > %0.1f for %s histogram!", len(r_compliance[0]), self.opts.maxr, label)
 			Y = Y[np.nonzero(abs(Y) <= self.opts.maxr)]
