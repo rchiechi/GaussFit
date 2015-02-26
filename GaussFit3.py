@@ -354,8 +354,8 @@ class Parse():
 				spl = UnivariateSpline( self.X, y, k=4).derivative()
 				maxY = 0
 				for x in spls:
-					if spl(x) > maxY:
-						maxY = spl(x)
+					if abs(spl(x)) > maxY:
+						maxY = abs(spl(x))
 				for x in spls: 
 					spls[x].append(spl(x)/maxY)
 				d = np.array(spl(vfilter))
@@ -714,12 +714,16 @@ class Parse():
 			ax.set_xlabel("Potenial (V)")
 			ax.set_ylabel(r'Current Density $\mathregular{log_{10}|J(\mathrm{A cm^{-2}})|}$')
 		i = -1
+		allY = np.array([])
 		while True:
 			i += 1
 			try:
+				allY = np.append(allY,[self.XY[x][key][i] for x in self.X])
 				ax.plot(xax,[self.XY[x][key][i] for x in self.X], sym, **kw)
 			except IndexError:
 				break
+		if key == 'LogY':
+			ax.set_ylim(allY.min(),allY.max())
 	def PlotDJDV(self,ax):
 		xax = list(self.DJDV.keys())
 		xax.sort()
