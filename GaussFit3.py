@@ -317,23 +317,18 @@ class Parse():
 		'''
 		R = {}
 		for x in self.X:
+			R[x] = {'r':np.array([]),'hist':{"bin":[],"freq":0,"mean":0,"std":0,"var":0,"bins":[],"fit":[]}}
 			if x <= 0: continue
 			elif -1*x not in self.X:
 				logging.warn("(Rectification) Didn't find a negative voltage for %d.", x)
 				continue
 			ypos, yneg = self.XY[x]["Y"], self.XY[-1*x]["Y"]
-			if len(ypos) != len(yneg):
+			try:
+				R[x]={'r':ypos/yneg,'hist':self.dohistogram(ypos/yneg,"R")}
+			except ValueError:
 				# TODO: This should never be allowed to happen by the input parser!
-				logging.warn("(Rectification) Length of Y values differs for +/- %d.", x)
-				continue
-			r = []
-			for i in range(0, len(ypos)):
-				# NOTE: We do not filter for maxr here, rather in the Gaussian calcualtion
-				_r = abs(ypos[i]/yneg[i])
-				r.append( abs(ypos[i]/yneg[i]) )	
-			R[x]={'r': np.array(r)}
-		for x in R:
-			R[x]['hist'] = self.dohistogram(R[x]['r'],"R")
+				logging.warn("(Rectification) Length of Y values differs for +/- %f (%s != %s).", x, len(ypos), len(yneg) )
+			# NOTE: We do not filter for maxr here, rather in the Gaussian calcualtion
 		R['X'] = np.array(sorted(R.keys()))
 		return R
 	
@@ -342,7 +337,7 @@ class Parse():
 		Fit a spline function to X/Y data and 
 		compute dY/dX and normalize 
 		'''
-		vfilter = np.array([self.X.min(),self.X.max()])
+		vfilter = np.array( [self.X.min() , self.X.max()] )
 		if self.opts.vcutoff > 0:
 			vfilter = self.X[self.X >= self.opts.vcutoff] + self.X[self.X <= -1*self.opts.vcutoff]
 		spls = {}
@@ -364,8 +359,8 @@ class Parse():
 				for x in spls: 
 					spls[x].append(spl(x)/maxY)
 				d = np.array(spl(vfilter))
-				dd = np.array(spl.derivative()(vfilter))
-				if len(d[d < 0]) or len(dd[dd < 0]): # Hackish because any() wasn't working
+				#dd = np.array(spl.derivative()(vfilter))
+				if len(d[d < 0]): # Hackish because any() wasn't working
 					# record in the index where dY/dX is <=0 at vcutoff
 					self.ohmic.append(i)  
 				else:
@@ -522,7 +517,7 @@ class Parse():
 						         "%0.2d"%self.XY[x]['hist']['freq'][i],
 							 "%0.2d"%self.XY[x]['hist']['fit'][i]]
 				writer.writerow(row)
-		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_R_Histograms.txt")
+		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RHistograms.txt")
 		with open(fn, 'w', newline='') as csvfile:
 			writer = csv.writer(csvfile, dialect='JV')
 			headers = []
@@ -613,7 +608,7 @@ class Parse():
 			Yerr = []
 			for x in self.X:
 				writer.writerow(['%f'%x,'%f'%self.XY[x]['hist']['mean'],'%f'%self.XY[x]['hist']['var']])
-		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_R_Gauss.txt")
+		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RGauss.txt")
 		with open(fn, 'w', newline='') as csvfile:
 			writer = csv.writer(csvfile, dialect='JV')
 			writer.writerow(["Potential (V)","|R|","Variance"])
@@ -690,7 +685,7 @@ class Parse():
 				writer.writerow(list(map(str,l)))
 
 	def WriteRData(self):
-		key,label = 'r', 'R_data'
+		key,label = 'r', 'Rdata'
 		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt")
 		with open(fn,'w', newline='') as csvfile:
 			writer = csv.writer(csvfile, dialect='JV')
@@ -730,7 +725,7 @@ class Parse():
 		xax.sort()
 		ax.set_title("Derivitive of Initial Data")
 		ax.set_xlabel("Potential (V)")
-		ax.set_ylabel(r'$\mathregular{\frac{dJ}{dV}}$')
+		ax.set_ylabel(r'Normalized $\mathregular{\frac{dJ}{dV}}$')
 		#ax.set_ylim(-0.05,0.2)
 		i = -1
 		while True:
