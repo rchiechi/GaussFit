@@ -347,8 +347,7 @@ class Parse():
 			vfilter = self.X[self.X >= self.opts.vcutoff] + self.X[self.X <= -1*self.opts.vcutoff]
 		spls = {}
 		filtered = [('Potential', 'dY/dV', 'Y')]
-		for x in np.linspace(self.X.min(), self.X.max(), 100): spls[x] = np.array([])
-		maxY = 0
+		for x in np.linspace(self.X.min(), self.X.max(), 100): spls[x] = []
 		i = -1
 		while True:
 			i += 1
@@ -358,10 +357,12 @@ class Parse():
 				# k (smoothing)  must be 4 for 
 				# the derivative to be cubic (k=3)
 				spl = UnivariateSpline( self.X, y, k=4).derivative()
-				for x in spls: 
-					spls[x] = np.append( spls[x] ,spl(x) )
+				maxY = 0
+				for x in spls:
 					if spl(x) > maxY:
 						maxY = spl(x)
+				for x in spls: 
+					spls[x].append(spl(x)/maxY)
 				d = np.array(spl(vfilter))
 				dd = np.array(spl.derivative()(vfilter))
 				if len(d[d < 0]) or len(dd[dd < 0]): # Hackish because any() wasn't working
@@ -375,8 +376,6 @@ class Parse():
 				break
 		logging.info("Non-tunneling traces: %s (out of %s)" % 
 					( len(self.ohmic), len( self.XY[ list(self.XY.keys())[0]]['Y']) ) )
-		for x in spls:
-			spls[x] = spls[x]/maxY
 		return spls, filtered
 
 	def getminroot(self, spl):
