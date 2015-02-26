@@ -1,7 +1,30 @@
 #!/usr/bin/python2.7
+'''
+Version: !!! DEPRECATED DO NOT USE !!!
+Copyright (C) 2015 Ryan Chiechi <r.c.chiechi@rug.nl>
+Description:
+        This program parses raw current-voltage data obtained from
+        molecular tunneling junctions. It is specifically designed
+        with EGaIn in mind, but may be applicable to other systems.
 
+        This program is free software: you can redistribute it and/or modify
+        it under the terms of the GNU General Public License as published by
+        the Free Software Foundation, either version 3 of the License, or
+        (at your option) any later version.
+
+        This program is distributed in the hope that it will be useful,
+        but WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        GNU General Public License for more details.
+
+        You should have received a copy of the GNU General Public License
+        along with this program.  If not, see <http://www.gnu.org/licenses/>.
+'''
 import sys,os,logging,warnings
 from getopt import gnu_getopt, GetoptError
+
+print("DEPRECATED DO NOT USE!!! Use GaussFit3 instead!!!")
+sys.exit()
 try:
 	from scipy.optimize import curve_fit
 	import numpy as np
