@@ -61,7 +61,7 @@ def ShowUsage():
 		-G      --GUI           Launch the GUI
 		-M	--min		Compute Vtrans from the min(Y) instead of the derivitve of the cubic spline
 		-s	--skip		Skip plots with negative dJ/dV values at vcutoff for Vtrans calcuation
-		-v	--vcutoff 	Voltage (absolute value) cut-off for dJ/dV skipping routine (defaultis Vmin/Vmax)%(rs)s
+		-v	--vcutoff 	Voltage (absolute value) cut-off for dJ/dV skipping routine (default is =Vmin/Vmax)%(rs)s
 
 	''' % {'path':os.path.basename(sys.argv[0]) ,'rs':RS,'y':YELLOW,'b':BLUE,'r':RED,'t':TEAL,'g':GREEN,'w':WHITE})
 	sys.exit()
@@ -294,7 +294,6 @@ class Parse():
 				   "hist":self.dohistogram(logy,"J"), \
 				   "FN":np.array(fn) }
 		self.X = np.array(sorted(self.XY.keys()))
-		self.X.sort()
 		logging.info("Done parsing input data")
 		print("* * * * * * Computing dY/dX  * * * * * * * *")
 		self.DJDV, self.filtered = self.dodjdv() # This must come first for self.ohmic to be populated!
@@ -343,13 +342,9 @@ class Parse():
 		Fit a spline function to X/Y data and 
 		compute dY/dX
 		'''
-		if self.opts.vcutoff < 0:
-			vlow,vhigh = self.X.min(),self.X.max()
-		else:
-			vhigh = self.opts.vcutoff
-			vlow = -1*self.opts.vcutoff
-		if vhigh > self.X.max() or vlow < self.X.min():
-			logging.warn("Vcutoff is out of range of input data")
+		vfilter = np.array([self.X.min(),self.X.max()])
+		if self.opts.vcutoff > 0:
+			vfilter = self.X[self.X >= self.opts.vcutoff] + self.X[self.X <= -1*self.opts.vcutoff]
 		spls = {}
 		filtered = [('Potential', 'dY/dV', 'Y')]
 		for x in np.linspace(self.X.min(), self.X.max(), 100): spls[x] = []
@@ -363,8 +358,10 @@ class Parse():
 				# the derivative to be cubic (k=3)
 				spl = UnivariateSpline( self.X, y, k=4).derivative()
 				for x in spls: spls[x].append(spl(x))
-				if spl(vlow) <= 0 or spl(vhigh) <= 0:
-					# record in the index where dY/dX is negative at vcutoff
+				d = np.array(spl(vfilter))
+				#dd = np.array(spl.derivative()(vfilter))
+				if len(d[d <= 0]): # Hackish because any() wasn't working
+					# record in the index where dY/dX is <=0 at vcutoff
 					self.ohmic.append(i)  
 				else:
 					for x in self.X:
@@ -372,7 +369,8 @@ class Parse():
 						filtered.append( (x, spl(x), self.XY[x]['Y'][i]) )
 			except IndexError:
 				break
-		logging.info("Non-tunneling traces: %s" % len(self.ohmic))
+		logging.info("Non-tunneling traces: %s (out of %s)" % 
+					( len(self.ohmic), len( self.XY[ list(self.XY.keys())[0]]['Y']) ) )
 		return spls, filtered
 
 	def getminroot(self, spl):
@@ -402,7 +400,8 @@ class Parse():
 		tossed = 0
 		if self.opts.skipohmic:
 			# Vtrans has no physical meaning for curves with negative derivatives
-			logging.info("Skipping %s non-tunneling traces for Vtrans calculation." % len(self.ohmic))
+			logging.info("Skipping %s (out of %s) non-tunneling traces for Vtrans calculation." % 
+					( len(self.ohmic), len( self.XY[ list(self.XY.keys())[0]]['Y']) ) )
 		while True:
 			i += 1
 			if i in self.ohmic and self.opts.skipohmic:
