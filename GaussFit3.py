@@ -39,7 +39,8 @@ def ShowUsage():
 		-D      --dir           Output directory (merged with --output)
 		-G      --GUI           Launch the GUI
 		-M	--min		Compute Vtrans from the min(Y) instead of the derivitve of the cubic spline
-		-s	--skip		Skip plots with negative dJ/dV values at Vmin/Vmax for Vtrans calcuation%(rs)s
+		-s	--skip		Skip plots with negative dJ/dV values at vcutoff for Vtrans calcuation
+		-v	--vcutoff 	Voltage (absolute value) cut-off for dJ/dV skipping routine (defaultis Vmin/Vmax)%(rs)s
 
 	''' % {'path':os.path.basename(sys.argv[0]) ,'rs':RS,'y':YELLOW,'b':BLUE,'r':RED,'t':TEAL,'g':GREEN,'w':WHITE})
 	sys.exit()
@@ -58,12 +59,13 @@ class Opts:
 	def __init__(self):
 		try:
 			opts, self.in_files = gnu_getopt(sys.argv[1:], 
-					"hb:l:d:o:X:,Y:m:pc:nD:GMs", ["help" , "bins", \
-					"loglevel=",\
-					"delimeter=","output=", "Xcol", "Ycol", "maxr"
-					"plot", "compliance", "nowrite","dir:","GUI","min","skip"])
+					"hb:l:d:o:X:,Y:m:pc:nD:GMsv:", ["help" , "bins", 
+					"loglevel=", "delimeter=","output=", "Xcol", 
+					"Ycol", "maxr", "plot", "compliance", 
+					"nowrite","dir:","GUI",
+					"min","skip","vcutoff"])
 		except GetoptError:
-			error("Invalid option(s)")
+			print(RED+"Invalid option(s)"+RS)
 			ShowUsage()
 		
 
@@ -83,6 +85,7 @@ class Opts:
 		self.out_dir = os.environ['PWD']
 		self.smooth = True
 		self.skipohmic = False
+		self.vcutoff = -1 # -1 will default to Vmin/Vmax
 		# # #
 
 		if len(self.in_files):
@@ -141,6 +144,13 @@ class Opts:
                                 self.smooth = False
 			if opt in ('-s', '--skip'):
 				self.skipohmic = True
+			if opt in ('-v', '--vcutoff'):
+				try:
+					self.vcutoff = abs(float(arg))
+				except ValueError:
+					print(RED+"\n\t\t> > > vcutoff must be a number! < < <"+RS)
+					ShowUsage()
+
 
 ##                self.logger = logging.getLogger('CLI')
 		if LOG:
@@ -285,6 +295,11 @@ class Parse():
 		return R
 	
 	def dodjdv(self):
+		if self.opts.vcutoff < 0:
+			vlow,vhigh = self.X.min(),self.X.max()
+		else:
+			vhigh = self.opts.vcutoff
+			vlow = -1*self.opts.vcutoff
 		spls = {}
 		filtered = [('Potential', 'dY/dV', 'Y')]
 		for x in np.linspace(self.X.min(), self.X.max(), 100): spls[x] = []
@@ -296,7 +311,7 @@ class Parse():
 				for x in self.X: y.append(self.XY[x]['Y'][i])
 				spl = UnivariateSpline( self.X, y, k=4).derivative()
 				for x in spls: spls[x].append(spl(x))
-				if spl(self.X.min()) <= 0 or spl(self.X.max()) <= 0:
+				if spl(vlow) <= 0 or spl(vhigh) <= 0:
 					self.ohmic.append(i)
 				else:
 					for x in self.X:
