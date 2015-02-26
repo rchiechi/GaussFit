@@ -296,7 +296,7 @@ class Parse():
 				for x in self.X: y.append(self.XY[x]['Y'][i])
 				spl = UnivariateSpline( self.X, y, k=4).derivative()
 				for x in spls: spls[x].append(spl(x))
-				if spl(self.X.min()) < 0 or spl(self.X.max()) < 0:
+				if spl(self.X.min()) <= 0 or spl(self.X.max()) <= 0:
 					self.ohmic.append(i)
 				else:
 					for x in self.X:
