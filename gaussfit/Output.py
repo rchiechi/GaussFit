@@ -21,7 +21,7 @@ Description:
 '''
 
 import os,csv
-import numpy as np
+from gaussfit.colors import *
 try:
 	import numpy as np
 except ImportError as msg:
