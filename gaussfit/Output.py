@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 '''
-Version: 1.0
 Copyright (C) 2015 Ryan Chiechi <r.c.chiechi@rug.nl>
 Description:
         This program parses raw current-voltage data obtained from
