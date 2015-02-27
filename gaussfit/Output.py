@@ -32,7 +32,7 @@ class Writer():
 		try:
     			return getattr(self.parser, name)
 		except AttributeError as e:
-    			raise AttributeError("Child' object has no attribute '%s'" % name)
+    			raise AttributeError("Writer object has no attribute '%s'" % name)
 
 	def WriteHistograms(self):
 		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms.txt")
@@ -82,8 +82,7 @@ class Writer():
 			for x in self.X:
 				if x == 0.0:
 					continue
-				y = map(str, self.XY[x]['FN'])
-				writer.writerow(["%0.4f\t" % (1/x)] + list(y))
+				writer.writerow(["%0.4f\t" % (1/x)] + list(self.XY[x]['FN']))
 	
 	def WriteGauss(self):
 		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Gauss.txt")
@@ -112,7 +111,7 @@ class Writer():
 			writer = csv.writer(csvfile, dialect='JV')
 			writer.writerow(["Potential (V)"] + ['Y_%d'%x for x in range(1,len(self.XY[list(self.XY.keys())[0]][key] )+1)])
 			for x in self.X:
-				writer.writerow(["%0.4f"%x]+list(map(str,self.XY[x][key])))
+				writer.writerow(["%0.4f"%x]+list(self.XY[x][key]))
 
 	def WriteDJDV(self):
 		label = 'DJDV'
@@ -123,7 +122,7 @@ class Writer():
 			X = list(self.DJDV.keys())
 			X.sort()
 			for x in X:
-				writer.writerow(["%0.4f"%x]+list(map(str,self.DJDV[x])))
+				writer.writerow(["%0.4f"%x]+self.DJDV[x])
 
 	def WriteFiltered(self):
 		label = 'filtered'
@@ -131,7 +130,7 @@ class Writer():
 		with open(fn,'w', newline='') as csvfile:
 			writer = csv.writer(csvfile, dialect='JV')
 			for l in self.filtered:
-				writer.writerow(list(map(str,l)))
+				writer.writerow(l)
 
 	def WriteRData(self):
 		key,label = 'r', 'Rdata'
@@ -140,7 +139,7 @@ class Writer():
 			writer = csv.writer(csvfile, dialect='JV')
 			writer.writerow(["Potential (V)"] + ['Y_%d'%x for x in range(1,len(self.R[list(self.R.keys())[0]][key] )+1)])
 			for x in self.R['X']:
-				writer.writerow(["%0.4f"%x]+list(map(str,self.R[x][key])))
+				writer.writerow(["%0.4f"%x]+list(self.R[x][key]))
 
 
 class Plotter():
@@ -152,7 +151,7 @@ class Plotter():
 		try:
     			return getattr(self.parser, name)
 		except AttributeError as e:
-    			raise AttributeError("Child' object has no attribute '%s'" % name)
+    			raise AttributeError("Plotter object has no attribute '%s'" % name)
 
 	def PlotData(self, key, ax, sym, **kw):
 		xax = self.X

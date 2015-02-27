@@ -85,10 +85,10 @@ class Parse():
 					for row in csv.reader(csvfile, dialect='JV'):
 						rows.append(row)
 			except FileNotFoundError:
-				logging.error("%s not found." % fn)
+				logging.error("%s not found.", fn)
 				continue
-			except csv.ERROR:
-				logging.error("Error parsing %s" % fn)
+			except csv.Error:
+				logging.error("Error parsing %s", fn)
 				continue
 			labels = []
 			numcol = 0
@@ -139,13 +139,16 @@ class Parse():
 			# associated with it
 			logging.debug('Pulling Y where X=%0.2f', x)
 			y, fn = [], []
-			for i in sorted(uniqueX[x].keys()): y.append(uniqueX[x][i][0]), fn.append(uniqueX[x][i][1])
+			for i in sorted(uniqueX[x].keys()): 
+				y.append(uniqueX[x][i][0])
+				fn.append(uniqueX[x][i][1])
 			y = np.array(y)
 			logy = np.log10(abs(y))
-			self.XY[x] = { "Y":y, \
-				   "LogY":logy, \
-				   "hist":self.dohistogram(logy,"J"), \
+			self.XY[x] = { "Y":y, 
+				   "LogY":logy, 
+				   "hist":self.dohistogram(logy,"J"), 
 				   "FN":np.array(fn) }
+
 		self.X = np.array(sorted(self.XY.keys()))
 		logging.info("Done parsing input data")
 		print("* * * * * * Computing dY/dX  * * * * * * * *")
@@ -235,7 +238,8 @@ class Parse():
 		for r in spl.derivative().roots():
 			splvals[float(spl(r))] = r
 		if not splvals:
-			return False
+			return np.NAN
+			#return False
 		# Because UnivariateSpline crashes when we use 
 		# 1/X, the plots are flipped so we take the max
 		return splvals[np.nanmax(list(splvals.keys()))]
@@ -283,12 +287,12 @@ class Parse():
 				if self.opts.smooth:
 					logging.debug("Using interpolation on FN")
 					rootneg = self.getminroot(UnivariateSpline( x_neg, y_neg, k=4 ))
-					if rootneg:
+					if ~np.isnan(rootneg):
 						neg_min_x.append(rootneg)
 					rootpos = self.getminroot(UnivariateSpline( x_pos, y_pos, k=4 ))
-					if rootpos:
+					if ~np.isnan(rootpos):
 						pos_min_x.append(rootpos)
-					if not rootneg or not rootpos:
+					if np.NAN in (rootneg,rootpos):
 						logging.warn("No minimum found in FN derivative (-):%s, (+):%s" % (rootneg, rootpos) )
 				else:
 					neg_min_x.append(neg[np.nanmin(list(neg.keys()))])
