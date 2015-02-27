@@ -21,15 +21,6 @@ Description:
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-#YELLOW="\033[1;33m"
-#WHITE="\033[0m"
-#RED="\033[1;31m"
-#TEAL="\033[1;36m"
-#GREEN="\033[1;32m"
-#BLUE="\033[1;34m"
-#RS="\033[0m"
-#CL="\033[2K"
-
 import logging
 from gaussfit.Output import Writer,Plotter
 from gaussfit.Parseopts import Opts,ShowUsage 
@@ -65,12 +56,9 @@ def Go(opts):
 			except ImportError as msg:
 					logging.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
 
-
-if __name__ == "__main__":
-		opts = Opts()
-		if opts.GUI:
-				from gui import filebrowser
-				gui = filebrowser.ChooseFiles(opts,Go)
-
-		else:
-				Go(opts)
+opts = Opts()
+if opts.GUI:
+		from gui import filebrowser
+		gui = filebrowser.ChooseFiles(opts,Go)
+else:
+		Go(opts)
