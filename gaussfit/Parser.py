@@ -20,17 +20,9 @@ Description:
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-YELLOW="\033[1;33m"
-WHITE="\033[0m"
-RED="\033[1;31m"
-TEAL="\033[1;36m"
-GREEN="\033[1;32m"
-BLUE="\033[1;34m"
-RS="\033[0m"
-CL="\033[2K"
-
 import sys,os,logging,warnings,csv
 from gaussfit.Parseopts import Opts,ShowUsage 
+from gaussfit.colors import *
 
 try:
 	from scipy.optimize import curve_fit,OptimizeWarning
