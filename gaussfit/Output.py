@@ -21,11 +21,10 @@ Description:
 '''
 
 import os,csv
-from gaussfit.colors import *
 try:
 	import numpy as np
 except ImportError as msg:
-	print("\n\t\t%s> > > Error importing numpy/scipy! %s%s%s < < <%s" % (RED,RS,str(msg),RED,RS))
+	pass #We catch numpy import errors in Parser.py
 	
 
 class Writer():
