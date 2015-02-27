@@ -22,6 +22,11 @@ Description:
 
 import os,csv
 import numpy as np
+try:
+	import numpy as np
+except ImportError as msg:
+	print("\n\t\t%s> > > Error importing numpy/scipy! %s%s%s < < <%s" % (RED,RS,str(msg),RED,RS))
+	
 
 class Writer():
 	def __init__(self,parser):
