@@ -217,7 +217,7 @@ class Parse():
 				d = np.array(spl(vfilter))
 				#dd = np.array(spl.derivative()(vfilter))
 				if len(d[d < 0]): # Hackish because any() wasn't working
-					# record in the index where dY/dX is <=0 at vcutoff
+					# record in the index where dY/dX is < 0 at vcutoff
 					self.ohmic.append(i)  
 				else:
 					for x in self.X:
@@ -343,13 +343,13 @@ class Parse():
 			logging.warning("|%s| Fit did not converge (%s)", label, str(msg), exc_info=False)
 			coeff = p0
 			hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
-		return {"bin":bin_centers, "freq":freq, "mean":coeff[1], "std":coeff[2], "var":coeff[2]**2, "bins":bins, "fit":hist_fit}
+		return {"bin":bin_centers, "freq":freq, "mean":coeff[1], "std":coeff[2], "var":coeff[2], "bins":bins, "fit":hist_fit}
 
 	def PrintFN(self):
 		'''
 		Print Vtrans values to the command line for convinience
 		'''
 		for key in ('pos', 'neg'):
-			print("|Vtrans %s| mean: %0.4f variance: %f" % (key, self.FN[key]['mean'], self.FN[key]['var']) )
+			print("|Vtrans %s| mean: %0.4f Standard Deviation: %f" % (key, self.FN[key]['mean'], self.FN[key]['var']) )
 		print("* * * * * * * * * * * * * * * * * * *")
 

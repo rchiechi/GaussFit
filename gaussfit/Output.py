@@ -71,7 +71,7 @@ class Writer():
 			with open(fn, 'w', newline='') as csvfile:
 				writer = csv.writer(csvfile, dialect='JV')
 				writer.writerow(["Vtrans (eV)","Frequency",
-					"Gauss Fit (mean: %0.4f, variance: %f)"%(self.FN[key]['mean'], self.FN[key]['var'])])
+					"Gauss Fit (mean: %0.4f, Standard Deviation: %f)"%(self.FN[key]['mean'], self.FN[key]['var'])])
 				data = {}
 				for i in range(0, len(self.FN[key]['bin'])):
 					data[self.FN[key]['bin'][i]] = (self.FN[key]['freq'][i],self.FN[key]['fit'][i])
@@ -92,7 +92,7 @@ class Writer():
 		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Gauss.txt")
 		with open(fn, 'w', newline='') as csvfile:
 			writer = csv.writer(csvfile, dialect='JV')
-			writer.writerow(["Potential (V)","Log|J|","Variance"])
+			writer.writerow(["Potential (V)","Log|J|","Standard Devaition"])
 			Y = []
 			Yerr = []
 			for x in self.X:
@@ -100,7 +100,7 @@ class Writer():
 		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RGauss.txt")
 		with open(fn, 'w', newline='') as csvfile:
 			writer = csv.writer(csvfile, dialect='JV')
-			writer.writerow(["Potential (V)","|R|","Variance"])
+			writer.writerow(["Potential (V)","|R|","Standard Deviation"])
 			Y = []
 			Yerr = []
 			for x in self.R['X']:
