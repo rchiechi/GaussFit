@@ -36,7 +36,8 @@ except ImportError as msg:
 	ShowUsage()
 
 warnings.filterwarnings('ignore','.*divide by zero.*',RuntimeWarning)
-
+warnings.filterwarnings('ignore','.*',UserWarning)
+#warnings.filterwarnings('ignore','.*impossible result.*',UserWarning)
 
 class Parse():
 	'''
