@@ -216,7 +216,8 @@ class Parse():
 					spls[x].append(spl(x)/maxY)
 				d = np.array(spl(vfilter))
 				#dd = np.array(spl.derivative()(vfilter))
-				if len(d[d < 0]): # Hackish because any() wasn't working
+				dd = UnivariateSpline( self.X, spl(y), k=4).derivative()(vfilter)
+				if len(dd[dd < 0]): # Hackish because any() wasn't working
 					# record in the index where dY/dX is < 0 at vcutoff
 					self.ohmic.append(i)  
 				else:
