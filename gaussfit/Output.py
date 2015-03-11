@@ -189,7 +189,7 @@ class Plotter():
 		xax.sort()
 		ax.set_title("Derivitive of Initial Data")
 		ax.set_xlabel("Potential (V)")
-		ax.set_ylabel(r'Normalized $\mathregular{\frac{d^2J}{dV^2}}$')
+		ax.set_ylabel(r'Normalized $\mathregular{\frac{dJ}{dV}}$')
 		#ax.set_ylim(-0.05,0.2)
 		i = -1
 		while True:
