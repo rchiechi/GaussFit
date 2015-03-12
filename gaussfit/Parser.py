@@ -56,6 +56,7 @@ class Parse():
 		self.compliance_traces = []
 		self.ohmic = []
 		self.DJDV = {}
+		self.GHists = {}
 		self.filtered = []
 		self.R = {}
 	def isfloat(self,f):
@@ -153,7 +154,7 @@ class Parse():
 		self.X = np.array(sorted(self.XY.keys()))
 		logging.info("Done parsing input data")
 		print("* * * * * * Computing dY/dX  * * * * * * * *")
-		self.DJDV, self.filtered = self.dodjdv() # This must come first for self.ohmic to be populated!
+		self.DJDV, self.GHists, self.filtered = self.dodjdv() # This must come first for self.ohmic to be populated!
 		print("* * * * * * Computing Vtrans * * * * * * * *")
 		self.FN["neg"], self.FN["pos"] = self.findmin()
 		print("* * * * * * Computing |R|  * * * * * * * * *")
@@ -199,8 +200,11 @@ class Parse():
 			vfilterpos = self.X[self.X >= self.opts.vcutoff] 
 			vfilterneg = self.X[self.X <= -1*self.opts.vcutoff]
 		spls = {}
+		splhists = {}
 		filtered = [('Potential', 'dY/dV', 'Y')]
-		for x in np.linspace(self.X.min(), self.X.max(), 100): spls[x] = []
+		for x in np.linspace(self.X.min(), self.X.max(), 100): 
+			spls[x] = []
+			splhists[x] = {'spl':[],'hist':{}}
 		i = -1
 		while True:
 			i += 1
@@ -216,8 +220,10 @@ class Parse():
 						maxY = abs(spl(x))
 				for x in spls: 
 					spls[x].append(spl(x)/maxY)
+					splhists[x]['spl'].append(np.log10(abs(spl(x))))
 				#d = np.array(spl(vfilter))
 				X = np.linspace(self.X.min(), self.X.max(), 100)
+				
 				dd =  UnivariateSpline(X, spl(X), k=4).derivative()
 				d = dd(vfilterpos) #Compute d2J/dV2
 				d += -1*dd(vfilterneg) #Compute d2J/dV2
@@ -232,7 +238,9 @@ class Parse():
 				break
 		logging.info("Non-tunneling traces: %s (out of %s)" % 
 					( len(self.ohmic), len( self.XY[ list(self.XY.keys())[0]]['Y']) ) )
-		return spls, filtered
+		for x in splhists:
+			splhists[x]['hist'] = self.dohistogram(np.array(splhists[x]['spl']))
+		return spls, splhists, filtered
 
 	def getminroot(self, spl):
 		'''

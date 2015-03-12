@@ -64,6 +64,19 @@ class Writer():
 						         "%0.2d"%self.R[x]['hist']['fit'][i]]
 				writer.writerow(row)
 
+		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_LogdJdVHistograms.txt")
+		with open(fn, 'w', newline='') as csvfile:
+			writer = csv.writer(csvfile, dialect='JV')
+			headers = []
+			for x in self.X: headers += ["Log |dJ/dV| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
+			writer.writerow(headers)
+			for i in range(0, len( self.GHists[list(self.GHists.keys())[0]]['hist']['bin'] ) ):
+				row = []
+				for x in self.GHists: row += ["%0.4f"%self.GHists[x]['hist']['bin'][i], 
+						         "%0.2d"%self.GHists[x]['hist']['freq'][i],
+							 "%0.2d"%self.GHists[x]['hist']['fit'][i]]
+				writer.writerow(row)
+
 
 	def WriteVtrans(self):
 		for key in ('pos', 'neg'):
@@ -105,6 +118,14 @@ class Writer():
 			Yerr = []
 			for x in self.R['X']:
 				writer.writerow(['%f'%x,'%f'%self.R[x]['hist']['mean'],'%f'%self.R[x]['hist']['var']])
+		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_logdJdVGauss.txt")
+		with open(fn, 'w', newline='') as csvfile:
+			writer = csv.writer(csvfile, dialect='JV')
+			writer.writerow(["Potential (V)","Log|dJ/dV|","Standard Devaition"])
+			Y = []
+			Yerr = []
+			for x in self.GHists:
+				writer.writerow(['%f'%x,'%f'%self.GHists[x]['hist']['mean'],'%f'%self.GHists[x]['hist']['var']])
 
 
 	def WriteData(self, log=False):
@@ -144,6 +165,38 @@ class Writer():
 			writer.writerow(["Potential (V)"] + ['Y_%d'%x for x in range(1,len(self.R[list(self.R.keys())[0]][key] )+1)])
 			for x in self.R['X']:
 				writer.writerow(["%0.4f"%x]+list(self.R[x][key]))
+
+	def OLDWriteGHistogram(self):
+		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_GHistogram.txt")
+
+		with open(fn, 'w', newline='') as csvfile:
+			writer = csv.writer(csvfile, dialect='JV')
+			#headers = ["Log|J|"]
+			headers = []
+			for x in self.X: headers += ["(%0.4f)"%x]
+			#for x in self.X: headers += ["A"]
+			#, "Log |J|", "Frequency"]
+			#writer.writerow(headers)
+			for i in range(0, len( self.XY[list(self.XY.keys())[0]]['hist']['bin'] ) ):
+				row = ["%0.1d"%self.XY[list(self.XY.keys())[-1]]['hist']['bin'][i]]
+				#row = []
+				for x in self.X:
+					#row = [x, "%0.4f"%self.XY[x]['hist']['bin'][i], "%0.2d"%self.XY[x]['hist']['freq'][i]]
+					row += ["%0.2d"%self.XY[x]['hist']['freq'][i]]
+				writer.writerow(row)
+	def WriteGHistogram(self):
+		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_GHistogram.txt")
+
+		with open(fn, 'w', newline='') as csvfile:
+			writer = csv.writer(csvfile, dialect='JV')
+			headers = ["Potential (V)", "Log dJ/dV", "Frequency"]
+			writer.writerow(headers)
+
+			for x in self.GHists:
+				for i in range(0, len(self.GHists[x]['hist']['bin'])):
+					row = [x,"%0.2d"%self.GHists[x]['hist']['bin'][i],"%0.2d"%self.GHists[x]['hist']['freq'][i]]
+					writer.writerow(row)
+				writer.writerow([])
 
 
 class Plotter():
