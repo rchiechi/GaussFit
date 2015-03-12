@@ -194,7 +194,7 @@ class Parse():
 		Fit a spline function to X/Y data and 
 		compute dY/dX and normalize 
 		'''
-		vfilterpos,vfilterneg = np.array( [self.X.min()]) , np.array( [self.X.max()] )
+		vfilterneg,vfilterpos = np.array( [self.X.min()]) , np.array( [self.X.max()] )
 		if self.opts.vcutoff > 0:
 			vfilterpos = self.X[self.X >= self.opts.vcutoff] 
 			vfilterneg = self.X[self.X <= -1*self.opts.vcutoff]
