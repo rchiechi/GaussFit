@@ -194,9 +194,10 @@ class Parse():
 		Fit a spline function to X/Y data and 
 		compute dY/dX and normalize 
 		'''
-		vfilter = np.array( [self.X.min() , self.X.max()] )
+		vfilterpos,vfilterneg = np.array( [self.X.min()]) , np.array( [self.X.max()] )
 		if self.opts.vcutoff > 0:
-			vfilter = self.X[self.X >= self.opts.vcutoff] + self.X[self.X <= -1*self.opts.vcutoff]
+			vfilterpos = self.X[self.X >= self.opts.vcutoff] 
+			vfilterneg = self.X[self.X <= -1*self.opts.vcutoff]
 		spls = {}
 		filtered = [('Potential', 'dY/dV', 'Y')]
 		for x in np.linspace(self.X.min(), self.X.max(), 100): spls[x] = []
@@ -216,7 +217,10 @@ class Parse():
 				for x in spls: 
 					spls[x].append(spl(x)/maxY)
 				#d = np.array(spl(vfilter))
-				d = UnivariateSpline( self.X, spl(y), k=4).derivative()(vfilter) #Compute d2J/dV2
+				X = np.linspace(self.X.min(), self.X.max(), 100)
+				dd =  UnivariateSpline(X, spl(X), k=4).derivative()
+				d = dd(vfilterpos) #Compute d2J/dV2
+				d += -1*dd(vfilterneg) #Compute d2J/dV2
 				if len(d[d < 0]): # Hackish because any() wasn't working
 					# record in the index where dY/dX is < 0 at vcutoff
 					self.ohmic.append(i)  
