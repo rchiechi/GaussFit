@@ -207,7 +207,8 @@ class Writer():
 			#z=z = np.random.random(20)
 			x,y,z = np.array(x),np.array(y),np.array(z)
 			xmin,xmax = x.min(),x.max()
-			ymin,ymax = y.min(),y.max()
+			#ymin,ymax = y.min(),y.max()
+			ymin,ymax = self.opts.mlow, self.opts.mhi
 			xi=np.linspace(xmin,xmax,200)
 			yi=np.linspace(ymin,ymax,200)
 			X,Y= np.meshgrid(xi,yi)
@@ -219,7 +220,14 @@ class Writer():
 			writer.writerow(headers)
 			
 			for i in range(0,len(Z)):
-				writer.writerow( ['%0.1f'%Y[i][0]]+list(Z[i]) )
+				zi = []
+				for z in Z[i]:
+					if z < 0:
+						zi.append(0)
+					else:
+						zi.append(z)
+				#writer.writerow( ['%0.1f'%Y[i][0]]+list(Z[i]) )
+				writer.writerow( ['%0.1f'%Y[i][0]]+zi )
 
 class Plotter():
 	def __init__(self,parser):

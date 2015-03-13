@@ -52,7 +52,9 @@ def ShowUsage():
 		-G      --GUI           Launch the GUI
 		-M	--min		Compute Vtrans from the min(Y) instead of the derivitve of the cubic spline
 		-s	--skip		Skip plots with negative d2J/dV2 values at vcutoff for Vtrans calcuation
-		-v	--vcutoff 	Voltage (absolute value) cut-off for dJ/dV skipping routine (default is =Vmin/Vmax)%(rs)s
+		-v	--vcutoff 	Voltage (absolute value) cut-off for dJ/dV skipping routine (default is =Vmin/Vmax)
+		-a	--lower		Lower cutoff value for matrix plot (default -6) 
+		-z	--upper		Upper cuttof value for matrix plot (default 0)%(rs)s
 
 	''' % {'path':os.path.basename(sys.argv[0]) ,'rs':RS,'y':YELLOW,'b':BLUE,'r':RED,'t':TEAL,'g':GREEN,'w':WHITE})
 	sys.exit()
@@ -73,11 +75,11 @@ class Opts:
 	def __init__(self):
 		try:
 			opts, self.in_files = gnu_getopt(sys.argv[1:], 
-					"hb:l:d:o:X:,Y:m:pc:nD:GMsv:", ["help" , "bins", 
+					"hb:l:d:o:X:,Y:m:pc:nD:GMsv:a:z:", ["help" , "bins", 
 					"loglevel=", "delimeter=","output=", "Xcol", 
 					"Ycol", "maxr", "plot", "compliance", 
 					"nowrite","dir:","GUI",
-					"min","skip","vcutoff"])
+					"min","skip","vcutoff","lower","upper"])
 		except GetoptError:
 			print(RED+"Invalid option(s)"+RS)
 			ShowUsage()
@@ -97,6 +99,8 @@ class Opts:
 		self.smooth = True
 		self.skipohmic = False
 		self.vcutoff = -1 # -1 will default to Vmin/Vmax
+		self.mlow = -6
+		self.mhi = 0
 		# # #
 
 		if len(self.in_files):
@@ -159,6 +163,18 @@ class Opts:
 			if opt in ('-v', '--vcutoff'):
 				try:
 					self.vcutoff = abs(float(arg))
+				except ValueError:
+					print(RED+"\n\t\t> > > vcutoff must be a number! < < <"+RS)
+					ShowUsage()
+			if opt in ('-a', '--lower'):
+				try:
+					self.mlow = abs(float(arg))
+				except ValueError:
+					print(RED+"\n\t\t> > > vcutoff must be a number! < < <"+RS)
+					ShowUsage()
+			if opt in ('-z', '--high'):
+				try:
+					self.mhi = abs(float(arg))
 				except ValueError:
 					print(RED+"\n\t\t> > > vcutoff must be a number! < < <"+RS)
 					ShowUsage()
