@@ -46,6 +46,7 @@ def Go(opts):
 			writer.WriteRData()
 			writer.WriteHistograms()
 			writer.WriteGHistogram()
+			writer.WriteGMatrix()
 	parser.PrintFN()
 	if opts.plot:
 			plotter = Plotter(parser)

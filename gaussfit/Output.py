@@ -20,12 +20,13 @@ Description:
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-import os,csv
+import os,csv,warnings
 try:
 	import numpy as np
+	from scipy.interpolate import griddata
 except ImportError as msg:
 	pass #We catch numpy import errors in Parser.py
-	
+warnings.filterwarnings('ignore','.*comparison.*',FutureWarning)	
 
 class Writer():
 	def __init__(self,parser):
@@ -48,8 +49,8 @@ class Writer():
 			for i in range(0, len( self.XY[list(self.XY.keys())[0]]['hist']['bin'] ) ):
 				row = []
 				for x in self.X: row += ["%0.4f"%self.XY[x]['hist']['bin'][i], 
-						         "%0.2d"%self.XY[x]['hist']['freq'][i],
-							 "%0.2d"%self.XY[x]['hist']['fit'][i]]
+						         "%s"%self.XY[x]['hist']['freq'][i],
+							 "%0.4f"%self.XY[x]['hist']['fit'][i]]
 				writer.writerow(row)
 		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RHistograms.txt")
 		with open(fn, 'w', newline='') as csvfile:
@@ -60,8 +61,8 @@ class Writer():
 			for i in range(0, len( self.R[list(self.R.keys())[0]]['hist']['bin'] ) ):
 				row = []
 				for x in self.R['X']: row += ["%0.4f"%self.R[x]['hist']['bin'][i],
-						         "%0.2d"%self.R[x]['hist']['freq'][i],
-						         "%0.2d"%self.R[x]['hist']['fit'][i]]
+						         "%2"%self.R[x]['hist']['freq'][i],
+						         "%0.4f"%self.R[x]['hist']['fit'][i]]
 				writer.writerow(row)
 
 		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_LogdJdVHistograms.txt")
@@ -73,8 +74,8 @@ class Writer():
 			for i in range(0, len( self.GHists[list(self.GHists.keys())[0]]['hist']['bin'] ) ):
 				row = []
 				for x in self.GHists: row += ["%0.4f"%self.GHists[x]['hist']['bin'][i], 
-						         "%0.2d"%self.GHists[x]['hist']['freq'][i],
-							 "%0.2d"%self.GHists[x]['hist']['fit'][i]]
+						         "%s"%self.GHists[x]['hist']['freq'][i],
+							 "%0.4f"%self.GHists[x]['hist']['fit'][i]]
 				writer.writerow(row)
 
 
@@ -166,27 +167,9 @@ class Writer():
 			for x in self.R['X']:
 				writer.writerow(["%0.4f"%x]+list(self.R[x][key]))
 
-	def OLDWriteGHistogram(self):
-		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_GHistogram.txt")
-
-		with open(fn, 'w', newline='') as csvfile:
-			writer = csv.writer(csvfile, dialect='JV')
-			#headers = ["Log|J|"]
-			headers = []
-			for x in self.X: headers += ["(%0.4f)"%x]
-			#for x in self.X: headers += ["A"]
-			#, "Log |J|", "Frequency"]
-			#writer.writerow(headers)
-			for i in range(0, len( self.XY[list(self.XY.keys())[0]]['hist']['bin'] ) ):
-				row = ["%0.1d"%self.XY[list(self.XY.keys())[-1]]['hist']['bin'][i]]
-				#row = []
-				for x in self.X:
-					#row = [x, "%0.4f"%self.XY[x]['hist']['bin'][i], "%0.2d"%self.XY[x]['hist']['freq'][i]]
-					row += ["%0.2d"%self.XY[x]['hist']['freq'][i]]
-				writer.writerow(row)
 	def WriteGHistogram(self):
+		'''Output for a contour plot of conductance'''
 		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_GHistogram.txt")
-
 		with open(fn, 'w', newline='') as csvfile:
 			writer = csv.writer(csvfile, dialect='JV')
 			headers = ["Potential (V)", "Log dJ/dV", "Frequency"]
@@ -194,10 +177,44 @@ class Writer():
 
 			for x in self.GHists:
 				for i in range(0, len(self.GHists[x]['hist']['bin'])):
-					row = [x,"%0.2d"%self.GHists[x]['hist']['bin'][i],"%0.2d"%self.GHists[x]['hist']['freq'][i]]
+					row = [x,"%0.4f"%self.GHists[x]['hist']['bin'][i],"%s"%self.GHists[x]['hist']['freq'][i]]
 					writer.writerow(row)
 				writer.writerow([])
 
+	def WriteGMatrix(self):
+		'''Output for a matlab-style colormap maxtrix'''
+		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_GMatrix.txt")
+		with open(fn, 'w', newline='') as csvfile:
+			writer = csv.writer(csvfile, dialect='JV')
+			#headers = []
+			#for x in self.GHists:
+			#	headers += ["%0.4f"%x]
+			#writer.writerow(headers)
+			x,y,z = [],[],[]
+			for i in range(0, len(self.GHists[list(self.GHists.keys())[0]]['hist']['bin'])):
+				row = ["%0.2f"%self.GHists[list(self.GHists.keys())[0]]['hist']['bin'][i]]
+				for v in self.GHists:
+					x.append(v)
+					y.append(self.GHists[v]['hist']['bin'][i])
+					z.append(self.GHists[v]['hist']['freq'][i])
+					row += ["%s"%self.GHists[v]['hist']['freq'][i]]
+				writer.writerow(row)
+			#xmin,xmax = np.array(x).min(), np.array(x).max()
+			#ymin,ymax = np.array(y).min(), np.array(y).max()
+			#zmin,zmax = np.array(z).min(), np.array(z).max()
+			#x=np.linspace(1.,10.,20)
+			#y=np.linspace(1.,10.,20)
+			#z=z = np.random.random(20)
+			#x,y,z = np.array(x),np.array(y),np.array(z)
+			#xmin,xmax = x.min(),x.max()
+			#ymin,ymax = y.min(),y.max()
+			#xi=np.linspace(xmin,xmax,200)
+			#yi=np.linspace(ymin,ymax,200)
+
+			#X,Y= np.meshgrid(xi,yi)
+			#Z = griddata((x, y), z, (X, Y),method='nearest')
+			#print(X)
+			#plt.contourf(X,Y,Z)
 
 class Plotter():
 	def __init__(self,parser):
@@ -235,15 +252,16 @@ class Plotter():
 				ax.plot(xax,[self.XY[x][key][i] for x in self.X], sym, **kw)
 			except IndexError:
 				break
-		if key == 'LogY':
-			ax.set_ylim(allY.min(),allY.max())
+		#if key == 'LogY':
+		#	ax.set_ylim(allY.min(),allY.max())
+		ax.axis([self.X.min(), self.X.max(), allY.min(),allY.max()])
+	
 	def PlotDJDV(self,ax):
 		xax = list(self.DJDV.keys())
 		xax.sort()
 		ax.set_title("Derivitive of Initial Data")
 		ax.set_xlabel("Potential (V)")
 		ax.set_ylabel(r'Normalized $\mathregular{\frac{dJ}{dV}}$')
-		#ax.set_ylim(-0.05,0.2)
 		i = -1
 		while True:
 			i += 1
@@ -254,6 +272,31 @@ class Plotter():
 					ax.plot(xax, [self.DJDV[x][i] for x in xax], "-", lw=0.5, color='grey')
 			except IndexError:
 				break
+		#ax.axis([np.array(xax).min(), np.array(xax).max(), allY.min(),allY.max()])
+
+	def PlotG(self,ax):
+		import matplotlib.pyplot as plt
+		ax.set_title("Conductance Plot")
+		ax.set_xlabel("Potential (V)")
+		ax.set_ylabel(r'$log|\mathregular{\frac{dJ}{dV}}|$')
+		x,y,z =[],[],[]
+		for v in self.GHists:
+			for i in range(0, len(self.GHists[v]['hist']['bin'])):
+				x.append(v)
+				y.append(self.GHists[v]['hist']['bin'][i])
+				z.append(self.GHists[v]['hist']['freq'][i])
+		x,y,z = np.array(x),np.array(y),np.array(z)
+		xmin,xmax = x.min(),x.max()
+		ymin,ymax = y.min(),y.max()
+		x = np.r_[x,xmin,xmax]
+		y = np.r_[y,ymin,ymax]
+		z = np.r_[z,z[0],z[-1]]
+		xi = np.linspace(xmin, xmax, 200)
+		yi = np.linspace(ymin, ymax, 200)
+		X,Y= np.meshgrid(xi,yi)
+		Z = griddata((x, y), z, (X, Y),method='nearest')
+		ax.axis([xmin, xmax, ymin, ymax])
+		ax.pcolormesh(X,Y,Z, cmap = plt.get_cmap('rainbow'))
 
 	def PlotHist(self,ax):
 		ax.set_title("Gaussian Fit and Raw Data")
@@ -282,7 +325,8 @@ class Plotter():
 		#self.PlotData('Y', ax1, '-')
 		self.PlotDJDV(ax1)
 		self.PlotData('LogY',ax2,':',lw=0.25, color='c')
-		self.PlotData('FN', ax3, 'x', ms=2)
+		#self.PlotData('FN', ax3, 'x', ms=2)
 		self.PlotHist(ax2)
 		self.PlotVtrans(ax4)
+		self.PlotG(ax3)
 		fig.savefig(self.opts.outfile+"_fig.png", format="png")

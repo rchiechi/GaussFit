@@ -202,7 +202,7 @@ class Parse():
 		spls = {}
 		splhists = {}
 		filtered = [('Potential', 'dY/dV', 'Y')]
-		for x in np.linspace(self.X.min(), self.X.max(), 100): 
+		for x in np.linspace(self.X.min(), self.X.max(), 200): 
 			spls[x] = []
 			splhists[x] = {'spl':[],'hist':{}}
 		i = -1
