@@ -186,38 +186,24 @@ class Writer():
 		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_GMatrix.txt")
 		with open(fn, 'w', newline='') as csvfile:
 			writer = csv.writer(csvfile, dialect='JV')
-			#headers = []
-			#for x in self.GHists:
-			#	headers += ["%0.4f"%x]
-			#writer.writerow(headers)
 			x,y,z = [],[],[]
 			for i in range(0, len(self.GHists[list(self.GHists.keys())[0]]['hist']['bin'])):
-				#row = ["%0.2f"%self.GHists[list(self.GHists.keys())[0]]['hist']['bin'][i]]
 				for v in self.GHists:
 					x.append(v)
 					y.append(self.GHists[v]['hist']['bin'][i])
 					z.append(self.GHists[v]['hist']['freq'][i])
-					#row += ["%s"%self.GHists[v]['hist']['freq'][i]]
-				#writer.writerow(row)
-			#xmin,xmax = np.array(x).min(), np.array(x).max()
-			#ymin,ymax = np.array(y).min(), np.array(y).max()
-			#zmin,zmax = np.array(z).min(), np.array(z).max()
-			#x=np.linspace(1.,10.,20)
-			#y=np.linspace(1.,10.,20)
-			#z=z = np.random.random(20)
 			x,y,z = np.array(x),np.array(y),np.array(z)
 			xmin,xmax = x.min(),x.max()
-			#ymin,ymax = y.min(),y.max()
 			ymin,ymax = self.opts.mlow, self.opts.mhi
 			xi=np.linspace(xmin,xmax,200)
 			yi=np.linspace(ymin,ymax,200)
 			X,Y= np.meshgrid(xi,yi)
 			Z = griddata((x, y), z, (X, Y),fill_value=0,method='cubic')
 			
-			headers = ['MatrixData']
-			for x in X[0]:
-				headers += ["%0.1f"%x]
-			writer.writerow(headers)
+			#headers = ['MatrixData']
+			#for x in X[0]:
+			#	headers += ["%0.1f"%x]
+			#writer.writerow(headers)
 			
 			for i in range(0,len(Z)):
 				zi = []
@@ -227,7 +213,19 @@ class Writer():
 					else:
 						zi.append(z)
 				#writer.writerow( ['%0.1f'%Y[i][0]]+list(Z[i]) )
-				writer.writerow( ['%0.1f'%Y[i][0]]+zi )
+				#writer.writerow( ['%0.1f'%Y[i][0]]+zi )
+				writer.writerow(zi)
+		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_GMatrix_Labels.txt")
+		with open(fn, 'w', newline='') as csvfile:
+			writer = csv.writer(csvfile, dialect='JV')
+			headers = []
+			for x in X[0]:
+				headers += ["%0.1f"%x]
+			writer.writerow(headers)
+			headers = []
+			for i in range(0,len(Y)):
+				headers += ['%0.1f'%Y[i][0]]
+			writer.writerow(headers)
 
 class Plotter():
 	def __init__(self,parser):
