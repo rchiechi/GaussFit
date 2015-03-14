@@ -293,12 +293,15 @@ class Plotter():
 		x,y,z =[],[],[]
 		for v in self.GHists:
 			for i in range(0, len(self.GHists[v]['hist']['bin'])):
+				if i in self.ohmic:
+					continue
 				x.append(v)
 				y.append(self.GHists[v]['hist']['bin'][i])
 				z.append(self.GHists[v]['hist']['freq'][i])
 		x,y,z = np.array(x),np.array(y),np.array(z)
 		xmin,xmax = x.min(),x.max()
-		ymin,ymax = y.min(),y.max()
+		#ymin,ymax = y.min(),y.max()
+		ymin,ymax = self.opts.mlow, self.opts.mhi
 		x = np.r_[x,xmin,xmax]
 		y = np.r_[y,ymin,ymax]
 		z = np.r_[z,z[0],z[-1]]
