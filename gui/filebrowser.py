@@ -233,7 +233,7 @@ class ChooseFiles(Frame):
             self.Check_plot["state"]=NORMAL
 
         try:
-            vcutoff = int(self.EntryVcutoff.get())
+            vcutoff = float(self.EntryVcutoff.get())
             if vcutoff != -1:
                 vcutoff = abs(vcutoff)
             self.opts.vcutoff = vcutoff     
@@ -241,7 +241,8 @@ class ChooseFiles(Frame):
             self.opts.vcutoff = -1
 
         self.EntryVcutoff.delete(0, END)
-        self.EntryVcutoff.insert(0,self.opts.vcutoff)
+        if self.opts.vcutoff > 0:
+            self.EntryVcutoff.insert(0,self.opts.vcutoff)
 
     
     def createColumnEntry(self):
