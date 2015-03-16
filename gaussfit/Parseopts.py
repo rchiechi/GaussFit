@@ -170,13 +170,13 @@ class Opts:
 				try:
 					self.mlow = abs(float(arg))
 				except ValueError:
-					print(RED+"\n\t\t> > > vcutoff must be a number! < < <"+RS)
+					print(RED+"\n\t\t> > > G-min must be a number! < < <"+RS)
 					ShowUsage()
 			if opt in ('-z', '--high'):
 				try:
 					self.mhi = abs(float(arg))
 				except ValueError:
-					print(RED+"\n\t\t> > > vcutoff must be a number! < < <"+RS)
+					print(RED+"\n\t\t> > > G-max must be a number! < < <"+RS)
 					ShowUsage()
 
 		# Set up terminal logging. Set LOG to a file for debugging.
