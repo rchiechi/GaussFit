@@ -51,7 +51,7 @@ def ShowUsage():
 		-D      --dir           Output directory (merged with --output)
 		-G      --GUI           Launch the GUI
 		-M	--min		Compute Vtrans from the min(Y) instead of the derivitve of the cubic spline
-		-s	--skip		Skip plots with negative d2J/dV2 values at vcutoff for Vtrans calcuation
+		-s	--skip		Skip plots with negative d2J/dV2 values at vcutoff for Vtrans calcuation and conductance plot
 		-v	--vcutoff 	Voltage (absolute value) cut-off for dJ/dV skipping routine (default is =Vmin/Vmax)
 		-a	--lower		Lower cutoff value for matrix plot (default -6) 
 		-z	--upper		Upper cuttof value for matrix plot (default 0)%(rs)s

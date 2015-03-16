@@ -293,7 +293,7 @@ class Plotter():
 		x,y,z =[],[],[]
 		for v in self.GHists:
 			for i in range(0, len(self.GHists[v]['hist']['bin'])):
-				if i in self.ohmic:
+				if i in self.ohmic and self.opts.skipohmic:
 					continue
 				x.append(v)
 				y.append(self.GHists[v]['hist']['bin'][i])
