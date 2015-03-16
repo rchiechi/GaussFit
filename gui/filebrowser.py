@@ -24,6 +24,7 @@ from tkinter import filedialog #some weird bug...
 from tkinter import *
 from tkinter.ttk import *
 import logging
+from gui.tooltip import *
 
 
 
@@ -168,10 +169,12 @@ class ChooseFiles(Frame):
         self.Check_plot = Checkbutton(self.OptionsFrame, text="Plot", \
                                          variable=self.plot, command=self.checkOptions)
         self.Check_plot.grid(column=0,row=1,sticky=W)
+        createToolTip(self.Check_plot, "Show summary plots after parsing.")
         
         self.Check_write = Checkbutton(self.OptionsFrame, text="Write", \
                                           variable=self.write, command=self.checkOptions)
         self.Check_write.grid(column=0,row=2,sticky=W)
+        createToolTip(self.Check_write, "Write results to text files after parsing.")
 
         Label(self.OptionsFrame, text="Output file base name:").grid(column=0,row=3)
 
@@ -185,11 +188,13 @@ class ChooseFiles(Frame):
         self.Check_skip = Checkbutton(self.OptionsFrame, text="Skip bad dJ/dV", \
                                          variable=self.skip, command=self.checkOptions)
         self.Check_skip.grid(column=0,row=5,sticky=W)
+        createToolTip(self.Check_skip, "Skip plots with d2J/dV2 < 0 between Vcutoff and Vmin/Vmax.")
 
         self.smooth = IntVar()
-        self.Check_smooth = Checkbutton(self.OptionsFrame, text="Use dJ/dV to compute Vtrans", \
+        self.Check_smooth = Checkbutton(self.OptionsFrame, text="Use dJ/dV for Vtrans", \
                                          variable=self.smooth, command=self.checkOptions)
         self.Check_smooth.grid(column=0,row=6,sticky=W)
+        createToolTip(self.Check_smooth, "Use dJ/dV plots to find the minimum of F-N plots when computing Vtrans.")
 
         Label(self.LeftOptionsFrame, text="Cuttoff for d2J/dV2 (-1=min/max):").grid(column=0,row=0)
         self.EntryVcutoff = Entry(self.LeftOptionsFrame, width=4)
@@ -197,6 +202,8 @@ class ChooseFiles(Frame):
         self.EntryVcutoff.bind("<Leave>", self.checkOptions)
         self.EntryVcutoff.bind("<Enter>", self.checkOptions)
         self.EntryVcutoff.grid(column=0,row=1)
+        createToolTip(self.EntryVcutoff, "Check the values of d2J/dV2 between |vcutoff| and Vmin/Vmax for line-shape filtering.")
+
 
         Label(self.LeftOptionsFrame, text="Y-scale for conductance:").grid(column=0,row=2)
         self.EntryGminmax = Entry(self.LeftOptionsFrame, width=4)
@@ -204,7 +211,9 @@ class ChooseFiles(Frame):
         self.EntryGminmax.bind("<Leave>", self.checkGminmaxEntry)
         self.EntryGminmax.bind("<Enter>", self.checkGminmaxEntry)
         self.EntryGminmax.grid(column=0,row=3)
+        createToolTip(self.EntryGminmax, "Set Ymin,Ymax for the conductance plot (lower-left of plot output).")
         self.checkGminmaxEntry(None)
+        
 
         if self.opts.write:
             self.write.set(1)
@@ -231,6 +240,11 @@ class ChooseFiles(Frame):
             self.Check_plot["state"]=DISABLED
         else:
             self.Check_plot["state"]=NORMAL
+
+        if not self.opts.plot:
+            self.EntryGminmax["state"]=DISABLED
+        else:
+            self.EntryGminmax["state"]=NORMAL
 
         try:
             vcutoff = float(self.EntryVcutoff.get())
@@ -268,6 +282,7 @@ class ChooseFiles(Frame):
         self.EntryColumns.insert(0, ",".join(( str(self.opts.Xcol+1), str(self.opts.Ycol+1) )))
 
     def checkGminmaxEntry(self, event):
+        self.checkOptions()
         try:
             x, y = self.EntryGminmax.get().split(",")
             self.opts.mlow, self.opts.mhi = int(x), int(y)
