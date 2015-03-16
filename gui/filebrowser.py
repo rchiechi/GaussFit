@@ -47,10 +47,12 @@ class ChooseFiles(Frame):
         self.ButtonFrame = Frame(self)
 
         self.OptionsFrame = Frame(self)
+        
 
         self.ColumnFrame = Frame(self)
         self.ColumnFrameLabel = Label(self.ColumnFrame, text="Columns to parse:" ).pack(side=TOP, ipadx=10)
-
+        self.LeftOptionsFrame = Frame(self.ColumnFrame)
+        
         self.FileListBoxFrame = Frame(self)
         self.FileListBoxFrameLabelVar = StringVar()
         self.FileListBoxFrameLabel = Label(self.FileListBoxFrame, \
@@ -71,6 +73,7 @@ class ChooseFiles(Frame):
         self.FileListBoxFrame.pack(side=TOP, fil=Y, expand=1)
         self.OptionsFrame.pack(side=RIGHT)
         self.ColumnFrame.pack(side=LEFT)
+        self.LeftOptionsFrame.pack(side=LEFT)
         self.LoggingFrame.pack(side=BOTTOM)
         self.logger = logging.getLogger(None)
         self.logger.addHandler(LoggingToGUI(self.Logging))
@@ -178,16 +181,49 @@ class ChooseFiles(Frame):
         self.OutputFileName.bind("<Enter>", self.checkOutputFileName)
         self.OutputFileName.grid(column=0,row=4)
 
+        self.skip = IntVar()
+        self.Check_skip = Checkbutton(self.OptionsFrame, text="Skip bad dJ/dV", \
+                                         variable=self.skip, command=self.checkOptions)
+        self.Check_skip.grid(column=0,row=5,sticky=W)
+
+        self.smooth = IntVar()
+        self.Check_smooth = Checkbutton(self.OptionsFrame, text="Use dJ/dV to compute Vtrans", \
+                                         variable=self.smooth, command=self.checkOptions)
+        self.Check_smooth.grid(column=0,row=6,sticky=W)
+
+        Label(self.LeftOptionsFrame, text="Cuttoff for d2J/dV2 (-1=min/max):").grid(column=0,row=0)
+        self.EntryVcutoff = Entry(self.LeftOptionsFrame, width=4)
+        self.EntryVcutoff.bind("<Return>", self.checkOptions)
+        self.EntryVcutoff.bind("<Leave>", self.checkOptions)
+        self.EntryVcutoff.bind("<Enter>", self.checkOptions)
+        self.EntryVcutoff.grid(column=0,row=1)
+
+        Label(self.LeftOptionsFrame, text="Y-scale for conductance:").grid(column=0,row=2)
+        self.EntryGminmax = Entry(self.LeftOptionsFrame, width=4)
+        self.EntryGminmax.bind("<Return>", self.checkGminmaxEntry)
+        self.EntryGminmax.bind("<Leave>", self.checkGminmaxEntry)
+        self.EntryGminmax.bind("<Enter>", self.checkGminmaxEntry)
+        self.EntryGminmax.grid(column=0,row=3)
+        self.checkGminmaxEntry(None)
+
         if self.opts.write:
             self.write.set(1)
         if self.opts.plot:
             self.plot.set(1)
         if self.opts.outfile:
             self.OutputFileName.insert(0,self.opts.outfile)
+        if self.opts.skipohmic:
+            self.skip.set(1)
+        if self.opts.smooth:
+            self.smooth.set(1)
 
-    def checkOptions(self):
+        self.checkOptions()
+
+    def checkOptions(self, event=None):
         self.opts.plot = self.boolmap[self.plot.get()]
         self.opts.write = self.boolmap[self.write.get()]
+        self.opts.skipohmic = self.boolmap[self.skip.get()]
+        self.opts.smooth = self.boolmap[self.smooth.get()]
            
         if not self.opts.write:
             self.opts.plot = True
@@ -195,6 +231,17 @@ class ChooseFiles(Frame):
             self.Check_plot["state"]=DISABLED
         else:
             self.Check_plot["state"]=NORMAL
+
+        try:
+            vcutoff = int(self.EntryVcutoff.get())
+            if vcutoff != -1:
+                vcutoff = abs(vcutoff)
+            self.opts.vcutoff = vcutoff     
+        except ValueError:
+            self.opts.vcutoff = -1
+
+        self.EntryVcutoff.delete(0, END)
+        self.EntryVcutoff.insert(0,self.opts.vcutoff)
 
     
     def createColumnEntry(self):
@@ -218,7 +265,15 @@ class ChooseFiles(Frame):
             pass
         self.EntryColumns.delete(0, END)
         self.EntryColumns.insert(0, ",".join(( str(self.opts.Xcol+1), str(self.opts.Ycol+1) )))
-        
+
+    def checkGminmaxEntry(self, event):
+        try:
+            x, y = self.EntryGminmax.get().split(",")
+            self.opts.mlow, self.opts.mhi = int(x), int(y)
+        except ValueError as msg:
+            pass
+        self.EntryGminmax.delete(0, END)
+        self.EntryGminmax.insert(0, ",".join( (str(self.opts.mlow), str(self.opts.mhi)) ))
 
     def createOutputLabel(self):
 
