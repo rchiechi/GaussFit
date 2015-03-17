@@ -196,17 +196,17 @@ class ChooseFiles(Frame):
         self.Check_smooth.grid(column=0,row=6,sticky=W)
         createToolTip(self.Check_smooth, "Use dJ/dV plots to find the minimum of F-N plots when computing Vtrans.")
 
-        Label(self.LeftOptionsFrame, text="Cuttoff for d2J/dV2 (-1=min/max):").grid(column=0,row=0)
-        self.EntryVcutoff = Entry(self.LeftOptionsFrame, width=4)
+        Label(self.LeftOptionsFrame, text="Cuttoff for d2J/dV2:").grid(column=0,row=0)
+        self.EntryVcutoff = Entry(self.LeftOptionsFrame, width=8)
         self.EntryVcutoff.bind("<Return>", self.checkOptions)
         self.EntryVcutoff.bind("<Leave>", self.checkOptions)
         self.EntryVcutoff.bind("<Enter>", self.checkOptions)
         self.EntryVcutoff.grid(column=0,row=1)
-        createToolTip(self.EntryVcutoff, "Check the values of d2J/dV2 between |vcutoff| and Vmin/Vmax for line-shape filtering.")
+        createToolTip(self.EntryVcutoff, "Check the values of d2J/dV2 between |vcutoff| and Vmin/Vmax for line-shape filtering. Set to -1 for Vmin/Vmax.")
 
 
         Label(self.LeftOptionsFrame, text="Y-scale for conductance:").grid(column=0,row=2)
-        self.EntryGminmax = Entry(self.LeftOptionsFrame, width=4)
+        self.EntryGminmax = Entry(self.LeftOptionsFrame, width=8)
         self.EntryGminmax.bind("<Return>", self.checkGminmaxEntry)
         self.EntryGminmax.bind("<Leave>", self.checkGminmaxEntry)
         self.EntryGminmax.bind("<Enter>", self.checkGminmaxEntry)
@@ -241,10 +241,10 @@ class ChooseFiles(Frame):
         else:
             self.Check_plot["state"]=NORMAL
 
-        if not self.opts.plot:
-            self.EntryGminmax["state"]=DISABLED
-        else:
-            self.EntryGminmax["state"]=NORMAL
+        #if not self.opts.plot:
+        #    self.EntryGminmax["state"]=DISABLED
+        #else:
+        #    self.EntryGminmax["state"]=NORMAL
 
         try:
             vcutoff = float(self.EntryVcutoff.get())
@@ -257,7 +257,8 @@ class ChooseFiles(Frame):
         self.EntryVcutoff.delete(0, END)
         if self.opts.vcutoff > 0:
             self.EntryVcutoff.insert(0,self.opts.vcutoff)
-
+        else:
+            self.EntryVcutoff.insert(0,"Vmax")
     
     def createColumnEntry(self):
 
