@@ -213,7 +213,7 @@ class Parse():
 				for x in self.X: y.append(self.XY[x]['Y'][i])
 				# k (smoothing)  must be 4 for 
 				# the derivative to be cubic (k=3)
-				spl = UnivariateSpline( self.X, y, k=4, s=0).derivative()
+				spl = UnivariateSpline( self.X, y, k=4, s=0.00001).derivative()
 				
 				#with open('test_spline.txt','wt') as fh:
 				#	for x in self.X:
@@ -245,8 +245,8 @@ class Parse():
 						filtered.append( (x, spl(x), self.XY[x]['Y'][i]) )
 			except IndexError:
 				break
-		logging.info("Non-tunneling traces: %s (out of %s)" % 
-					( len(self.ohmic), len( self.XY[ list(self.XY.keys())[0]]['Y']) ) )
+		logging.info("Non-tunneling traces: %s (out of %0d)" % 
+					( len(self.ohmic), len( self.XY[ list(self.XY.keys())[0] ]['Y'])*0.6 ) )
 		for x in splhists:
 			splhists[x]['hist'] = self.dohistogram(np.array(splhists[x]['spl']))
 		return spls, splhists, filtered
@@ -308,10 +308,10 @@ class Parse():
 					continue
 				if self.opts.smooth:
 					logging.debug("Using interpolation on FN")
-					rootneg = self.getminroot(UnivariateSpline( x_neg, y_neg, k=4, s=0 ))
+					rootneg = self.getminroot(UnivariateSpline( x_neg, y_neg, k=4, s=None ))
 					if ~np.isnan(rootneg):
 						neg_min_x.append(rootneg)
-					rootpos = self.getminroot(UnivariateSpline( x_pos, y_pos, k=4, s=0 ))
+					rootpos = self.getminroot(UnivariateSpline( x_pos, y_pos, k=4, s=None ))
 					if ~np.isnan(rootpos):
 						pos_min_x.append(rootpos)
 					if np.NAN in (rootneg,rootpos):
