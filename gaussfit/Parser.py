@@ -213,7 +213,7 @@ class Parse():
 				for x in self.X: y.append(self.XY[x]['Y'][i])
 				# k (smoothing)  must be 4 for 
 				# the derivative to be cubic (k=3)
-				spl = UnivariateSpline( self.X, y, k=3, s=1e-12 ).derivative()
+				spl = UnivariateSpline( self.X, y, k=3, s=self.opts.smooth ).derivative()
 				#print(pspl.get_residual())
 				
 				#with open('test_spline.txt','wt') as fh:
@@ -290,7 +290,7 @@ class Parse():
 				x_neg, y_neg, x_pos, y_pos = [],[],[],[]
 				for x in self.X:
 					# Without smoothing, we have to toss shorts or we get nonsense values
-					if abs(self.XY[x]['Y'][i]).max() >= self.opts.compliance and not self.opts.smooth:
+					if abs(self.XY[x]['Y'][i]).max() >= self.opts.compliance and not self.opts.nomin:
 						tossed += 1
 						continue
 					y = self.XY[x]['FN'][i]
@@ -306,7 +306,7 @@ class Parse():
 				if not len(neg.keys()) or not len(pos.keys()):
 					logging.warn("Skipping empty column in FN calculation.")
 					continue
-				if self.opts.smooth:
+				if self.opts.nomin:
 					logging.debug("Using interpolation on FN")
 					rootneg = self.getminroot(UnivariateSpline( x_neg, y_neg, k=4, s=None ))
 					if ~np.isnan(rootneg):

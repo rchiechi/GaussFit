@@ -52,6 +52,7 @@ def ShowUsage():
 		-G      --GUI           Launch the GUI
 		-M	--min		Compute Vtrans from the min(Y) instead of the derivitve of the cubic spline
 		-s	--skip		Skip plots with negative d2J/dV2 values at vcutoff for Vtrans calcuation and conductance plot
+		-S	--smooth	Cutoff for residuals when smoothing splines for dJ/dV (default 1e-12) 0 to disable
 		-v	--vcutoff 	Voltage (absolute value) cut-off for dJ/dV skipping routine (default is =Vmin/Vmax)
 		-a	--lower		Lower cutoff value for matrix plot (default -6) 
 		-z	--upper		Upper cuttof value for matrix plot (default 0)%(rs)s
@@ -75,11 +76,11 @@ class Opts:
 	def __init__(self):
 		try:
 			opts, self.in_files = gnu_getopt(sys.argv[1:], 
-					"hb:l:d:o:X:,Y:m:pc:nD:GMsv:a:z:", ["help" , "bins", 
+					"hb:l:d:o:X:,Y:m:pc:nD:GMsS:v:a:z:", ["help" , "bins", 
 					"loglevel=", "delimeter=","output=", "Xcol", 
 					"Ycol", "maxr", "plot", "compliance", 
 					"nowrite","dir:","GUI",
-					"min","skip","vcutoff","lower","upper"])
+					"min","skip","smooth","vcutoff","lower","upper"])
 		except GetoptError:
 			print(RED+"Invalid option(s)"+RS)
 			ShowUsage()
@@ -96,6 +97,7 @@ class Opts:
 		self.compliance=np.inf
 		self.GUI=False
 		self.out_dir = os.environ['PWD']
+		self.nomin = 1e-12
 		self.smooth = True
 		self.skipohmic = False
 		self.vcutoff = -1 # -1 will default to Vmin/Vmax
@@ -132,6 +134,8 @@ class Opts:
 					ShowUsage()
 			if opt in ('-d', '--delimeter'):
 				self.delim = str(arg)
+			if opt in ('-D', '--dir'):
+				self.out_dir = str(arg)
 			if opt in ('-o', '--output'):
 				self.outfile = arg
 			if opt in ('-X', '--Xcol'):
@@ -157,9 +161,16 @@ class Opts:
 			if opt in ('-G', '--GUI'):
                                 self.GUI = True
 			if opt in ('-M', '--min'):
-                                self.smooth = False
+                                self.nomin = False
 			if opt in ('-s', '--skip'):
 				self.skipohmic = True
+			if opt in ('-S', '--smooth'):
+				try:
+					self.smooth = abs(float(arg))
+				except ValueError:
+					print(RED+"\n\t\t> > > smoothing factor must be a number! < < <"+RS)
+					ShowUsage()
+
 			if opt in ('-v', '--vcutoff'):
 				try:
 					self.vcutoff = abs(float(arg))
