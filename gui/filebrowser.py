@@ -37,7 +37,7 @@ class ChooseFiles(Frame):
         self.last_input_path = os.environ['HOME']
         self.opts = opts
         self.master.title("File Browser")
-        self.master.geometry('850x600+250-250')
+        self.master.geometry('850x650+250-250')
         self.pack(fill=BOTH)
         self.createWidgets()
         self.ToFront()
@@ -190,9 +190,9 @@ class ChooseFiles(Frame):
         self.Check_skip.grid(column=0,row=5,sticky=W)
         createToolTip(self.Check_skip, "Skip plots with d2J/dV2 < 0 between Vcutoff and Vmin/Vmax.")
 
-        self.smooth = IntVar()
+        self.nomin = IntVar()
         self.Check_smooth = Checkbutton(self.OptionsFrame, text="Use dJ/dV for Vtrans", \
-                                         variable=self.smooth, command=self.checkOptions)
+                                         variable=self.nomin, command=self.checkOptions)
         self.Check_smooth.grid(column=0,row=6,sticky=W)
         createToolTip(self.Check_smooth, "Use dJ/dV plots to find the minimum of F-N plots when computing Vtrans.")
 
@@ -204,16 +204,22 @@ class ChooseFiles(Frame):
         self.EntryVcutoff.grid(column=0,row=1)
         createToolTip(self.EntryVcutoff, "Check the values of d2J/dV2 between |vcutoff| and Vmin/Vmax for line-shape filtering. Set to -1 for Vmin/Vmax.")
 
-
-        Label(self.LeftOptionsFrame, text="Y-scale for conductance:").grid(column=0,row=2)
+        Label(self.LeftOptionsFrame, text="Smoothing parameter:").grid(column=0,row=2)
+        self.Smoothingcutoff = Entry(self.LeftOptionsFrame, width=8)
+        self.Smoothingcutoff.bind("<Return>", self.checkOptions)
+        self.Smoothingcutoff.bind("<Leave>", self.checkOptions)
+        self.Smoothingcutoff.bind("<Enter>", self.checkOptions)
+        self.Smoothingcutoff.grid(column=0,row=3)
+        createToolTip(self.Smoothingcutoff, "The cutoff value for the residual squares (the difference between experimental data points and the fit). The default is 1e-12. Set to 0 to disable smoothing.")
+    
+        Label(self.LeftOptionsFrame, text="Y-scale for conductance:").grid(column=0,row=4)
         self.EntryGminmax = Entry(self.LeftOptionsFrame, width=8)
         self.EntryGminmax.bind("<Return>", self.checkGminmaxEntry)
         self.EntryGminmax.bind("<Leave>", self.checkGminmaxEntry)
         self.EntryGminmax.bind("<Enter>", self.checkGminmaxEntry)
-        self.EntryGminmax.grid(column=0,row=3)
+        self.EntryGminmax.grid(column=0,row=5)
         createToolTip(self.EntryGminmax, "Set Ymin,Ymax for the conductance plot (lower-left of plot output).")
         self.checkGminmaxEntry(None)
-        
 
         if self.opts.write:
             self.write.set(1)
@@ -223,8 +229,8 @@ class ChooseFiles(Frame):
             self.OutputFileName.insert(0,self.opts.outfile)
         if self.opts.skipohmic:
             self.skip.set(1)
-        if self.opts.smooth:
-            self.smooth.set(1)
+        if self.opts.nomin:
+            self.nomin.set(1)
 
         self.checkOptions()
 
@@ -232,7 +238,7 @@ class ChooseFiles(Frame):
         self.opts.plot = self.boolmap[self.plot.get()]
         self.opts.write = self.boolmap[self.write.get()]
         self.opts.skipohmic = self.boolmap[self.skip.get()]
-        self.opts.smooth = self.boolmap[self.smooth.get()]
+        self.opts.nomin = self.boolmap[self.nomin.get()]
            
         if not self.opts.write:
             self.opts.plot = True
@@ -259,6 +265,15 @@ class ChooseFiles(Frame):
             self.EntryVcutoff.insert(0,self.opts.vcutoff)
         else:
             self.EntryVcutoff.insert(0,"Vmax")
+
+        try:
+            self.opts.smooth = abs(float(self.Smoothingcutoff.get()))     
+        except ValueError:
+            self.opts.smooth = 1e-12
+
+        self.Smoothingcutoff.delete(0, END)
+        self.Smoothingcutoff.insert(0,self.opts.smooth)
+
     
     def createColumnEntry(self):
 
