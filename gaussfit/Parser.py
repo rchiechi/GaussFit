@@ -213,7 +213,8 @@ class Parse():
 				for x in self.X: y.append(self.XY[x]['Y'][i])
 				# k (smoothing)  must be 4 for 
 				# the derivative to be cubic (k=3)
-				spl = UnivariateSpline( self.X, y, k=4, s=0.00001).derivative()
+				spl = UnivariateSpline( self.X, y, k=3, s=1e-12 ).derivative()
+				#print(pspl.get_residual())
 				
 				#with open('test_spline.txt','wt') as fh:
 				#	for x in self.X:
@@ -224,14 +225,13 @@ class Parse():
 				for x in spls:
 					if abs(spl(x)) > maxY:
 						maxY = abs(spl(x))
-				for x in spls: 
+				for x in spls:
 					spls[x].append(spl(x)/maxY)
 					splhists[x]['spl'].append(np.log10(abs(spl(x))))
 				
-				#d = np.array(spl(vfilter))
-				X = np.linspace(self.X.min(), self.X.max(), 100)
+				#X = np.linspace(self.X.min(), self.X.max(), 100)
 				
-				dd =  UnivariateSpline(X, UnivariateSpline( self.X, y, k=4).derivative()(X), k=4).derivative()
+				dd =  UnivariateSpline(self.X, y, k=3, s=None).derivative(2)
 				d = dd(vfilterpos) #Compute d2J/dV2
 				d += -1*dd(vfilterneg) #Compute d2J/dV2
 				if len(d[d < 0]): # Hackish because any() wasn't working
