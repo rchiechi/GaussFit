@@ -213,7 +213,13 @@ class Parse():
 				for x in self.X: y.append(self.XY[x]['Y'][i])
 				# k (smoothing)  must be 4 for 
 				# the derivative to be cubic (k=3)
-				spl = UnivariateSpline( self.X, y, k=4).derivative()
+				spl = UnivariateSpline( self.X, y, k=4, s=0).derivative()
+				
+				#with open('test_spline.txt','wt') as fh:
+				#	for x in self.X:
+				#		fh.write(str(x)+"\t"+str(spl(x))+"\n")
+				#spl = spl.derivative()
+				
 				maxY = 0
 				for x in spls:
 					if abs(spl(x)) > maxY:
@@ -225,7 +231,7 @@ class Parse():
 				#d = np.array(spl(vfilter))
 				X = np.linspace(self.X.min(), self.X.max(), 100)
 				
-				dd =  UnivariateSpline(X, spl(X), k=4).derivative()
+				dd =  UnivariateSpline(X, UnivariateSpline( self.X, y, k=4).derivative()(X), k=4).derivative()
 				d = dd(vfilterpos) #Compute d2J/dV2
 				d += -1*dd(vfilterneg) #Compute d2J/dV2
 				if len(d[d < 0]): # Hackish because any() wasn't working
@@ -302,10 +308,10 @@ class Parse():
 					continue
 				if self.opts.smooth:
 					logging.debug("Using interpolation on FN")
-					rootneg = self.getminroot(UnivariateSpline( x_neg, y_neg, k=4 ))
+					rootneg = self.getminroot(UnivariateSpline( x_neg, y_neg, k=4, s=0 ))
 					if ~np.isnan(rootneg):
 						neg_min_x.append(rootneg)
-					rootpos = self.getminroot(UnivariateSpline( x_pos, y_pos, k=4 ))
+					rootpos = self.getminroot(UnivariateSpline( x_pos, y_pos, k=4, s=0 ))
 					if ~np.isnan(rootpos):
 						pos_min_x.append(rootpos)
 					if np.NAN in (rootneg,rootpos):
