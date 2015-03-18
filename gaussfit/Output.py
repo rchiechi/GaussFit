@@ -270,7 +270,7 @@ class Plotter():
 	def PlotDJDV(self,ax):
 		xax = list(self.DJDV.keys())
 		xax.sort()
-		ax.set_title("Derivitive of Initial Data")
+		ax.set_title("Derivative of Initial Data")
 		ax.set_xlabel("Potential (V)")
 		ax.set_ylabel(r'Normalized $\mathregular{\frac{dJ}{dV}}$')
 		i = -1
