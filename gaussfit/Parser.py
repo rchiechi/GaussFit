@@ -224,7 +224,8 @@ class Parse():
 				maxY = 0
 				for x in spls:
 					if abs(spl(x)) > maxY:
-						maxY = abs(spl(x))
+						#maxY = abs(spl(x))
+						maxY = 1
 				for x in spls:
 					spls[x].append(spl(x)/maxY)
 					splhists[x]['spl'].append(np.log10(abs(spl(x))))
@@ -238,10 +239,8 @@ class Parse():
 					# record in the index where dY/dX is < 0 at vcutoff
 					self.ohmic.append(i)  
 				else:
-					#for x in spls: 
-					#	splhists[x]['spl'].append(np.log10(abs(spl(x))))
 					for x in self.X:
-						# filtered is a list containing only "clean" traces
+						# filtered is a list containing only "clean" traces			
 						filtered.append( (x, spl(x), self.XY[x]['Y'][i]) )
 			except IndexError:
 				break
