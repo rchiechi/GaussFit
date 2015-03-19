@@ -274,6 +274,7 @@ class Plotter():
 		ax.set_xlabel("Potential (V)")
 		ax.set_ylabel(r'$\mathregular{\frac{dJ}{dV}}$')
 		#ax.set_ylabel(r'Normalized $\mathregular{\frac{dJ}{dV}}$')
+		ax.axis([np.array(xax).min(), np.array(xax).max(), pow(10,self.opts.mlow), pow(10,self.opts.mhi)])
 		i = -1
 		while True:
 			i += 1
@@ -284,7 +285,6 @@ class Plotter():
 					ax.plot(xax, [self.DJDV[x][i] for x in xax], "-", lw=0.5, color='grey')
 			except IndexError:
 				break
-		#ax.axis([np.array(xax).min(), np.array(xax).max(), allY.min(),allY.max()])
 
 	def PlotG(self,ax):
 		import matplotlib.pyplot as plt
