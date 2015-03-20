@@ -179,13 +179,13 @@ class Opts:
 					ShowUsage()
 			if opt in ('-a', '--lower'):
 				try:
-					self.mlow = abs(float(arg))
+					self.mlow = float(arg)
 				except ValueError:
 					print(RED+"\n\t\t> > > G-min must be a number! < < <"+RS)
 					ShowUsage()
 			if opt in ('-z', '--high'):
 				try:
-					self.mhi = abs(float(arg))
+					self.mhi = float(arg)
 				except ValueError:
 					print(RED+"\n\t\t> > > G-max must be a number! < < <"+RS)
 					ShowUsage()

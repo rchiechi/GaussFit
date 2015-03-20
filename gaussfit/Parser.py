@@ -27,6 +27,7 @@ from gaussfit.colors import *
 try:
 	from scipy.optimize import curve_fit,OptimizeWarning
 	from scipy.interpolate import UnivariateSpline
+	from scipy.stats import gmean
 	import numpy as np
 	# SciPy throws a useless warning for noisy J/V traces
 	warnings.filterwarnings('ignore','.*Covariance of the parameters.*',OptimizeWarning)
@@ -37,6 +38,7 @@ except ImportError as msg:
 
 warnings.filterwarnings('ignore','.*divide by zero.*',RuntimeWarning)
 warnings.filterwarnings('ignore','.*',UserWarning)
+warnings.filterwarnings('ignore','.*invalid value encountered in log.*',RuntimeWarning)
 #warnings.filterwarnings('ignore','.*impossible result.*',UserWarning)
 
 class Parse():
@@ -352,7 +354,15 @@ class Parse():
 			logging.warn("Tossing %d data points > %0.1f for %s histogram!", len(r_compliance[0]), self.opts.maxr, label)
 			Y = Y[np.nonzero(abs(Y) <= self.opts.maxr)]
 		logging.debug("%d points to consider.", len(Y))
-		freq, bins = np.histogram(Y, bins=self.opts.bins, density=False)      
+		if label == "J":
+			yrange = (Y.min()-1,Y.max()+1)
+		else:
+			yrange = None
+		freq, bins = np.histogram(Y, range=yrange, bins=self.opts.bins, density=False)      
+		#if len(Y[Y<0]):
+		#	Ym = -1*gmean(abs(Y))
+		#else:
+		#	Ym = gmean(abs(Y))
 		p0 = [1., Y.mean(), Y.std()]
 		bin_centers = (bins[:-1] + bins[1:])/2
 		try:
