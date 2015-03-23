@@ -310,10 +310,10 @@ class Parse():
 				if self.opts.nomin:
 					logging.debug("Using interpolation on FN")
 					rootneg = self.getminroot(UnivariateSpline( x_neg, y_neg, k=4, s=None ))
-					if ~np.isnan(rootneg):
+					if np.isfinite(rootneg):
 						neg_min_x.append(rootneg)
 					rootpos = self.getminroot(UnivariateSpline( x_pos, y_pos, k=4, s=None ))
-					if ~np.isnan(rootpos):
+					if np.isfinite(rootpos):
 						pos_min_x.append(rootpos)
 					if np.NAN in (rootneg,rootpos):
 						logging.warn("No minimum found in FN derivative (-):%s, (+):%s" % (rootneg, rootpos) )
