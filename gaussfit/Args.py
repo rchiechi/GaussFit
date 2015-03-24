@@ -47,7 +47,7 @@ desc='''
 
 parser = argparse.ArgumentParser(description=desc,formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-parser.add_argument('in_files', metavar='Files-to-parse', type=str, nargs='?', default=[], 
+parser.add_argument('in_files', metavar='Files-to-parse', type=str, nargs='*', default=[], 
 		help='Datafiles to parse.')
 parser.add_argument('-b','--bins', default=50, type=int, 
 		help='Number of bins for histograms (except heatmap).')
