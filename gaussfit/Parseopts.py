@@ -97,8 +97,8 @@ class Opts:
 		self.compliance=np.inf
 		self.GUI=False
 		self.out_dir = os.environ['PWD']
-		self.nomin = 1e-12
-		self.smooth = True
+		self.nomin = True
+		self.smooth = 1e-12
 		self.skipohmic = False
 		self.vcutoff = -1 # -1 will default to Vmin/Vmax
 		self.mlow = -6

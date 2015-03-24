@@ -23,7 +23,8 @@ Description:
 
 import logging
 from gaussfit.Output import Writer,Plotter
-from gaussfit.Parseopts import Opts,ShowUsage 
+#from gaussfit.Parseopts import Opts,ShowUsage 
+from gaussfit.Args import Opts
 from gaussfit.Parser import Parse
 
 def Go(opts):
@@ -58,7 +59,7 @@ def Go(opts):
 			except ImportError as msg:
 					logging.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
 
-opts = Opts()
+opts = Opts
 if opts.GUI:
 		from gui import filebrowser
 		gui = filebrowser.ChooseFiles(opts,Go)

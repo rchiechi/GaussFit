@@ -21,7 +21,8 @@ Description:
 '''
 
 import sys,os,logging,warnings,csv
-from gaussfit.Parseopts import Opts,ShowUsage 
+#from gaussfit.Parseopts import Opts,ShowUsage 
+from gaussfit.Args import Opts
 from gaussfit.colors import *
 
 try:
@@ -249,7 +250,7 @@ class Parse():
 		logging.info("Non-tunneling traces: %s (out of %0d)" % 
 					( len(self.ohmic), len( self.XY[ list(self.XY.keys())[0] ]['Y'])*0.6 ) )
 		for x in splhists:
-			splhists[x]['hist'] = self.dohistogram(np.array(splhists[x]['spl']))
+			splhists[x]['hist'] = self.dohistogram(np.array(splhists[x]['spl']), label='DJDV')
 		return spls, splhists, filtered
 
 	def getminroot(self, spl):
@@ -358,7 +359,12 @@ class Parse():
 			yrange = (Y.min()-1,Y.max()+1)
 		else:
 			yrange = None
-		freq, bins = np.histogram(Y, range=yrange, bins=self.opts.bins, density=False)      
+		if label=='DJDV':
+			nbins = self.opts.heatmapbins
+		else:
+			nbins = self.opts.bins
+		
+		freq, bins = np.histogram(Y, range=yrange, bins=nbins, density=False)      
 		#if len(Y[Y<0]):
 		#	Ym = -1*gmean(abs(Y))
 		#else:
