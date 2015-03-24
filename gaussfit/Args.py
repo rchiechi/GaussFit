@@ -49,30 +49,30 @@ parser = argparse.ArgumentParser(description=desc,formatter_class=argparse.Argum
 
 parser.add_argument('in_files', metavar='Files-to-parse', type=str, nargs='*', default=[], 
 		help='Datafiles to parse.')
-parser.add_argument('-b','--bins', default=50, type=int, 
-		help='Number of bins for histograms (except heatmap).')
-parser.add_argument('-l','--loglevel', default='info', choices=('info','warn','error','debug'), 
-		help="Set the logging level.")
-parser.add_argument('-d','--delim', default='\t', 
+parser.add_argument('-G','--GUI', action='store_true', default=False,
+                help="Launch the GUI.")
+parser.add_argument('-o','--outfile', metavar="OUTPUT FILE", default="",
+                help="Outputfile (taken from first input)")
+parser.add_argument('-D','--dir', metavar="OUTPUT DIR", dest='out_dir', default=os.environ['PWD'],
+                help="Output directory (combined with -o).")
+parser.add_argument('-l','--loglevel', default='info', choices=('info','warn','error','debug'),
+                help="Set the logging level.")
+parser.add_argument('-p','--plot', action='store_true', default=False,
+                help="Plot data and save to png file.")
+parser.add_argument('-n','--nowrite', dest='write', action='store_false', default=True,
+                help="Do not write output files (implies -p).")
+parser.add_argument('-d','--delim', default='tab', choices=('tab', 'comma', 'space'), 
 		help="Delimeter in inputfiles.")
 parser.add_argument('-X','--Xcol', type=int, default=0, 
 		help="Column to treat as X.")
 parser.add_argument('-Y','--Ycol', type=int, default=2, 
 		help="Column to treat as Y.")
+parser.add_argument('-b','--bins', default=50, type=int,
+                help='Number of bins for histograms (except heatmap).')
 parser.add_argument('-m','--maxr', type=float, default=10.0, 
 		help="Maximum allowable value of R.")
-parser.add_argument('-o','--outfile', metavar="OUTPUT FILE", default="", 
-		help="Outputfile (taken from first input)")
-parser.add_argument('-p','--plot', action='store_true', default=False, 
-		help="Plot data and save to png file.")
-parser.add_argument('-n','--nowrite', dest='write', action='store_false', default=True, 
-		help="Do not write output files (implies -p).")
 parser.add_argument('-c','--compliance', default=np.inf, type=float, 
 		help="Set compliance limit for gaussian fits.")
-parser.add_argument('-D','--dir', metavar="OUTPUT DIR", dest='out_dir', default=os.environ['PWD'], 
-		help="Output directory (combined with -o).")
-parser.add_argument('-G','--GUI', action='store_true', default=False, 
-		help="Launch the GUI.")
 parser.add_argument('-M','--minfn', action='store_false', dest='nomin', default=True, 
 		help="Compute Vtrans from the min(Y) instead of the derivitve of the cubic spline.")
 parser.add_argument('-s','--skip',  action='store_true', dest='skipohmic', default=False, 
@@ -86,7 +86,7 @@ parser.add_argument('-a','--lower', metavar='LOWER', dest='mlow', type=float, de
 parser.add_argument('-z','--upper', metavar='LOWER', dest='mhi', type=float, default=0, 
 		help="Upper cutoff value for conductance heat map plot.")
 parser.add_argument('-B','--heatmapbins', default=25, type=int, 
-		help="Number of bins for the heatmap plot.")
+		help="Number of bins for the conductance heatmap plot.")
 
 
 
@@ -127,5 +127,11 @@ if not len(Opts.in_files) and not Opts.GUI:
 	print(RED+"\n\t\t> > > No input files! < < < "+RS)
 	sys.exit()
 
+if Opts.delim == 'tab':
+	delim='\t'
+if Opts.delim == 'comma':
+	delim=','
+if Opts.delim == 'space':
+	delim=' '
 # Setup CSV parser dialect
-csv.register_dialect('JV', delimiter=Opts.delim, quoting=csv.QUOTE_MINIMAL)
+csv.register_dialect('JV', delimiter=delim, quoting=csv.QUOTE_MINIMAL)

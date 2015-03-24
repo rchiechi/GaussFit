@@ -21,7 +21,6 @@ Description:
 '''
 
 import sys,os,logging,warnings,csv
-#from gaussfit.Args import Opts
 from gaussfit.colors import *
 
 try:
