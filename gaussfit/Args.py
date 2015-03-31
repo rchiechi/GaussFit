@@ -77,7 +77,7 @@ parser.add_argument('-M','--minfn', action='store_false', dest='nomin', default=
 		help="Compute Vtrans from the min(Y) instead of the derivitve of the cubic spline.")
 parser.add_argument('-s','--skip',  action='store_true', dest='skipohmic', default=False, 
 		help="Skip plots with negative d2J/dV2 values at vcutoff for Vtrans calcuation and conductance plot.")
-parser.add_argument('-S','--smooth', type=float, default=1e-12, 
+parser.add_argument('-S','--smooth', type=float, default=1e-4, 
 		help="Cutoff for residuals when smoothing splines for dJ/dV 0 to disable.")
 parser.add_argument('-v','--vcutoff', type=float, default=-1, 
 		help="Voltage (absolute value) cut-off for dJ/dV skipping routine (-1 for Vmin/Vmax)")

@@ -25,7 +25,7 @@ from gaussfit.colors import *
 
 try:
 	from scipy.optimize import curve_fit,OptimizeWarning
-	from scipy.interpolate import UnivariateSpline
+	import scipy.interpolate 
 	from scipy.stats import gmean
 	import scipy.misc 
 	import numpy as np
@@ -217,7 +217,10 @@ class Parse():
 				# the derivative to be cubic (k=3)
 				
 				#spl = UnivariateSpline( self.X, y, k=3, s=self.opts.smooth ).derivative()
-				spl = UnivariateSpline( self.X, y, k=3, s=self.opts.smooth )
+				
+				spl = scipy.interpolate.UnivariateSpline( self.X, y, k=3, s=self.opts.smooth )
+				
+				#spl = scipy.interpolate.interp1d( self.X, y, kind='nearest', bounds_error=False, fill_value=1e-16 )
 				
 				#print(pspl.get_residual())
 				
@@ -240,7 +243,7 @@ class Parse():
 				
 				#X = np.linspace(self.X.min(), self.X.max(), 100)
 				
-				dd =  UnivariateSpline(self.X, y, k=3, s=None).derivative(2)
+				dd =  scipy.interpolate.UnivariateSpline(self.X, y, k=3, s=None).derivative(2)
 				d = dd(vfilterpos) #Compute d2J/dV2
 				d += -1*dd(vfilterneg) #Compute d2J/dV2
 				if len(d[d < 0]): # Hackish because any() wasn't working
@@ -315,10 +318,10 @@ class Parse():
 					continue
 				if self.opts.nomin:
 					logging.debug("Using interpolation on FN")
-					rootneg = self.getminroot(UnivariateSpline( x_neg, y_neg, k=4, s=None ))
+					rootneg = self.getminroot(scipy.interpolate.UnivariateSpline( x_neg, y_neg, k=4, s=None ))
 					if np.isfinite(rootneg):
 						neg_min_x.append(rootneg)
-					rootpos = self.getminroot(UnivariateSpline( x_pos, y_pos, k=4, s=None ))
+					rootpos = self.getminroot(scipy.interpolate.UnivariateSpline( x_pos, y_pos, k=4, s=None ))
 					if np.isfinite(rootpos):
 						pos_min_x.append(rootpos)
 					if np.NAN in (rootneg,rootpos):
