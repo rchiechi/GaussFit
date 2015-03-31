@@ -274,7 +274,7 @@ class Plotter():
 		ax.set_xlabel("Potential (V)")
 		ax.set_ylabel(r'$\mathregular{\frac{dJ}{dV}}$')
 		#ax.set_ylabel(r'Normalized $\mathregular{\frac{dJ}{dV}}$')
-		ax.axis([np.array(xax).min(), np.array(xax).max(), pow(10,self.opts.mlow), pow(10,self.opts.mhi)])
+		#ax.axis([np.array(xax).min(), np.array(xax).max(), pow(10,self.opts.mlow), pow(10,self.opts.mhi)])
 		i = -1
 		while True:
 			i += 1

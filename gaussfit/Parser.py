@@ -27,13 +27,14 @@ try:
 	from scipy.optimize import curve_fit,OptimizeWarning
 	from scipy.interpolate import UnivariateSpline
 	from scipy.stats import gmean
+	import scipy.misc 
 	import numpy as np
 	# SciPy throws a useless warning for noisy J/V traces
 	warnings.filterwarnings('ignore','.*Covariance of the parameters.*',OptimizeWarning)
 
 except ImportError as msg:
 	print("\n\t\t%s> > > Error importing numpy/scipy! %s%s%s < < <%s" % (RED,RS,str(msg),RED,RS))
-	ShowUsage()
+	sys.exit()
 
 warnings.filterwarnings('ignore','.*divide by zero.*',RuntimeWarning)
 warnings.filterwarnings('ignore','.*',UserWarning)
@@ -214,7 +215,10 @@ class Parse():
 				for x in self.X: y.append(self.XY[x]['Y'][i])
 				# k (smoothing)  must be 4 for 
 				# the derivative to be cubic (k=3)
-				spl = UnivariateSpline( self.X, y, k=3, s=self.opts.smooth ).derivative()
+				
+				#spl = UnivariateSpline( self.X, y, k=3, s=self.opts.smooth ).derivative()
+				spl = UnivariateSpline( self.X, y, k=3, s=self.opts.smooth )
+				
 				#print(pspl.get_residual())
 				
 				#with open('test_spline.txt','wt') as fh:
@@ -228,8 +232,11 @@ class Parse():
 						#maxY = abs(spl(x))
 						maxY = 1
 				for x in spls:
-					spls[x].append(spl(x)/maxY)
-					splhists[x]['spl'].append(np.log10(abs(spl(x))))
+					#spls[x].append(spl(x)/maxY)
+					#splhists[x]['spl'].append(np.log10(abs(spl(x))))
+					spld = scipy.misc.derivative(spl, x, dx=1e-6)
+					spls[x].append(spld/maxY)
+					splhists[x]['spl'].append(np.log10(abs(spld)))
 				
 				#X = np.linspace(self.X.min(), self.X.max(), 100)
 				
