@@ -61,6 +61,7 @@ class Parse():
 		self.GHists = {}
 		self.filtered = []
 		self.R = {}
+		self.traces = {}
 	def isfloat(self,f):
 		try:
 			float(f)
@@ -81,6 +82,7 @@ class Parse():
 		Xcol = self.opts.Xcol
 		line_idx = 0
 		uniqueX = {}
+		rawx, rawy = [],[]
 		for fn in fns:
 			logging.info("Parsing %s%s%s", TEAL,fn,YELLOW)
 			try:
@@ -88,6 +90,11 @@ class Parse():
 				with open(fn, 'rt', newline='') as csvfile:
 					for row in csv.reader(csvfile, dialect='JV'):
 						rows.append(row)
+						if False in [self.isfloat(n) for n in row]:
+							continue
+						else:
+							rawx.append(row[self.opts.Xcol])
+							rawy.append(row[self.opts.Ycol])
 			except FileNotFoundError:
 				logging.error("%s not found.", fn)
 				continue
@@ -137,6 +144,8 @@ class Parse():
 			logging.error("No files parsed.")
 			sys.exit() # Otherwise we loop over an empty uniqueX forever
 
+		self.findTraces(rawx,rawy)
+
 		for x in uniqueX:
 			# Gather each unique X (usually Voltage) value
 			# and pull the Y (usually current-density) values
@@ -163,35 +172,54 @@ class Parse():
 		self.R = self.dorect()
 		print("* * * * * * * * * * * * * * * * * * *")
 
+	def findTraces(self,x,y):
+		XY = np.array([x,y],ndmin=2,dtype=float)
+		FN = np.array([1/XY[0],np.log(abs(XY[1])/XY[0]**2)],ndmin=2,dtype=float)
+		xmin,xmax = XY[0].min(), XY[0].max()
+		n = 0
+		while xmin < XY[0][n] < xmax: n += 1
+		trace = [n]
+		traces = {'trace':[],'XY':XY, 'FN':FN}
+		for i in range(n+1,len(XY[0])):
+			if xmin < XY[0][i] < xmax:
+				continue
+			elif len(trace) and trace[-1] == i-1: #Values repeat at the ends
+				continue
+			else: 
+				trace.append(i)
+			if len(trace) == 2:
+				traces['trace'].append( tuple(trace) )
+				trace = []
+		logging.info("Found %d unique traces", len(traces['trace']))
+		self.traces = traces
+
 	def dorect(self):
 		''' 
 		Divide each value of Y at +V by Y at -V
 		and build a histogram of rectification, R
-		WARNING: There is no way to ensure that
-		each value of Y is being divided by the
-		corresponding value from the same J/V trace
-		because we cannot guarantee that all input
-		files are formatted identically and have 
-		identical, complete sweeps with the same
-		spacing of V.
 		'''
 		R = {}
-		for x in self.X:
-			R[x] = {'r':np.array([]),'hist':{"bin":[],"freq":0,"mean":0,"std":0,"var":0,"bins":[],"fit":[]}}
+		r = {}
+		for trace in self.traces['trace']:
+			xy = {}
+			#print("X-range: %d, %d" % (self.traces['XY'][0][trace[0]],self.traces['XY'][0][trace[1]]) )
+			for i in range(trace[0],trace[1]+1):
+				x = self.traces['XY'][0][i]
+				xy[x] = self.traces['XY'][1][i]
+				if x not in r:
+					r[x] = []
+			for x in xy:
+				if x <= 0: continue
+				if -1*x not in xy:
+					logging.warn("%f not found in trace while computing R", -1*x)
+					continue
+				r[x].append(abs(xy[x]/xy[-1*x]))
+		for x in r:
 			if x <= 0: continue
-			elif -1*x not in self.X:
-				logging.warn("(Rectification) Didn't find a negative voltage for %d.", x)
-				continue
-			ypos, yneg = self.XY[x]["Y"], self.XY[-1*x]["Y"]
-			try:
-				R[x]={'r':ypos/yneg,'hist':self.dohistogram(ypos/yneg,"R")}
-			except ValueError:
-				# TODO: This should never be allowed to happen by the input parser!
-				logging.warn("(Rectification) Length of Y values differs for +/- %f (%s != %s).", x, len(ypos), len(yneg) )
-			# NOTE: We do not filter for maxr here, rather in the Gaussian calcualtion
+			R[x]={'r':np.array(r[x]),'hist':self.dohistogram(np.array(r[x]),"R")}	
 		R['X'] = np.array(sorted(R.keys()))
 		return R
-	
+
 	def dodjdv(self):
 		'''
 		Fit a spline function to X/Y data and 
@@ -207,6 +235,26 @@ class Parse():
 		for x in np.linspace(self.X.min(), self.X.max(), 200): 
 			spls[x] = []
 			splhists[x] = {'spl':[],'hist':{}}
+		##for trace in self.traces['trace']:
+		##	x = self.traces['XY'][0][trace[0]:trace[1]+1]
+		##	y = self.traces['XY'][1][trace[0]:trace[1]+1]
+		##	spl = scipy.interpolate.UnivariateSpline( x, y, k=3, s=self.opts.smooth )
+		##	for x in spls:
+		##		spld = scipy.misc.derivative(spl, x, dx=1e-6)
+		##		if np.isnan(spld):
+		##			continue
+		##		spls[x].append(spld)
+		##		splhists[x]['spl'].append(np.log10(abs(spld)))
+			#dd =  scipy.interpolate.UnivariateSpline(x, y, k=3, s=None).derivative(2)
+			#d = dd(vfilterpos) #Compute d2J/dV2
+			#d += -1*dd(vfilterneg) #Compute d2J/dV2
+			#if len(d[d < 0]): # Hackish because any() wasn't working
+			#	# record in the index where dY/dX is < 0 at vcutoff
+			#	self.ohmic.append(trace)  
+			#else:
+			#	for x in self.X:
+			#		# filtered is a list containing only "clean" traces			
+			#		filtered.append( (x, spl(x), self.XY[x]['Y'][i]) )
 		i = -1
 		while True:
 			i += 1

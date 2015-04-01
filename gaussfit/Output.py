@@ -61,7 +61,7 @@ class Writer():
 			for i in range(0, len( self.R[list(self.R.keys())[0]]['hist']['bin'] ) ):
 				row = []
 				for x in self.R['X']: row += ["%0.4f"%self.R[x]['hist']['bin'][i],
-						         "%2"%self.R[x]['hist']['freq'][i],
+						         "%d"%self.R[x]['hist']['freq'][i],
 						         "%0.4f"%self.R[x]['hist']['fit'][i]]
 				writer.writerow(row)
 
