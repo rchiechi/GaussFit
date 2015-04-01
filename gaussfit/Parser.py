@@ -180,13 +180,13 @@ class Parse():
 		while xmin < XY[0][n] < xmax: n += 1
 		trace = [n]
 		traces = {'trace':[],'XY':XY, 'FN':FN}
-		#uniquex = []
+		uniquex = []
 		for i in range(n+1,len(XY[0])):
 			#if XY[0][i] not in uniquex:
 			#	uniquex.append(XY[0][i])
 			if xmin < XY[0][i] < xmax:
 				continue
-			elif len(trace) and trace[-1] == i-1: #Values repeat at the ends
+			elif len(trace) and trace[-1] in (i-1,i+1): #Values repeat at the ends
 				continue
 			else: 
 				trace.append(i)
@@ -195,6 +195,18 @@ class Parse():
 				trace = []
 		#print( [x[1]-x[0] for x in traces['trace']] )
 		logging.info("Found %d unique traces", len(traces['trace']))
+		
+		col = 0
+		uniquex = {}
+		for trace in traces['trace']:
+			for i in range(trace[0],trace[1]+1):
+				x,y = XY[0][i], XY[1][i]
+				if x not in uniquex:
+					uniquex[x] = {}
+				else:
+					uniquex[x][col] = y
+			col += 1
+		traces['uniquex'] = uniquex
 		self.traces = traces
 
 	def dorect(self):
@@ -235,30 +247,39 @@ class Parse():
 			vfilterneg = self.X[self.X <= -1*self.opts.vcutoff]
 		spls = {}
 		splhists = {}
-		filtered = [('Potential', 'dY/dV', 'Y')]
+		filtered = [('Potential', 'Fit', 'Y')]
 		for x in np.linspace(self.X.min(), self.X.max(), 200): 
 			spls[x] = []
 			splhists[x] = {'spl':[],'hist':{}}
-		##for trace in self.traces['trace']:
-		##	x = self.traces['XY'][0][trace[0]:trace[1]+1]
-		##	y = self.traces['XY'][1][trace[0]:trace[1]+1]
-		##	spl = scipy.interpolate.UnivariateSpline( x, y, k=3, s=self.opts.smooth )
-		##	for x in spls:
-		##		spld = scipy.misc.derivative(spl, x, dx=1e-6)
-		##		if np.isnan(spld):
-		##			continue
-		##		spls[x].append(spld)
-		##		splhists[x]['spl'].append(np.log10(abs(spld)))
-			#dd =  scipy.interpolate.UnivariateSpline(x, y, k=3, s=None).derivative(2)
-			#d = dd(vfilterpos) #Compute d2J/dV2
-			#d += -1*dd(vfilterneg) #Compute d2J/dV2
-			#if len(d[d < 0]): # Hackish because any() wasn't working
-			#	# record in the index where dY/dX is < 0 at vcutoff
-			#	self.ohmic.append(trace)  
-			#else:
-			#	for x in self.X:
-			#		# filtered is a list containing only "clean" traces			
-			#		filtered.append( (x, spl(x), self.XY[x]['Y'][i]) )
+		uniquex = self.traces['uniquex']
+		X = sorted(uniquex.keys())
+		for col in uniquex[X[0]]:
+			y = []
+			for x in X:
+				y.append(uniquex[x][col])
+			spl = scipy.interpolate.UnivariateSpline( X, y, k=3, s=self.opts.smooth )
+			for x in spls:
+				spld = scipy.misc.derivative(spl, x, dx=1e-6)
+				if np.isnan(spld):
+					continue
+				spls[x].append(spld)
+				splhists[x]['spl'].append(np.log10(abs(spld)))
+			dd =  scipy.interpolate.UnivariateSpline(X, y, k=3, s=None).derivative(2)
+			d = dd(vfilterpos) #Compute d2J/dV2
+			d += -1*dd(vfilterneg) #Compute d2J/dV2
+			if len(d[d < 0]): # Hackish because any() wasn't working
+				# record in the index where dY/dX is < 0 at vcutoff
+				self.ohmic.append(col)  
+			else:
+				for x in X:
+					# filtered is a list containing only "clean" traces			
+					filtered.append( (x, spl(x), uniquex[x][col]) )
+		logging.info("Non-tunneling traces: %s (out of %0d)" % 
+					( len(self.ohmic), len(self.traces['trace']) ) )
+		for x in splhists:
+			splhists[x]['hist'] = self.dohistogram(np.array(splhists[x]['spl']), label='DJDV')
+		return spls, splhists, filtered
+		'''
 		i = -1
 		while True:
 			i += 1
@@ -312,7 +333,7 @@ class Parse():
 		for x in splhists:
 			splhists[x]['hist'] = self.dohistogram(np.array(splhists[x]['spl']), label='DJDV')
 		return spls, splhists, filtered
-
+		'''
 	def getminroot(self, spl):
 		'''
 		Return the root of the first derivative of a spline function
