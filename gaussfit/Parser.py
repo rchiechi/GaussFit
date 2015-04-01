@@ -180,7 +180,10 @@ class Parse():
 		while xmin < XY[0][n] < xmax: n += 1
 		trace = [n]
 		traces = {'trace':[],'XY':XY, 'FN':FN}
+		#uniquex = []
 		for i in range(n+1,len(XY[0])):
+			#if XY[0][i] not in uniquex:
+			#	uniquex.append(XY[0][i])
 			if xmin < XY[0][i] < xmax:
 				continue
 			elif len(trace) and trace[-1] == i-1: #Values repeat at the ends
@@ -190,6 +193,7 @@ class Parse():
 			if len(trace) == 2:
 				traces['trace'].append( tuple(trace) )
 				trace = []
+		#print( [x[1]-x[0] for x in traces['trace']] )
 		logging.info("Found %d unique traces", len(traces['trace']))
 		self.traces = traces
 
