@@ -261,7 +261,11 @@ class Parse():
 		for col in uniquex[X[0]]:
 			y = []
 			for x in X:
-				y.append(uniquex[x][col])
+				try:
+					y.append(uniquex[x][col])
+				except KeyError:
+					logging.warning("Skipping X=%s in column %s in dJ/dV. You probably have files containing different voltage steps!",x,col)
+					y.append(np.NaN)
 			spl = scipy.interpolate.UnivariateSpline( X, y, k=3, s=self.opts.smooth )
 			for x in spls:
 				spld = scipy.misc.derivative(spl, x, dx=1e-6)
@@ -278,7 +282,10 @@ class Parse():
 			else:
 				for x in X:
 					# filtered is a list containing only "clean" traces			
-					filtered.append( (x, spl(x), uniquex[x][col]) )
+					try:
+						filtered.append( (x, spl(x), uniquex[x][col]) )
+					except KeyError:
+						filtered.append( (x, spl(x), np.NaN) )
 		logging.info("Non-tunneling traces: %s (out of %0d)" % 
 					( len(self.ohmic), len(self.traces['trace']) ) )
 		for x in splhists:
