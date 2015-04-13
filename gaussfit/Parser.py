@@ -101,6 +101,10 @@ class Parse():
 			except csv.Error:
 				logging.error("Error parsing %s", fn)
 				continue
+			except IndexError:
+				logging.error("Error parsing %s", fn)
+				continue
+
 			labels = []
 			numcol = 0
 			for label in rows[0]:
@@ -267,7 +271,7 @@ class Parse():
 			dd =  scipy.interpolate.UnivariateSpline(X, y, k=3, s=None).derivative(2)
 			d = dd(vfilterpos) #Compute d2J/dV2
 			d += -1*dd(vfilterneg) #Compute d2J/dV2
-			if len(d[d < 0]): # Hackish because any() wasn't working
+			if len(d[d < 0]):
 				# record in the index where dY/dX is < 0 at vcutoff
 				self.ohmic.append(col)  
 			else:
