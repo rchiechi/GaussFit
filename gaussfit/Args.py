@@ -63,9 +63,9 @@ parser.add_argument('-n','--nowrite', dest='write', action='store_false', defaul
                 help="Do not write output files (implies -p).")
 parser.add_argument('-d','--delim', default='tab', choices=('tab', 'comma', 'space'), 
 		help="Delimeter in inputfiles.")
-parser.add_argument('-X','--Xcol', type=int, default=0, 
+parser.add_argument('-X','--Xcol', type=int, default=1, 
 		help="Column to treat as X.")
-parser.add_argument('-Y','--Ycol', type=int, default=2, 
+parser.add_argument('-Y','--Ycol', type=int, default=3, 
 		help="Column to treat as Y.")
 parser.add_argument('-b','--bins', default=50, type=int,
                 help='Number of bins for histograms (except heatmap).')
@@ -100,6 +100,8 @@ if len(Opts.in_files) and not Opts.outfile:
 		Opts.outfile = os.path.basename(Opts.in_files[0])[:-4]
 	else:
 		Opts.outfile = Opts.in_files[0]
+Opts.Xcol -= 1
+Opts.Ycol -= 1
 
 if Opts.loglevel == 'debug':
 	LOGLEVEL = logging.DEBUG
