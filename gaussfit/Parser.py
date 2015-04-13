@@ -93,13 +93,14 @@ class Parse():
 						if False in [self.isfloat(n) for n in row]:
 							continue
 						else:
+							#print('row %s Xcol %s Ycol %s' % (row, self.opts.Xcol, self.opts.Ycol))
 							rawx.append(row[self.opts.Xcol])
 							rawy.append(row[self.opts.Ycol])
 			except FileNotFoundError:
 				logging.error("%s not found.", fn)
 				continue
 			except csv.Error:
-				logging.error("Error parsing %s", fn)
+				logging.error("CSV Parsing error %s", fn)
 				continue
 			except IndexError:
 				logging.error("Error parsing %s", fn)
