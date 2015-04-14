@@ -160,8 +160,12 @@ class Parse():
 			for i in sorted(uniqueX[x].keys()): 
 				y.append(uniqueX[x][i][0])
 				fn.append(uniqueX[x][i][1])
+			ynz = [] # Make a special Y-array with no zeros for dealing with fits
+			for _y in y:
+				if np.isnan(_y) or _y == 0: ynz.append(-1e-16) # Lower limit of electrometer
+				else: np.nan_to_num(ynz.append(_y))
 			y = np.array(y)
-			logy = np.log10(abs(y))
+			logy =  np.log10(abs(np.array(ynz)))
 			self.XY[x] = { "Y":y, 
 				   "LogY":logy, 
 				   "hist":self.dohistogram(logy,"J"), 
@@ -472,6 +476,10 @@ class Parse():
 		except RuntimeError as msg:
 			logging.warning("|%s| Fit did not converge (%s)", label, str(msg), exc_info=False)
 			coeff = p0
+			hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
+		except ValueError as msg:
+			logging.warning("|%s| Skipping data with ridiculous numbers in it (%s)", label, str(msg), exc_info=False )
+			coeff=p0
 			hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
 		return {"bin":bin_centers, "freq":freq, "mean":coeff[1], "std":coeff[2], "var":coeff[2], "bins":bins, "fit":hist_fit}
 
