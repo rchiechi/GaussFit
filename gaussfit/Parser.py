@@ -163,9 +163,9 @@ class Parse():
 			ynz = [] # Make a special Y-array with no zeros for dealing with fits
 			for _y in y:
 				if np.isnan(_y) or _y == 0: ynz.append(-1e-16) # Lower limit of electrometer
-				else: np.nan_to_num(ynz.append(_y))
+				else: ynz.append(_y)
 			y = np.array(y)
-			logy =  np.log10(abs(np.array(ynz)))
+			logy =  np.nan_to_num(np.log10(abs(np.array(ynz))))
 			self.XY[x] = { "Y":y, 
 				   "LogY":logy, 
 				   "hist":self.dohistogram(logy,"J"), 
