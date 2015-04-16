@@ -39,6 +39,7 @@ except ImportError as msg:
 warnings.filterwarnings('ignore','.*divide by zero.*',RuntimeWarning)
 warnings.filterwarnings('ignore','.*',UserWarning)
 warnings.filterwarnings('ignore','.*invalid value encountered in log.*',RuntimeWarning)
+warnings.filterwarnings('ignore','.*invalid value encountered in true_divide.*',RuntimeWarning)
 #warnings.filterwarnings('ignore','.*impossible result.*',UserWarning)
 
 class Parse():
@@ -120,7 +121,7 @@ class Parse():
 			logging.debug("Found "+str(numcol)+" columns in "+fn)
 			if 0 < len(labels) >= Ycol:
 				logging.debug("Assuming first row is column labels")
-				logging.info('Y column is "%s"' % labels[Ycol])
+				logging.info('Y column is "%s"', labels[Ycol])
 				del(rows[0])
 			else:
 				logging.debug("No labels found in first row.")
@@ -150,7 +151,8 @@ class Parse():
 			sys.exit() # Otherwise we loop over an empty uniqueX forever
 
 		self.findTraces(rawx,rawy)
-
+		x = np.array(list(uniqueX.keys()))
+		lowy = uniqueX[np.nanmin(x[x>0])][ list(uniqueX[np.nanmin(x[x>0])].keys())[0]  ][0]/10 # typical for electrometer
 		for x in uniqueX:
 			# Gather each unique X (usually Voltage) value
 			# and pull the Y (usually current-density) values
@@ -160,11 +162,14 @@ class Parse():
 			for i in sorted(uniqueX[x].keys()): 
 				y.append(uniqueX[x][i][0])
 				fn.append(uniqueX[x][i][1])
+			y = np.array(y)
 			ynz = [] # Make a special Y-array with no zeros for dealing with fits
 			for _y in y:
-				if np.isnan(_y) or _y == 0: ynz.append(-1e-16) # Lower limit of electrometer
-				else: ynz.append(_y)
-			y = np.array(y)
+				if np.isnan(_y) or _y == 0: 
+					ynz.append(lowy)
+					#print("%s --> %s" %(_y,lowy))
+				else: 
+					ynz.append(_y)
 			logy =  np.nan_to_num(np.log10(abs(np.array(ynz))))
 			self.XY[x] = { "Y":y, 
 				   "LogY":logy, 
