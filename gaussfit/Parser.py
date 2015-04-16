@@ -275,14 +275,14 @@ class Parse():
 				except KeyError:
 					logging.warning("Skipping X=%s in column %s in dJ/dV. You probably have files containing different voltage steps!",x,col)
 					y.append(np.NaN)
-			spl = scipy.interpolate.UnivariateSpline( X, y, k=3, s=self.opts.smooth )
+			spl = scipy.interpolate.UnivariateSpline( X, y, k=5, s=self.opts.smooth )
 			for x in spls:
 				spld = scipy.misc.derivative(spl, x, dx=1e-6)
 				if np.isnan(spld):
 					continue
 				spls[x].append(spld)
 				splhists[x]['spl'].append(np.log10(abs(spld)))
-			dd =  scipy.interpolate.UnivariateSpline(X, y, k=3, s=None).derivative(2)
+			dd =  scipy.interpolate.UnivariateSpline(X, y, k=5, s=None).derivative(2)
 			d = dd(vfilterpos) #Compute d2J/dV2
 			d += -1*dd(vfilterneg) #Compute d2J/dV2
 			if len(d[d < 0]):
