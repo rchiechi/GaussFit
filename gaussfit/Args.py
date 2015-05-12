@@ -83,7 +83,7 @@ parser.add_argument('-v','--vcutoff', type=float, default=-1,
 		help="Voltage (absolute value) cut-off for dJ/dV skipping routine (-1 for Vmin/Vmax)")
 parser.add_argument('-a','--lower', metavar='LOWER', dest='mlow', type=float, default=-6, 
 		help="Lower cutoff value for conductance heat map plot.")
-parser.add_argument('-z','--upper', metavar='LOWER', dest='mhi', type=float, default=0, 
+parser.add_argument('-z','--upper', metavar='UPPER', dest='mhi', type=float, default=0, 
 		help="Upper cutoff value for conductance heat map plot.")
 parser.add_argument('-B','--heatmapbins', default=25, type=int, 
 		help="Number of bins for the conductance heatmap plot.")
