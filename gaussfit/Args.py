@@ -70,7 +70,7 @@ parser.add_argument('-Y','--Ycol', type=int, default=3,
 parser.add_argument('-b','--bins', default=50, type=int,
                 help='Number of bins for histograms (except heatmap).')
 parser.add_argument('-m','--maxr', type=float, default=100.0, 
-		help="Maximum allowable value of R.")
+		help="Maximum allowable value of R (or log|R| if -L).")
 parser.add_argument('-c','--compliance', default=np.inf, type=float, 
 		help="Set compliance limit for gaussian fits.")
 parser.add_argument('-M','--minfn', action='store_false', dest='nomin', default=True, 
@@ -87,6 +87,9 @@ parser.add_argument('-z','--upper', metavar='UPPER', dest='mhi', type=float, def
 		help="Upper cutoff value for conductance heat map plot.")
 parser.add_argument('-B','--heatmapbins', default=25, type=int, 
 		help="Number of bins for the conductance heatmap plot.")
+parser.add_argument('-L','--logr', default=False, action='store_true', 
+		help="Compute log|R| instead of R for histograms of rectification.")
+
 
 
 

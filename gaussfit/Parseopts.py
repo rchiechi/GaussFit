@@ -44,6 +44,7 @@ def ShowUsage():
 		-X	--Xcol		The column with X-values (default:1)
 		-Y	--Ycol		The column wiht Y-Values (default:3)
 		-m	--maxr		Maximum allowable value of R (default:10)
+		-L	--Logr		Compute log10|R| instead of R
 		-o	--output	Outputfile (taken from first input)
 		-p	--plot		Plot data save to a png file
 		-n	--nowrite	Don't write output files (implies -p)

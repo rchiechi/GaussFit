@@ -56,7 +56,10 @@ class Writer():
 		with open(fn, 'w', newline='') as csvfile:
 			writer = csv.writer(csvfile, dialect='JV')
 			headers = []
-			for x in self.R['X']: headers += ["|R| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
+			if self.opts.logr:
+				for x in self.R['X']: headers += ["log |R| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
+			else:
+				for x in self.R['X']: headers += ["|R| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
 			writer.writerow(headers)
 			for i in range(0, len( self.R[list(self.R.keys())[0]]['hist']['bin'] ) ):
 				row = []
@@ -114,7 +117,10 @@ class Writer():
 		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RGauss.txt")
 		with open(fn, 'w', newline='') as csvfile:
 			writer = csv.writer(csvfile, dialect='JV')
-			writer.writerow(["Potential (V)","|R|","Standard Deviation"])
+			if self.opts.logr:
+				writer.writerow(["Potential (V)","log |R|","Standard Deviation"])
+			else:
+				writer.writerow(["Potential (V)","|R|","Standard Deviation"])
 			Y = []
 			Yerr = []
 			for x in self.R['X']:

@@ -243,7 +243,10 @@ class Parse():
 				if -1*x not in xy:
 					logging.warn("%f not found in trace while computing R", -1*x)
 					continue
-				r[x].append(abs(xy[x]/xy[-1*x]))
+				if self.opts.logr:
+					r[x].append( np.log10(abs(xy[x]/xy[-1*x])) )
+				else:
+					r[x].append(abs(xy[x]/xy[-1*x]))
 		for x in r:
 			if x <= 0: continue
 			R[x]={'r':np.array(r[x]),'hist':self.dohistogram(np.array(r[x]),"R")}	
