@@ -69,8 +69,8 @@ parser.add_argument('-Y','--Ycol', type=int, default=3,
 		help="Column to treat as Y. Set to 0 to grab all columns except Xcol.")
 parser.add_argument('-b','--bins', default=50, type=int,
                 help='Number of bins for histograms (except heatmap).')
-parser.add_argument('-m','--maxr', type=float, default=100.0, 
-		help="Maximum allowable value of R (or log|R| if -L).")
+parser.add_argument('-m','--maxr', type=float, default=2, 
+		help="Maximum allowable value of log|R| or (R if -L).")
 parser.add_argument('-c','--compliance', default=np.inf, type=float, 
 		help="Set compliance limit for gaussian fits.")
 parser.add_argument('-M','--minfn', action='store_false', dest='nomin', default=True, 
