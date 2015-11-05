@@ -87,8 +87,8 @@ parser.add_argument('-z','--upper', metavar='UPPER', dest='mhi', type=float, def
 		help="Upper cutoff value for conductance heat map plot.")
 parser.add_argument('-B','--heatmapbins', default=25, type=int, 
 		help="Number of bins for the conductance heatmap plot.")
-parser.add_argument('-L','--logr', default=False, action='store_true', 
-		help="Compute log|R| instead of R for histograms of rectification.")
+parser.add_argument('-L','--logr', default=True, action='store_false', 
+		help="Compute |R| instead of log|R| for histograms of rectification.")
 
 
 
