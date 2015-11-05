@@ -89,14 +89,30 @@ class Parse():
 			try:
 				rows = []
 				with open(fn, 'rt', newline='') as csvfile:
-					for row in csv.reader(csvfile, dialect='JV'):
-						rows.append(row)
-						if False in [self.isfloat(n) for n in row]:
-							continue
-						else:
+					if self.opts.Ycol > 0:
+						for row in csv.reader(csvfile, dialect='JV'):
+							rows.append(row)
+							if False in [self.isfloat(n) for n in row]:
+								continue
 							#print('row %s Xcol %s Ycol %s' % (row, self.opts.Xcol, self.opts.Ycol))
 							rawx.append(row[self.opts.Xcol])
 							rawy.append(row[self.opts.Ycol])
+					else:
+						# To catch all Y-vals and keep X in order,
+						# we have to copy the whole file to memory
+						# and then loop over it one column at a time
+						rawrows = []
+						for row in csv.reader(csvfile, dialect='JV'):
+							rawrows.append(row)
+						for n in range(0, len(rawrows[0])):
+							if n == self.opts.Xcol:
+								continue
+							for row in rawrows:
+								if False in [self.isfloat(n) for n in row]:
+									continue # we have to skip rows that contain non-floats
+								rawx.append(row[self.opts.Xcol])
+								rawy.append(row[n])
+								rows.append([rawx[-1], rawy[-1]])
 			except FileNotFoundError:
 				logging.error("%s not found.", fn)
 				continue
@@ -142,14 +158,13 @@ class Parse():
 				self.parsed[line_idx]=(x,y,z)
 				if x in uniqueX.keys(): 
 					uniqueX[x][line_idx]=(y,z)
-				else: 
+				else:
 					uniqueX[x]={line_idx:(y,z)}
 				line_idx += 1
 
 		if not len(uniqueX):
 			logging.error("No files parsed.")
 			sys.exit() # Otherwise we loop over an empty uniqueX forever
-
 		self.findTraces(rawx,rawy)
 		x = np.array(list(uniqueX.keys()))
 		lowy = uniqueX[np.nanmin(x[x>0])][ list(uniqueX[np.nanmin(x[x>0])].keys())[0]  ][0]/10 # typical for electrometer
@@ -215,6 +230,7 @@ class Parse():
 		for trace in traces['trace']:
 			for i in range(trace[0],trace[1]+1):
 				x,y = XY[0][i], XY[1][i]
+				#print("%s, %s" % (x,y))
 				if x not in uniquex:
 					uniquex[x] = {}
 				else:
@@ -278,6 +294,7 @@ class Parse():
 				except KeyError:
 					logging.warning("Skipping X=%s in column %s in dJ/dV. You probably have files containing different voltage steps!",x,col)
 					y.append(np.NaN)
+			#print("X: %s, y: %s" % (X,y))
 			spl = scipy.interpolate.UnivariateSpline( X, y, k=5, s=self.opts.smooth )
 			for x in spls:
 				spld = scipy.misc.derivative(spl, x, dx=1e-6)

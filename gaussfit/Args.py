@@ -66,7 +66,7 @@ parser.add_argument('-d','--delim', default='tab', choices=('tab', 'comma', 'spa
 parser.add_argument('-X','--Xcol', type=int, default=1, 
 		help="Column to treat as X.")
 parser.add_argument('-Y','--Ycol', type=int, default=3, 
-		help="Column to treat as Y.")
+		help="Column to treat as Y. Set to 0 to grab all columns except Xcol.")
 parser.add_argument('-b','--bins', default=50, type=int,
                 help='Number of bins for histograms (except heatmap).')
 parser.add_argument('-m','--maxr', type=float, default=100.0, 
