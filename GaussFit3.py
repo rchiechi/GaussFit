@@ -45,9 +45,18 @@ def Go(opts):
 			writer.WriteFiltered()
 			writer.WriteData(True)
 			writer.WriteRData()
-			writer.WriteHistograms()
-			writer.WriteGHistogram()
-			writer.WriteGMatrix()
+			try:
+				writer.WriteHistograms()
+			except IndexError:
+				print("Error outputting histrograms")
+			try:
+				writer.WriteGHistogram()
+			except IndexError:
+				print("Error outputting Ghistrograms")
+			try:
+				writer.WriteGMatrix()
+			except IndexError:
+				print("Error outputting GMatrix")
 	parser.PrintFN()
 	if opts.plot:
 			plotter = Plotter(parser)

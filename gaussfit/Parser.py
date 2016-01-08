@@ -486,7 +486,12 @@ class Parse():
 		else:
 			nbins = self.opts.bins
 		
-		freq, bins = np.histogram(Y, range=yrange, bins=nbins, density=False)      
+		try:
+			freq, bins = np.histogram(Y, range=yrange, bins=nbins, density=False)
+		except ValueError as msg:
+			logging.warning("Encountered this error while constructing histogram: %s", str(msg), exc_info=False)
+			bins=np.array([0.,0.,0.,0.])
+			freq=np.array([0.,0.,0.,0.])
 		#if len(Y[Y<0]):
 		#	Ym = -1*gmean(abs(Y))
 		#else:

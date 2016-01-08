@@ -35,7 +35,7 @@ try:
 
 except ImportError as msg:
 	print("\n\t\t%s> > > Error importing numpy/scipy! %s%s%s < < <%s" % (RED,RS,str(msg),RED,RS))
-	ShowUsage()
+	sys.exit()
 
 desc='''
 	This program expects all X values in one column and all Y values in another.
