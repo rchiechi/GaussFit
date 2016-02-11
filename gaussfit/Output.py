@@ -343,7 +343,7 @@ class Plotter():
 		ax.set_title(r'Histogram and fit at $'+str(key)+'$ V')
 		ax.set_xlabel(r'$log|J|$')
 		ax.set_ylabel('Counts')
-		ax.bar(self.XY[key]['hist']['bin'], self.XY[key]['hist']['freq'], width=0.01, color='g')
+		ax.bar(self.XY[key]['hist']['bin'], self.XY[key]['hist']['freq'], width=0.1, color='r')
 		ax.plot(self.XY[key]['hist']['bin'], self.XY[key]['hist']['fit'], lw=2.0, color='b', label='Fit')
 
 
