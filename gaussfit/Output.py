@@ -338,6 +338,15 @@ class Plotter():
 			ax.bar(self.FN[key]['bin'], self.FN[key]['freq'], width=0.01, color='g')
 			ax.plot(self.FN[key]['bin'], self.FN[key]['fit'], lw=2.0, color='b', label='Fit')
 
+	def PlotFit(self,ax):
+		key = list(self.XY.keys())[-1]
+		ax.set_title(r'Histogram and fit at $'+str(key)+'$ V')
+		ax.set_xlabel(r'$log|J|$')
+		ax.set_ylabel('Counts')
+		ax.bar(self.XY[key]['hist']['bin'], self.XY[key]['hist']['freq'], width=0.01, color='g')
+		ax.plot(self.XY[key]['hist']['bin'], self.XY[key]['hist']['fit'], lw=2.0, color='b', label='Fit')
+
+
 	def DoPlots(self, plt):
 		fig = plt.figure(figsize=(16,10))
 		ax1 = fig.add_axes([0.06, 0.55, 0.4, 0.4])
@@ -345,7 +354,8 @@ class Plotter():
 		ax3 = fig.add_axes([0.06, 0.05, 0.4, 0.4])
 		ax4 = fig.add_axes([0.56, 0.05, 0.4, 0.4])
 		#self.PlotData('Y', ax1, '-')
-		self.PlotDJDV(ax1)
+		#self.PlotDJDV(ax1)
+		self.PlotFit(ax1)
 		self.PlotData('LogY',ax2,':',lw=0.25, color='c')
 		#self.PlotData('FN', ax3, 'x', ms=2)
 		self.PlotHist(ax2)

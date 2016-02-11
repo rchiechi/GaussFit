@@ -26,7 +26,7 @@ from gaussfit.colors import *
 try:
 	from scipy.optimize import curve_fit,OptimizeWarning
 	import scipy.interpolate 
-	from scipy.stats import gmean
+	from scipy.stats import gmean,kstest,norm
 	import scipy.misc 
 	import numpy as np
 	# SciPy throws a useless warning for noisy J/V traces
@@ -501,8 +501,16 @@ class Parse():
 		try:
 			# NOTE: maxfev is hard-coded at 10000 because larger values are slow
 			# and don't offer any advantage, but we still want to iterate to find the best fit
-			coeff, var_matrix = curve_fit(self.gauss, bin_centers, freq, p0=p0, maxfev=10000)
+			
+			coeff, covar = curve_fit(self.gauss, bin_centers, freq, p0=p0, maxfev=10000)
 			hist_fit = self.gauss(bin_centers, *coeff)
+
+			#self.Fittest(freq)
+
+			#coeff, covar = curve_fit(norm.pdf, bin_centers, freq, p0=[Y.mean(),Y.std()], maxfev=10000)
+			#hist_fit = norm.pdf(bin_centers, *coeff)
+			#print(hist_fit)
+		
 		except RuntimeError as msg:
 			logging.warning("|%s| Fit did not converge (%s)", label, str(msg), exc_info=False)
 			coeff = p0
@@ -512,6 +520,15 @@ class Parse():
 			coeff=p0
 			hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
 		return {"bin":bin_centers, "freq":freq, "mean":coeff[1], "std":coeff[2], "var":coeff[2], "bins":bins, "fit":hist_fit}
+
+	def Fittest(self, hist):
+		# This type of test is against the null hypothesis that
+		# a series of observations that seem different are actually
+		# just sampling a different part of the same distriubtion
+		# is probably not useful for single J/V curves
+		ks = kstest(hist,'norm')
+		print(ks)
+
 
 	def PrintFN(self):
 		'''
