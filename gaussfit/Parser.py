@@ -458,6 +458,13 @@ class Parse():
 		A, mu, sigma = p
 		return A*np.exp(-(x-mu)**2/(2.*sigma**2))
 	
+	def lorenz(self, x, *p):
+		'''
+		Return a lorenzian function
+		'''
+		A, mu, B = p
+		return A/( (x-mu)**2 + B**2)
+
 	def dohistogram(self, Y, label=""):
 		'''
 		Return a histogram of Y-values and a gaussian
@@ -502,15 +509,13 @@ class Parse():
 			# NOTE: maxfev is hard-coded at 10000 because larger values are slow
 			# and don't offer any advantage, but we still want to iterate to find the best fit
 			
-			coeff, covar = curve_fit(self.gauss, bin_centers, freq, p0=p0, maxfev=10000)
-			hist_fit = self.gauss(bin_centers, *coeff)
-
-			#self.Fittest(freq)
-
-			#coeff, covar = curve_fit(norm.pdf, bin_centers, freq, p0=[Y.mean(),Y.std()], maxfev=10000)
-			#hist_fit = norm.pdf(bin_centers, *coeff)
-			#print(hist_fit)
-		
+			if self.opts.lorenzian:
+				coeff, covar = curve_fit(self.lorenz, bin_centers, freq, p0=p0, maxfev=10000)
+				hist_fit = self.lorenz(bin_centers, *coeff)
+			else:
+				coeff, covar = curve_fit(self.gauss, bin_centers, freq, p0=p0, maxfev=10000)
+				hist_fit = self.gauss(bin_centers, *coeff)
+					
 		except RuntimeError as msg:
 			logging.warning("|%s| Fit did not converge (%s)", label, str(msg), exc_info=False)
 			coeff = p0
