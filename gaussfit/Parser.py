@@ -503,7 +503,11 @@ class Parse():
 		#	Ym = -1*gmean(abs(Y))
 		#else:
 		#	Ym = gmean(abs(Y))
-		p0 = [1., Y.mean(), Y.std()]
+		Ym = Y.mean()
+		Ys = Y.std()
+		#p0 = [1., Y.mean(), Y.std()]
+		p0 = [1., Ym, Ys]
+		
 		bin_centers = (bins[:-1] + bins[1:])/2
 		try:
 			# NOTE: maxfev is hard-coded at 10000 because larger values are slow
@@ -524,7 +528,8 @@ class Parse():
 			logging.warning("|%s| Skipping data with ridiculous numbers in it (%s)", label, str(msg), exc_info=False )
 			coeff=p0
 			hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
-		return {"bin":bin_centers, "freq":freq, "mean":coeff[1], "std":coeff[2], "var":coeff[2], "bins":bins, "fit":hist_fit}
+		return {"bin":bin_centers, "freq":freq, "mean":coeff[1], "std":coeff[2], \
+				"var":coeff[2], "bins":bins, "fit":hist_fit, "Gmean":Ym, "Gstd":Ys}
 
 	def Fittest(self, hist):
 		# This type of test is against the null hypothesis that
@@ -540,6 +545,7 @@ class Parse():
 		Print Vtrans values to the command line for convinience
 		'''
 		for key in ('pos', 'neg'):
-			print("|Vtrans %s| mean: %0.4f Standard Deviation: %f" % (key, self.FN[key]['mean'], self.FN[key]['var']) )
+			print("|Vtrans %s| Gauss-mean: %0.4f Standard Deviation: %f" % (key, self.FN[key]['mean'], self.FN[key]['std']) )
+			print("|Vtrans %s| Geometric-mean: %0.4f Standard Deviation: %f" % (key, self.FN[key]['Gmean'], self.FN[key]['Gstd']) )
 		print("* * * * * * * * * * * * * * * * * * *")
 

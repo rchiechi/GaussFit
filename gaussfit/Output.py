@@ -88,7 +88,7 @@ class Writer():
 			with open(fn, 'w', newline='') as csvfile:
 				writer = csv.writer(csvfile, dialect='JV')
 				writer.writerow(["Vtrans (eV)","Frequency",
-					"Gauss Fit (mean: %0.4f, Standard Deviation: %f)"%(self.FN[key]['mean'], self.FN[key]['var'])])
+					"Gauss Fit (mean: %0.4f, Standard Deviation: %f)"%(self.FN[key]['mean'], self.FN[key]['std'])])
 				data = {}
 				for i in range(0, len(self.FN[key]['bin'])):
 					data[self.FN[key]['bin'][i]] = (self.FN[key]['freq'][i],self.FN[key]['fit'][i])
@@ -109,11 +109,12 @@ class Writer():
 		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Gauss.txt")
 		with open(fn, 'w', newline='') as csvfile:
 			writer = csv.writer(csvfile, dialect='JV')
-			writer.writerow(["Potential (V)","Log|J|","Standard Devaition"])
+			writer.writerow(["Potential (V)","Log|J|","Standard Devaition","Standard Error of the Mean"])
 			Y = []
 			Yerr = []
 			for x in self.X:
-				writer.writerow(['%f'%x,'%f'%self.XY[x]['hist']['mean'],'%f'%self.XY[x]['hist']['var']])
+				writer.writerow(['%f'%x,'%f'%self.XY[x]['hist']['mean'],'%f'%self.XY[x]['hist']['std'],\
+						'%f'% (self.XY[x]['hist']['std']/np.sqrt(len(self.opts.in_files))) ])
 		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RGauss.txt")
 		with open(fn, 'w', newline='') as csvfile:
 			writer = csv.writer(csvfile, dialect='JV')
@@ -124,7 +125,7 @@ class Writer():
 			Y = []
 			Yerr = []
 			for x in self.R['X']:
-				writer.writerow(['%f'%x,'%f'%self.R[x]['hist']['mean'],'%f'%self.R[x]['hist']['var']])
+				writer.writerow(['%f'%x,'%f'%self.R[x]['hist']['mean'],'%f'%self.R[x]['hist']['std']])
 		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_logdJdVGauss.txt")
 		with open(fn, 'w', newline='') as csvfile:
 			writer = csv.writer(csvfile, dialect='JV')
@@ -132,7 +133,7 @@ class Writer():
 			Y = []
 			Yerr = []
 			for x in self.GHists:
-				writer.writerow(['%f'%x,'%f'%self.GHists[x]['hist']['mean'],'%f'%self.GHists[x]['hist']['var']])
+				writer.writerow(['%f'%x,'%f'%self.GHists[x]['hist']['mean'],'%f'%self.GHists[x]['hist']['std']])
 
 
 	def WriteData(self, log=False):
@@ -327,7 +328,7 @@ class Plotter():
 		Y, Yerr = [],[]
 		for x in self.X:
 			Y.append(self.XY[x]["hist"]["mean"])
-			Yerr.append(self.XY[x]["hist"]["var"])
+			Yerr.append(self.XY[x]["hist"]["std"])
 		ax.errorbar(self.X, Y, yerr=Yerr, lw=3.0, color='k')
 
 	def PlotVtrans(self,ax):
