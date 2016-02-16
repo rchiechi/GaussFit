@@ -59,6 +59,9 @@ def Go(opts):
 		Ttest(SetA,SetB,'R')
 		Ttest(SetA,SetB,'J')
 		TtestFN(SetA,SetB)
+		WriteGNUplot(os.path.join(opts.out_dir,opts.outfile+"_Ttest"))
+
+
 	elif len(opts.setA):
 		SigTest(opts)
 	else:
@@ -187,6 +190,38 @@ def WriteGeneric(dataset, bfn, opts, labels=[]):
 			for i in range(0,len(dataset)):
 				row.append(dataset[i][n])
 			writer.writerow(row)
+
+
+def WriteGNUplot(bfn):
+	txt = '''
+FONT="Arial,22"
+DBLUE='#3300FF'
+PURPLE='#FF00FF'
+BLACK='#000000'
+
+#set terminal pdfcairo color enhanced font FONT
+set terminal wxt enhanced font FONT
+
+#set output "Ttest.pdf"
+set key outside horizontal font "Arial, 12"
+set pointsize 1
+set ylabel "P-value" offset 1,0
+set xlabel "Potential (V)" offset 0,0.5
+set format y "10^{%%T}"
+set logscale y
+
+f(x) = 0.01
+
+plot "%sJ.txt" using 1:($1 == 0 ? '-':$2) title "J" with p lc rgb DBLUE lw 2 pt 5, "%sR.txt" using 1:($1 == 0 ? '-':$2) title "R" with p lc rgb PURPLE lw 2 pt 5, f(x) lc rgb BLACK dt "-" notitle
+
+pause -1
+exit''' % (bfn, bfn)
+	fn = open('ttest_plot.gpin', 'wt')
+	fn.write(txt)
+	fn.close()
+
+
+
 
 opts = Opts
 Go(opts)
