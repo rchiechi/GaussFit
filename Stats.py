@@ -53,14 +53,12 @@ def Go(opts):
 	Call this function to execute the parsing engine
 	i.e., as main()
 	'''
+
 	if len(opts.setA) and len(opts.setB):
-		logging.info("Parsing %s%s%s", TEAL,'Set A',RS)	
-		parsera = Parse(opts)
-		parsera.ReadFiles(opts.setA)
-		logging.info("Parsing %s%s%s", TEAL,'Set B',RS)	
-		parserb = Parse(opts)
-		parserb.ReadFiles(opts.setB)
-		TtestJ(parsera, parserb)
+		SetA, SetB = GetStats(opts)
+		Ttest(SetA,SetB,'R')
+		Ttest(SetA,SetB,'J')
+		TtestFN(SetA,SetB)
 	elif len(opts.setA):
 		SigTest(opts)
 	else:
@@ -86,24 +84,109 @@ def SigTest(opts):
 		print("%s : %s" % (str(n), str(p)))
 
 
-def TtestJ(parsera, parserb):
-	logging.info("Performing independent T-test on J")
+def GetStats(opts):
+	
+	logging.info("Gathering Statistics")
+	
+	SetA = {}
+	SetB = {}
+
+	for f in opts.setA:
+		parser = Parse(opts)
+		parser.ReadFiles([f])
+		for x in parser.X:
+			if x not in SetA:
+				SetA[x] = {'J':[],'R':[], 'FN':{'pos':[],'neg':[]}}
+			SetA[x]['J'].append(parser.XY[x]['hist']['Gmean'])
+			if x > 0:
+				SetA[x]['R'].append(parser.R[x]['hist']['Gmean'])
+			SetA[x]['FN']['neg'].append(parser.FN['neg']['Gmean'])
+			SetA[x]['FN']['pos'].append(parser.FN['pos']['Gmean'])
+		
+
+	for f in opts.setB:
+		parser = Parse(opts)
+		parser.ReadFiles([f])
+		for x in parser.X:
+			if x not in SetB:
+				SetB[x] = {'J':[],'R':[], 'FN':{'pos':[],'neg':[]}}
+			SetB[x]['J'].append(parser.XY[x]['hist']['Gmean'])
+			if x > 0:
+				SetB[x]['R'].append(parser.R[x]['hist']['Gmean'])
+			SetB[x]['FN']['neg'].append(parser.FN['neg']['Gmean'])
+			SetB[x]['FN']['pos'].append(parser.FN['pos']['Gmean'])
+		
+	if SetA.keys()  != SetB.keys():
+		logging.error("Are you trying to compare two datasets with different voltage steps?")
+		sys.exit()
+
+	return SetA, SetB
+	
+def Ttest(SetA, SetB, key):
+	
+	
+	logging.info("Performing independent T-test on %s" % key)
+	logging.info("Gathering mean %s-values" % key)
+	
+	mua = {}
+	mub = {}
+
 	dataset = ([],[],[])
-	for x in parsera.X: 
-		t,p= ttest_ind(parsera.XY[x]['Y'], parserb.XY[x]['Y'])
-		#print("* * * * Stats at %s%s V%s * * * *" % (TEAL,str(x),RS) )
-		#print("T-statistic: %s%s%s" % (YELLOW,str(t),RS) )
-		if p < 0.05:
+	for x in SetA:
+		t,p= ttest_ind(SetA[x][key], SetB[x][key], equal_var=False)
+		if p < 0.01:
 			c = GREEN
 		else:
 			c = RED
-		print("P-value at %s%s V%s: %s%s%s" % (TEAL,str(x),RS,c,str(p),RS) )
+		print("P-value at %s%s V%s: %s%f%s" % (TEAL,str(x),RS,c,p,RS) )
 		dataset[0].append(x)
 		dataset[1].append(p)
 		dataset[2].append(t)
 
-	writer = Writer(parsera)
-	writer.WriteGeneric(dataset, "Ttest", ["Voltage", "P-value", "T-stat"])
+	WriteGeneric(dataset, "Ttest"+key, opts, ["Voltage", "P-value", "T-stat"])
+
+def TtestFN(SetA, SetB):
+	x = list(SetA.keys())[-1]
+	t_pos, p_pos = ttest_ind(SetA[x]['FN']['pos'], SetB[x]['FN']['pos'])	
+	t_neg, p_neg = ttest_ind(SetA[x]['FN']['neg'], SetB[x]['FN']['neg'])	
+	
+	if p_pos < 0.01:
+		c = GREEN
+	else:
+		c = RED
+	print("P-Value Vtrans(+): %s%f%s" % (c,p_pos,RS))
+	
+	if p_neg < 0.01:
+		c = GREEN
+	else:
+		c = RED
+	print("P-Value Vtrans(–): %s%f%s" % (c,p_neg,RS))
+
+
+def WriteGeneric(dataset, bfn, opts, labels=[]):
+	'''Output for a generic set of data expecting an n-dimensional array'''
+
+	if len(labels) and len(labels) != len(dataset):
+		logging.error("Length of column labels does not match number of data columns for WriteGeneric!")
+		return
+
+	lencola = len(dataset[0])
+	for d in dataset:
+		if len(d) != lencola:
+			logging.error("Length of columns differs for WriteGeneric!")
+			return
+
+	fn = os.path.join(opts.out_dir,opts.outfile+"_"+bfn+".txt")
+	with open(fn, 'w', newline='') as csvfile:
+		writer = csv.writer(csvfile, dialect='JV')
+		if len(labels):
+			writer.writerow(labels)
+
+		for n in range(0, lencola):
+			row = []
+			for i in range(0,len(dataset)):
+				row.append(dataset[i][n])
+			writer.writerow(row)
 
 opts = Opts
 Go(opts)

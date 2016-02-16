@@ -517,14 +517,11 @@ class Parse():
 		
 		bin_centers = (bins[:-1] + bins[1:])/2
 		try:
-			# NOTE: maxfev is hard-coded at 10000 because larger values are slow
-			# and don't offer any advantage, but we still want to iterate to find the best fit
-			
 			if self.opts.lorenzian:
-				coeff, covar = curve_fit(self.lorenz, bin_centers, freq, p0=p0, maxfev=10000)
+				coeff, covar = curve_fit(self.lorenz, bin_centers, freq, p0=p0, maxfev=self.opts.maxfev)
 				hist_fit = self.lorenz(bin_centers, *coeff)
 			else:
-				coeff, covar = curve_fit(self.gauss, bin_centers, freq, p0=p0, maxfev=10000)
+				coeff, covar = curve_fit(self.gauss, bin_centers, freq, p0=p0, maxfev=self.opts.maxfev)
 				hist_fit = self.gauss(bin_centers, *coeff)
 					
 		except RuntimeError as msg:

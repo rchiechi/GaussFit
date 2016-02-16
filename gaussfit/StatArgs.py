@@ -97,6 +97,9 @@ parser.add_argument('-A','--setA', metavar='setA', type=str, nargs='*', default=
 		help='Datafiles to parse for set A.')
 parser.add_argument('-B','--setB',  metavar='setB', type=str, nargs='*', default=[], 
 		help='Datafiles to parse for set B.')
+parser.add_argument('--maxfev', type=int, default=10, 
+		help="Maximum interations for fitting histograms.")
+
 
 
 
@@ -125,7 +128,7 @@ elif Opts.loglevel == 'error':
 	LOGLEVEL = logging.ERROR
 elif Opts.loglevel == 'info':
 	LOGLEVEL = logging.INFO
-			
+
 if not os.path.exists(Opts.out_dir):
 	parser.print_help()
 	print(RED+"\n\t\t> > > Output directory "+arg+" does not exist! < < <"+RS)
