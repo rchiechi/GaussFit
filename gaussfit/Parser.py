@@ -26,7 +26,7 @@ from gaussfit.colors import *
 try:
 	from scipy.optimize import curve_fit,OptimizeWarning
 	import scipy.interpolate 
-	from scipy.stats import gmean,kstest,norm
+	from scipy.stats import gmean,norm
 	import scipy.misc 
 	import numpy as np
 	# SciPy throws a useless warning for noisy J/V traces
@@ -499,13 +499,20 @@ class Parse():
 			logging.warning("Encountered this error while constructing histogram: %s", str(msg), exc_info=False)
 			bins=np.array([0.,0.,0.,0.])
 			freq=np.array([0.,0.,0.,0.])
-		#if len(Y[Y<0]):
-		#	Ym = -1*gmean(abs(Y))
-		#else:
-		#	Ym = gmean(abs(Y))
-		Ym = Y.mean()
-		Ys = Y.std()
-		#p0 = [1., Y.mean(), Y.std()]
+		
+		# Compute the geometric mean and give it the
+		# correct sign
+		if len(Y[Y<0]):
+			Ym = -1*gmean(abs(Y))
+		else:
+			Ym = gmean(abs(Y))
+		
+		#Ym = Y.mean() #Arithmatic mean
+		
+		# Somehow this produces negative sigmas
+		Ys = abs(Y.std())
+		
+		# Initital conditions for Gauss-fit
 		p0 = [1., Ym, Ys]
 		
 		bin_centers = (bins[:-1] + bins[1:])/2

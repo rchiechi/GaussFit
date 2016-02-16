@@ -93,6 +93,11 @@ parser.add_argument('-L','--lorenzian', default=False, action='store_true',
 		help="Fit data to a Lorenzian instead of a Gaussian.")
 #parser.add_argument('-N','--nobs', type=float, default=0.0, 
 #		help="Number of observations for statistical tests.")
+#parser.add_argument('-A','--setA', 'in_files', metavar='setA', type=str, nargs='*', default=[], 
+#		help='Datafiles to parse for set A.')
+#parser.add_argument('-B','--setB', 'in_files', metavar='setB', type=str, nargs='*', default=[], 
+#		help='Datafiles to parse for set B.')
+
 
 
 
