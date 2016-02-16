@@ -147,8 +147,8 @@ def Ttest(SetA, SetB, key):
 
 def TtestFN(SetA, SetB):
 	x = list(SetA.keys())[-1]
-	t_pos, p_pos = ttest_ind(SetA[x]['FN']['pos'], SetB[x]['FN']['pos'])	
-	t_neg, p_neg = ttest_ind(SetA[x]['FN']['neg'], SetB[x]['FN']['neg'])	
+	t_pos, p_pos = ttest_ind(SetA[x]['FN']['pos'], SetB[x]['FN']['pos'], equal_var=False)	
+	t_neg, p_neg = ttest_ind(SetA[x]['FN']['neg'], SetB[x]['FN']['neg'], equal_var=False)
 	
 	if p_pos < 0.01:
 		c = GREEN
