@@ -234,6 +234,33 @@ class Writer():
 				headers += ['%0.1f'%Y[i][0]]
 			writer.writerow(headers)
 
+	def WriteGeneric(self, dataset, bfn, labels=[]):
+		'''Output for a generic set of data expecting an n-dimensional array'''
+
+		if len(labels) and len(labels) != len(dataset):
+			logging.error("Length of column labels does not match number of data columns for WriteGeneric!")
+			return
+
+		lencola = len(dataset[0])
+		for d in dataset:
+			if len(d) != lencola:
+				logging.error("Length of columns differs for WriteGeneric!")
+				return
+
+		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+bfn+".txt")
+		with open(fn, 'w', newline='') as csvfile:
+			writer = csv.writer(csvfile, dialect='JV')
+			if len(labels):
+				writer.writerow(labels)
+
+			for n in range(0, lencola):
+				row = []
+				for i in range(0,len(dataset)):
+					row.append(dataset[i][n])
+				writer.writerow(row)
+
+
+
 class Plotter():
 	def __init__(self,parser):
 		self.parser = parser
