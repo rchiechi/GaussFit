@@ -138,7 +138,7 @@ def Ttest(SetA, SetB, key):
 			c = GREEN
 		else:
 			c = RED
-		print("P-value at %s%s V%s: %s%f%s" % (TEAL,str(x),RS,c,p,RS) )
+		print("P-value at %s%s V%s: %s%s%s" % (TEAL,str(x),RS,str(c),p,RS) )
 		dataset[0].append(x)
 		dataset[1].append(p)
 		dataset[2].append(t)
@@ -154,13 +154,13 @@ def TtestFN(SetA, SetB):
 		c = GREEN
 	else:
 		c = RED
-	print("P-Value Vtrans(+): %s%f%s" % (c,p_pos,RS))
+	print("P-Value Vtrans(+): %s%s%s" % (c,str(p_pos),RS))
 	
 	if p_neg < 0.01:
 		c = GREEN
 	else:
 		c = RED
-	print("P-Value Vtrans(–): %s%f%s" % (c,p_neg,RS))
+	print("P-Value Vtrans(–): %s%s%s" % (c,str(p_neg),RS))
 
 
 def WriteGeneric(dataset, bfn, opts, labels=[]):
