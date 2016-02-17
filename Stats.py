@@ -55,10 +55,10 @@ def Go(opts):
 	'''
 
 	if len(opts.setA) and len(opts.setB):
-		SetA, SetB = GetStats(opts)
-		Ttest(SetA,SetB,'R')
-		Ttest(SetA,SetB,'J')
-		TtestFN(SetA,SetB)
+		SetA, SetB, PopA, PopB = GetStats(opts)
+		Ttest(SetA,SetB,PopA,PopB,'R')
+		Ttest(SetA,SetB,PopA,PopB,'J')
+		TtestFN(SetA,SetB,PopA,PopB)
 		WriteGNUplot(os.path.join(opts.out_dir,opts.outfile+"_Ttest"))
 
 
@@ -67,92 +67,96 @@ def Go(opts):
 	else:
 		logging.error("No input files to parse!")
 
-def SigTest(opts):
-	parser_full = Parse(opts)
-	parser_full.ReadFiles(opts.setA)
-
-	parsers = {}
-	for n in range(1,len(opts.setA)):
-		parsers[n] = Parse(opts)
-		parsers[n].ReadFiles(opts.setA[0:n])
-	pvalues = {}
-	for x in parser_full.X:
-		pvalues[x] = []
-		for n in parsers:
-			t,p= ttest_ind(parser_full.XY[x]['Y'], parsers[n].XY[x]['Y'])
-			pvalues[x].append(p)
-	n = 0
-	for p in pvalues[list(pvalues.keys())[-1]]:
-		n += 1
-		print("%s : %s" % (str(n), str(p)))
-
-
 def GetStats(opts):
 	
 	logging.info("Gathering Statistics")
-	
-	SetA = {}
-	SetB = {}
-
-	for f in opts.setA:
-		parser = Parse(opts)
-		parser.ReadFiles([f])
-		for x in parser.X:
-			if x not in SetA:
-				SetA[x] = {'J':[],'R':[], 'FN':{'pos':[],'neg':[]}}
-			SetA[x]['J'].append(parser.XY[x]['hist']['Gmean'])
-			if x > 0:
-				SetA[x]['R'].append(parser.R[x]['hist']['Gmean'])
-			SetA[x]['FN']['neg'].append(parser.FN['neg']['Gmean'])
-			SetA[x]['FN']['pos'].append(parser.FN['pos']['Gmean'])
 		
-
-	for f in opts.setB:
+	def Getsetpop(opts, pop_files):
+		Set, Pop = {}, {}
+		maxfev = opts.maxfev
+		opts.maxfev=1000
 		parser = Parse(opts)
-		parser.ReadFiles([f])
+		parser.ReadFiles(pop_files)
 		for x in parser.X:
-			if x not in SetB:
-				SetB[x] = {'J':[],'R':[], 'FN':{'pos':[],'neg':[]}}
-			SetB[x]['J'].append(parser.XY[x]['hist']['Gmean'])
-			if x > 0:
-				SetB[x]['R'].append(parser.R[x]['hist']['Gmean'])
-			SetB[x]['FN']['neg'].append(parser.FN['neg']['Gmean'])
-			SetB[x]['FN']['pos'].append(parser.FN['pos']['Gmean'])
+			if x == 0:
+				continue
+			Pop[x] = {'J':{'mean':0,'std':0},'R':{'mean':0,'std':0}, 'FN':{'pos':{'mean':0,'std':0},'neg':{'mean':0,'std':0}}}
+			Pop[x]['J']['mean'] = parser.XY[x]['hist']['mean']
+			Pop[x]['J']['std'] = parser.XY[x]['hist']['std']
+			Pop[x]['R']['mean'] = parser.R[abs(x)]['hist']['mean']
+			Pop[x]['R']['std'] = parser.R[abs(x)]['hist']['std']
+			Pop[x]['FN']['neg']['mean'] = parser.FN['neg']['mean']
+			Pop[x]['FN']['neg']['std'] = parser.FN['neg']['std']
+			Pop[x]['FN']['pos']['mean'] = parser.FN['pos']['mean']
+			Pop[x]['FN']['pos']['std'] = parser.FN['pos']['std']
+		for f in pop_files:
+			opts.maxfev=maxfev
+			parser = Parse(opts)
+			parser.ReadFiles([f])
+			for x in parser.X:
+				if x == 0:
+					continue
+				if x not in Set:
+					Set[x] = {'J':{'mean':[],'std':[], 'Y':[]},'R':{'mean':[],'std':[], 'Y':[]}, \
+							'FN':{'pos':{'mean':[],'std':[]},'neg':{'mean':[],'std':[]}}}
+				Set[x]['J']['mean'].append(parser.XY[x]['hist']['Gmean'])
+				Set[x]['J']['std'].append(parser.XY[x]['hist']['Gstd'])
+				Set[x]['J']['Y'].append(parser.XY[x]['LogY'])
+				Set[x]['R']['mean'].append(parser.R[abs(x)]['hist']['Gmean'])
+				Set[x]['R']['std'].append(parser.R[abs(x)]['hist']['Gstd'])
+				Set[x]['R']['Y'].append(parser.R[abs(x)]['r'])
+				Set[x]['FN']['neg']['mean'].append(parser.FN['neg']['Gmean'])
+				Set[x]['FN']['pos']['std'].append(parser.FN['pos']['Gstd'])
+				Set[x]['FN']['neg']['mean'].append(parser.FN['neg']['Gmean'])
+				Set[x]['FN']['pos']['std'].append(parser.FN['pos']['Gstd'])
+		return Set, Pop
+
+	SetA, PopA = Getsetpop(opts, opts.setA)
+
+	if not len(opts.setB):
+		return SetA, SetB, PopA, PopB
+
+	SetB, PopB = Getsetpop(opts, opts.setB)
 		
 	if SetA.keys()  != SetB.keys():
 		logging.error("Are you trying to compare two datasets with different voltage steps?")
 		sys.exit()
-
-	return SetA, SetB
+	return SetA, SetB, PopA, PopB
 	
-def Ttest(SetA, SetB, key):
-	
+def Ttest(SetA, SetB, PopA, PopB, key):
 	
 	logging.info("Performing independent T-test on %s" % key)
 	logging.info("Gathering mean %s-values" % key)
 	
-	mua = {}
-	mub = {}
-
-	dataset = ([],[],[])
+	dataset = ([],[],[],[],[])
 	for x in SetA:
-		t,p= ttest_ind(SetA[x][key], SetB[x][key], equal_var=False)
+		t,p= ttest_ind(SetA[x][key]['mean'], SetB[x][key]['mean'], equal_var=False)
 		if p < 0.01:
 			c = GREEN
 		else:
 			c = RED
-		print("P-value at %s%s V%s: %s%s%s" % (TEAL,str(x),RS,str(c),p,RS) )
+		print("P-value at %s%s V%s: %s%s%s" % (TEAL,str(x),RS,c,str(p),RS) )
+	
+		AlphaA = Cronbach( SetA[x][key]['Y'] )
+		AlphaB = Cronbach( SetB[x][key]['Y'] )
+		
+		print("α SetA at %s%s V%s: %s%s%s" % (TEAL,str(x),RS,YELLOW,str(AlphaA),RS) )
+		print("α SetB at %s%s V%s: %s%s%s" % (TEAL,str(x),RS,YELLOW,str(AlphaB),RS) )
+
 		dataset[0].append(x)
 		dataset[1].append(p)
 		dataset[2].append(t)
+		dataset[3].append(AlphaA)
+		dataset[4].append(AlphaB)
 
-	WriteGeneric(dataset, "Ttest"+key, opts, ["Voltage", "P-value", "T-stat"])
-
-def TtestFN(SetA, SetB):
-	x = list(SetA.keys())[-1]
-	t_pos, p_pos = ttest_ind(SetA[x]['FN']['pos'], SetB[x]['FN']['pos'], equal_var=False)	
-	t_neg, p_neg = ttest_ind(SetA[x]['FN']['neg'], SetB[x]['FN']['neg'], equal_var=False)
+	WriteGeneric(dataset, "Ttest"+key, opts, ["Voltage", "P-value", "T-stat", "AlphaA", "AlphaB"])
 	
+
+def TtestFN(SetA, SetB, PopA, PopB):
+	x = list(SetA.keys())[-1]
+	t_pos, p_pos = ttest_ind(SetA[x]['FN']['pos']['mean'], SetB[x]['FN']['pos']['mean'], equal_var=False)	
+	t_neg, p_neg = ttest_ind(SetA[x]['FN']['neg']['mean'], SetB[x]['FN']['neg']['mean'], equal_var=False)
+		
 	if p_pos < 0.01:
 		c = GREEN
 	else:
@@ -191,6 +195,30 @@ def WriteGeneric(dataset, bfn, opts, labels=[]):
 				row.append(dataset[i][n])
 			writer.writerow(row)
 
+def Cronbach(muA):
+	'''
+	Compute Cronbach's Alpha
+	'''
+	muI = np.asarray(muA)
+	K = len(muI)
+	tscores = muI.sum(axis=0)
+	muvars = muI.var(axis=1,ddof=1)
+	Alpha =  K/(K-1.) * (1 - muvars.sum() / tscores.var(ddof=1))
+	return Alpha
+
+def CronbachBroken(sigmaX, sigmaI, quiet=True):
+	K = len(sigmaI)
+	sI = np.array(sigmaI)**2
+	sX = float( ((np.array(sigmaI)-sigmaX)**2).sum()/K-1 )
+	if K < 2:
+		Alpha = np.nan
+	else:
+		Alpha = float((K/(K-1))*(1-(sI.sum()/sX)))
+	if not quiet:
+		print("--- Cronbach\'s Alpha ---")
+		print("       α=%s K=%s       " % (Alpha,K) )
+		print("-------------------------")
+	return Alpha
 
 def WriteGNUplot(bfn):
 	txt = '''

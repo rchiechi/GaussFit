@@ -190,7 +190,6 @@ class Parse():
 				   "LogY":logy, 
 				   "hist":self.dohistogram(logy,"J"), 
 				   "FN":np.array(fn) }
-
 		self.X = np.array(sorted(self.XY.keys()))
 		logging.info("Done parsing input data")
 		print("* * * * * * Computing dY/dX  * * * * * * * *")
@@ -512,6 +511,9 @@ class Parse():
 		# Somehow this produces negative sigmas
 		Ys = abs(Y.std())
 		
+		if not Ys or not Ym:
+			logging.error("Failed to find G-mean and G-std!")
+
 		# Initital conditions for Gauss-fit
 		p0 = [1., Ym, Ys]
 		
@@ -525,13 +527,15 @@ class Parse():
 				hist_fit = self.gauss(bin_centers, *coeff)
 					
 		except RuntimeError as msg:
-			logging.warning("|%s| Fit did not converge (%s)", label, str(msg), exc_info=False)
+			if self.opts.maxfev > 100:
+				logging.warning("|%s| Fit did not converge (%s)", label, str(msg), exc_info=False)
 			coeff = p0
 			hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
 		except ValueError as msg:
 			logging.warning("|%s| Skipping data with ridiculous numbers in it (%s)", label, str(msg), exc_info=False )
 			coeff=p0
 			hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
+
 		return {"bin":bin_centers, "freq":freq, "mean":coeff[1], "std":coeff[2], \
 				"var":coeff[2], "bins":bins, "fit":hist_fit, "Gmean":Ym, "Gstd":Ys}
 
