@@ -105,10 +105,10 @@ def GetStats(opts):
 				Set[x]['R']['mean'].append(parser.R[abs(x)]['hist']['Gmean'])
 				Set[x]['R']['std'].append(parser.R[abs(x)]['hist']['Gstd'])
 				Set[x]['R']['Y'].append(parser.R[abs(x)]['r'])
-				Set[x]['FN']['neg']['mean'].append(parser.FN['neg']['Gmean'])
+				Set[x]['FN']['pos']['mean'].append(parser.FN['pos']['Gmean'])
 				Set[x]['FN']['pos']['std'].append(parser.FN['pos']['Gstd'])
 				Set[x]['FN']['neg']['mean'].append(parser.FN['neg']['Gmean'])
-				Set[x]['FN']['pos']['std'].append(parser.FN['pos']['Gstd'])
+				Set[x]['FN']['neg']['std'].append(parser.FN['neg']['Gstd'])
 		return Set, Pop
 
 	SetA, PopA = Getsetpop(opts, opts.setA)

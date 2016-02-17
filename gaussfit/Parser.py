@@ -527,7 +527,7 @@ class Parse():
 				hist_fit = self.gauss(bin_centers, *coeff)
 					
 		except RuntimeError as msg:
-			if self.opts.maxfev > 100:
+			if self.opts.maxfev > 10:
 				logging.warning("|%s| Fit did not converge (%s)", label, str(msg), exc_info=False)
 			coeff = p0
 			hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
@@ -538,15 +538,6 @@ class Parse():
 
 		return {"bin":bin_centers, "freq":freq, "mean":coeff[1], "std":coeff[2], \
 				"var":coeff[2], "bins":bins, "fit":hist_fit, "Gmean":Ym, "Gstd":Ys}
-
-	def Fittest(self, hist):
-		# This type of test is against the null hypothesis that
-		# a series of observations that seem different are actually
-		# just sampling a different part of the same distriubtion
-		# is probably not useful for single J/V curves
-		ks = kstest(hist,'norm')
-		print(ks)
-
 
 	def PrintFN(self):
 		'''
