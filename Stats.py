@@ -123,25 +123,37 @@ def GetStats(opts):
 		sys.exit()
 	return SetA, SetB, PopA, PopB
 	
+
 def Ttest(SetA, SetB, PopA, PopB, key):
 	
 	logging.info("Performing independent T-test on %s" % key)
 	logging.info("Gathering mean %s-values" % key)
 	
 	dataset = ([],[],[],[],[])
+	
+	p_vals = []
+	aA_vals = []
+	aB_vals = []
+
 	for x in SetA:
 		t,p= ttest_ind(SetA[x][key]['mean'], SetB[x][key]['mean'], equal_var=False)
-		if p < 0.01:
-			c = GREEN
-		else:
-			c = RED
+		p_vals.append(p)
+		if p < 0.001: c = GREEN
+		else: c = RED
 		print("P-value at %s%s V%s: %s%s%s" % (TEAL,str(x),RS,c,str(p),RS) )
 	
 		AlphaA = Cronbach( SetA[x][key]['Y'] )
 		AlphaB = Cronbach( SetB[x][key]['Y'] )
 		
-		print("α SetA at %s%s V%s: %s%s%s" % (TEAL,str(x),RS,YELLOW,str(AlphaA),RS) )
-		print("α SetB at %s%s V%s: %s%s%s" % (TEAL,str(x),RS,YELLOW,str(AlphaB),RS) )
+		aA_vals.append(AlphaA)
+		aB_vals.append(AlphaB)
+
+		if AlphaA > 0.7: c = GREEN
+		else: c = RED
+		print("α SetA at %s%s V%s: %s%s%s" % (TEAL,str(x),RS,c,str(AlphaA),RS) )
+		if AlphaB > 0.7: c = GREEN
+		else: c = RED
+		print("α SetB at %s%s V%s: %s%s%s" % (TEAL,str(x),RS,c,str(AlphaB),RS) )
 
 		dataset[0].append(x)
 		dataset[1].append(p)
@@ -151,22 +163,25 @@ def Ttest(SetA, SetB, PopA, PopB, key):
 
 	WriteGeneric(dataset, "Ttest"+key, opts, ["Voltage", "P-value", "T-stat", "AlphaA", "AlphaB"])
 	
+	p_vals = np.array(p_vals)
+	aA_vals = np.array(aA_vals)
+	aB_vals = np.array(aB_vals)
+
+	print("p-value Mean: %s" % p_vals.mean())
+	print("α  SetA Mean: %s" % aA_vals[aA_vals > 0].mean())
+	print("α  SetB Mean: %s" % aB_vals[aB_vals > 0].mean())
 
 def TtestFN(SetA, SetB, PopA, PopB):
 	x = list(SetA.keys())[-1]
 	t_pos, p_pos = ttest_ind(SetA[x]['FN']['pos']['mean'], SetB[x]['FN']['pos']['mean'], equal_var=False)	
 	t_neg, p_neg = ttest_ind(SetA[x]['FN']['neg']['mean'], SetB[x]['FN']['neg']['mean'], equal_var=False)
 		
-	if p_pos < 0.01:
-		c = GREEN
-	else:
-		c = RED
+	if p_pos < 0.001: c = GREEN
+	else: c = RED
 	print("P-Value Vtrans(+): %s%s%s" % (c,str(p_pos),RS))
 	
-	if p_neg < 0.01:
-		c = GREEN
-	else:
-		c = RED
+	if p_neg < 0.001: c = GREEN
+	else: c = RED
 	print("P-Value Vtrans(–): %s%s%s" % (c,str(p_neg),RS))
 
 
