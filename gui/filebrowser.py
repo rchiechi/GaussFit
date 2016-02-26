@@ -37,7 +37,7 @@ class ChooseFiles(Frame):
         self.last_input_path = os.environ['HOME']
         self.opts = opts
         self.master.title("File Browser")
-        self.master.geometry('850x650+250-250')
+        self.master.geometry('850x750+250-250')
         self.pack(fill=BOTH)
         self.createWidgets()
         self.ToFront()
@@ -196,6 +196,20 @@ class ChooseFiles(Frame):
         self.Check_smooth.grid(column=0,row=6,sticky=W)
         createToolTip(self.Check_smooth, "Use dJ/dV plots to find the minimum of F-N plots when computing Vtrans.")
 
+        self.logr = IntVar()
+        self.logr.set(True)
+        self.Check_logr = Checkbutton(self.OptionsFrame, text="Use log|R|", \
+                                         variable=self.logr, command=self.checkOptions)
+        self.Check_logr.grid(column=0,row=7,sticky=W)
+        createToolTip(self.Check_logr, "Use log|R| when computing histograms.")
+
+        self.lorenzian = IntVar()
+        self.Check_lorenzian = Checkbutton(self.OptionsFrame, text="Lorenzian", \
+                                         variable=self.lorenzian, command=self.checkOptions)
+        self.Check_lorenzian.grid(column=0,row=8,sticky=W)
+        createToolTip(self.Check_lorenzian, "Fit a Lorenzian instead of a Gaussian.")
+
+
         Label(self.LeftOptionsFrame, text="Cuttoff for d2J/dV2:").grid(column=0,row=0)
         self.EntryVcutoff = Entry(self.LeftOptionsFrame, width=8)
         self.EntryVcutoff.bind("<Return>", self.checkOptions)
@@ -211,7 +225,24 @@ class ChooseFiles(Frame):
         self.Smoothingcutoff.bind("<Enter>", self.checkOptions)
         self.Smoothingcutoff.grid(column=0,row=3)
         createToolTip(self.Smoothingcutoff, "The cutoff value for the residual squares (the difference between experimental data points and the fit). The default is 1e-12. Set to 0 to disable smoothing.")
-    
+        
+        Label(self.LeftOptionsFrame, text="Bins for J/R Histograms:").grid(column=0,row=6)
+        self.EntryJRBins = Entry(self.LeftOptionsFrame, width=8)
+        self.EntryJRBins.bind("<Return>", self.checkOptions)
+        self.EntryJRBins.bind("<Leave>", self.checkOptions)
+        self.EntryJRBins.bind("<Enter>", self.checkOptions)
+        self.EntryJRBins.grid(column=0,row=7)
+        createToolTip(self.EntryJRBins, "Set binning for histograms of J and R.")
+        
+        Label(self.LeftOptionsFrame, text="Bins for G Histograms:").grid(column=0,row=8)
+        self.Entryhmbins = Entry(self.LeftOptionsFrame, width=8)
+        self.Entryhmbins.bind("<Return>", self.checkOptions)
+        self.Entryhmbins.bind("<Leave>", self.checkOptions)
+        self.Entryhmbins.bind("<Enter>", self.checkOptions)
+        self.Entryhmbins.grid(column=0,row=9)
+        createToolTip(self.Entryhmbins, "Set binning for conductance heatmap histograms.")
+
+	# checkGminmaxEntry call must come last
         Label(self.LeftOptionsFrame, text="Y-scale for conductance:").grid(column=0,row=4)
         self.EntryGminmax = Entry(self.LeftOptionsFrame, width=8)
         self.EntryGminmax.bind("<Return>", self.checkGminmaxEntry)
@@ -220,6 +251,8 @@ class ChooseFiles(Frame):
         self.EntryGminmax.grid(column=0,row=5)
         createToolTip(self.EntryGminmax, "Set Ymin,Ymax for the conductance plot (lower-left of plot output).")
         self.checkGminmaxEntry(None)
+
+
 
         if self.opts.write:
             self.write.set(1)
@@ -239,7 +272,9 @@ class ChooseFiles(Frame):
         self.opts.write = self.boolmap[self.write.get()]
         self.opts.skipohmic = self.boolmap[self.skip.get()]
         self.opts.nomin = self.boolmap[self.nomin.get()]
-           
+        self.opts.logr = self.boolmap[self.logr.get()]
+        self.opts.lorenzian = self.boolmap[self.lorenzian.get()]
+        
         if not self.opts.write:
             self.opts.plot = True
             self.plot.set(1)
@@ -274,7 +309,25 @@ class ChooseFiles(Frame):
         self.Smoothingcutoff.delete(0, END)
         self.Smoothingcutoff.insert(0,self.opts.smooth)
 
+        try:
+            self.opts.bins = abs(int(self.EntryJRBins.get()))
+        except ValueError:
+            self.opts.bins = 50
+
+        self.EntryJRBins.delete(0, END)
+        self.EntryJRBins.insert(0,self.opts.bins)
+
+        try:
+            self.opts.heatmapbins = abs(int(self.Entryhmbins.get()))
+        except ValueError:
+            self.opts.heatmapbins = 25
+
+        self.Entryhmbins.delete(0, END)
+        self.Entryhmbins.insert(0,self.opts.heatmapbins)
     
+    
+
+
     def createColumnEntry(self):
 
         self.EntryColumns = Entry(self.ColumnFrame, width=8)

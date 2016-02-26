@@ -88,7 +88,7 @@ parser.add_argument('-z','--upper', metavar='UPPER', dest='mhi', type=float, def
 parser.add_argument('-B','--heatmapbins', default=25, type=int, 
 		help="Number of bins for the conductance heatmap plot.")
 parser.add_argument('-R','--logr', default=True, action='store_false', 
-		help="Compute |R| instead of log|R| for histograms of rectification.")
+		help="Compute log|R| instead of |R| for histograms of rectification.")
 parser.add_argument('-L','--lorenzian', default=False, action='store_true', 
 		help="Fit data to a Lorenzian instead of a Gaussian.")
 parser.add_argument('--maxfev', type=int, default=10000, 
