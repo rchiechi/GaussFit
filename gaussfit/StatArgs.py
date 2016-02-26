@@ -141,7 +141,7 @@ if LOG:
 else:
 	logging.basicConfig(level=LOGLEVEL,format = GREEN+os.path.basename(sys.argv[0]+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE)
 
-if not len(Opts.setA):
+if not len(Opts.setA) and not Opts.GUI:
 	parser.print_help()
 	print(RED+"\n\t\t> > > No input files! < < < "+RS)
 	sys.exit()

@@ -267,4 +267,8 @@ exit''' % (bfn, bfn)
 
 
 opts = Opts
-Go(opts)
+if opts.GUI:
+		from gui import statsfilebrowser
+		gui = statsfilebrowser.ChooseFiles(opts,Go)
+else:
+		Go(opts)
