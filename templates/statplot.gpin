@@ -19,3 +19,4 @@ f(x) = 0.01
 plot "%sJ.txt" using 1:($1 == 0 ? '-':$2) title "J" with p lc rgb DBLUE lw 2 pt 5, "%sR.txt" using 1:($1 == 0 ? '-':$2) title "R" with p lc rgb PURPLE lw 2 pt 5, f(x) lc rgb BLACK dt "-" notitle
 
 pause -1
+exit
