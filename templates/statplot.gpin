@@ -1,12 +1,13 @@
-FONT="Arial,22"
 DBLUE='#3300FF'
 PURPLE='#FF00FF'
 BLACK='#000000'
 
-#set terminal pdfcairo color enhanced font FONT
-set terminal wxt enhanced font FONT
+BFN='%s'
 
-#set output "Ttest.pdf"
+#set terminal pdfcairo color enhanced font "Arial,22"
+set terminal wxt enhanced font "Arial,12"
+
+#set output BFN."_Ttest.pdf"
 set key outside horizontal font "Arial, 12"
 set pointsize 1
 set ylabel "P-value" offset 1,0
@@ -16,7 +17,7 @@ set logscale y
 
 f(x) = 0.01
 
-plot "%sJ.txt" using 1:($1 == 0 ? '-':$2) title "J" with p lc rgb DBLUE lw 2 pt 5, "%sR.txt" using 1:($1 == 0 ? '-':$2) title "R" with p lc rgb PURPLE lw 2 pt 5, f(x) lc rgb BLACK dt "-" notitle
+plot BFN."_TtestJ.txt" using 1:($1 == 0 ? '-':$2) title "J" with p lc rgb DBLUE lw 2 pt 5, BFN."_TtestR.txt" using 1:($1 == 0 ? '-':$2) title "R" with p lc rgb PURPLE lw 2 pt 5, f(x) lc rgb BLACK dt "-" notitle
 
 pause -1
 exit

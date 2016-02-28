@@ -21,6 +21,7 @@ Description:
 '''
 
 import os,csv,warnings
+from shutil import copyfile
 try:
 	import numpy as np
 	from scipy.interpolate import griddata
@@ -260,7 +261,21 @@ class Writer():
 				writer.writerow(row)
 
 
-
+	def WriteGNUplot(self, gpinbn, tocopy=[]):
+		absdir = os.path.dirname(os.path.abspath(__file__))
+		tdir = os.path.join(absdir,'../templates/')
+		gpintp = os.path.join(tdir,gpinbn+'.gpin')
+		nsub = str(open(gpintp,'rt').read()).count('%s')
+		ssub = []
+		for i in range(0,nsub):
+			ssub.append(self.opts.outfile)
+		txt = open(gpintp, 'rt').read() % tuple(ssub)
+		fh = open(os.path.join(self.opts.out_dir,self.opts.outfile+'_'+gpinbn+'.gpin'), 'wt')
+		fh.write(txt)
+		fh.close()
+		for fn in tocopy:
+			copyfile(os.path.join(tdir,fn), \
+					os.path.join(self.opts.out_dir,fn))		
 class Plotter():
 	def __init__(self,parser):
 		self.parser = parser

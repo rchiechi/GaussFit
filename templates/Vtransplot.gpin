@@ -1,0 +1,42 @@
+DBLUE='#3300FF'
+tHC='#774c901f'
+HC='#3300FF'
+
+BFN='%s'
+
+#set terminal pdfcairo color enhanced font "Arial, 24" size 5,7
+set terminal wxt enhanced font "Arial, 12" size 500,700
+
+set output BFN."_Vtrans.pdf"
+
+set ylabel "Frequency" offset 1.5,0
+set xlabel "V_{trans}" offset 0,0.5
+
+#set yrange [0:1.1]
+set boxwidth 0.5 relative
+
+#set size ratio 2
+#set origin 0,0
+
+set multiplot layout 2,1
+
+unset key
+
+## Normalization ##
+pPOS=1
+oPOS=1
+pNEG=1
+oNEG=1
+
+plot BFN."_Vtrans_pos.txt" using 1:($2/oPOS) notitle with boxes lc rgb DBLUE, \
+BFN."_Vtrans_pos.txt" using 1:($3/oPOS) notitle smooth csplines with lines lc rgb DBLUE lt 3 lw 2
+
+#set key top left
+
+plot BFN."_Vtrans_neg.txt" using 1:($2/oNEG) notitle with boxes lc rgb DBLUE, \
+BFN."_Vtrans_neg.txt" using 1:($3/oNEG) notitle smooth csplines with lines lc rgb DBLUE lt 3 lw 2
+
+unset multiplot
+
+pause -1
+exit 

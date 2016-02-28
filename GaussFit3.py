@@ -38,15 +38,19 @@ def Go(opts):
 			writer = Writer(parser)
 			logging.info("Writing files...")
 			writer.WriteVtrans()
+			writer.WriteGNUplot('Vtransplot')
 			writer.WriteFN()
 			writer.WriteGauss()
+			writer.WriteGNUplot('JVplot')
 			writer.WriteData()
 			writer.WriteDJDV()
 			writer.WriteFiltered()
 			writer.WriteData(True)
 			writer.WriteRData()
+			writer.WriteGNUplot('Rplot')
 			try:
 				writer.WriteHistograms()
+				writer.WriteGNUplot('JVhistplot')
 			except IndexError:
 				print("Error outputting histrograms")
 			try:
@@ -55,6 +59,7 @@ def Go(opts):
 				print("Error outputting Ghistrograms")
 			try:
 				writer.WriteGMatrix()
+				writer.WriteGNUplot('Gplot', ['parula.pal']) 
 			except IndexError:
 				print("Error outputting GMatrix")
 	parser.PrintFN()

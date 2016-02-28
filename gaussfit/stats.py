@@ -21,7 +21,7 @@ Description:
 '''
 
 
-from gaussfit.Output import WriteStats
+from gaussfit.Output import Writer,WriteStats
 #from gaussfit.StatArgs import Opts
 from gaussfit.Parser import Parse
 #from gaussfit.Output import Writer
@@ -74,7 +74,9 @@ class Stats:
 		self.Ttest('R')
 		self.Ttest('J')
 		self.TtestFN()
-		self.WriteGNUplot(os.path.join(opts.out_dir,opts.outfile+"_Ttest"))
+		if self.opts.write:
+			writer = Writer(self)
+			writer.WriteGNUplot("statplot")
 		
 	def __getsetpop(self,opts,pop_files):
 		Set, Pop = {}, {}
@@ -130,9 +132,10 @@ class Stats:
 		for x in self.SetA:
 			t,p= ttest_ind(self.SetA[x][key]['mean'], self.SetB[x][key]['mean'], equal_var=False)
 			p_vals.append(p)
-			if p < 0.001: c = GREEN
-			else: c = RED
-			print("P-value at %s%s V%s: %s%s%s" % (TEAL,str(x),RS,c,str(p),RS) )
+			
+			#if p < 0.001: c = GREEN
+			#else: c = RED
+			#print("P-value at %s%s V%s: %s%s%s" % (TEAL,str(x),RS,c,str(p),RS) )
 		
 			AlphaA = self.Cronbach( self.SetA[x][key]['Y'] )
 			AlphaB = self.Cronbach( self.SetB[x][key]['Y'] )
@@ -140,12 +143,12 @@ class Stats:
 			aA_vals.append(AlphaA)
 			aB_vals.append(AlphaB)
 
-			if AlphaA > 0.7: c = GREEN
-			else: c = RED
-			print("α SetA at %s%s V%s: %s%s%s" % (TEAL,str(x),RS,c,str(AlphaA),RS) )
-			if AlphaB > 0.7: c = GREEN
-			else: c = RED
-			print("α SetB at %s%s V%s: %s%s%s" % (TEAL,str(x),RS,c,str(AlphaB),RS) )
+			#if AlphaA > 0.7: c = GREEN
+			#else: c = RED
+			#print("α SetA at %s%s V%s: %s%s%s" % (TEAL,str(x),RS,c,str(AlphaA),RS) )
+			#if AlphaB > 0.7: c = GREEN
+			#else: c = RED
+			#print("α SetB at %s%s V%s: %s%s%s" % (TEAL,str(x),RS,c,str(AlphaB),RS) )
 
 			dataset[0].append(x)
 			dataset[1].append(p)
@@ -154,6 +157,7 @@ class Stats:
 			dataset[4].append(AlphaB)
 
 		if self.opts.write:
+			logging.info("Writing stats to %s" % self.opts.outfile+"_Ttest"+key+".txt")
 			WriteStats(self.opts.out_dir, self.opts.outfile, dataset, \
 				"Ttest"+key, ["Voltage", "P-value", "T-stat", "AlphaA", "AlphaB"])
 		
@@ -182,31 +186,6 @@ class Stats:
 		print("P-Value Vtrans(–): %s%s%s" % (c,str(p_neg),RS))
 		self.fnstats = {"p_pos":p_pos, "p_neg":p_neg, "t_pos":t_pos, "t_neg":t_neg}
 
-#	def WriteGeneric(self, dataset, bfn, labels=[]):
-#		'''Output for a generic set of data expecting an n-dimensional array'''
-#
-#		if len(labels) and len(labels) != len(dataset):
-#			logging.error("Length of column labels does not match number of data columns for WriteGeneric!")
-#			return
-#
-#		lencola = len(dataset[0])
-#		for d in dataset:
-#			if len(d) != lencola:
-#				logging.error("Length of columns differs for WriteGeneric!")
-#				return
-#
-#		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+bfn+".txt")
-#		with open(fn, 'w', newline='') as csvfile:
-#			writer = csv.writer(csvfile, dialect='JV')
-#			if len(labels):
-#				writer.writerow(labels)
-#
-#			for n in range(0, lencola):
-#				row = []
-#				for i in range(0,len(dataset)):
-#					row.append(dataset[i][n])
-#				writer.writerow(row)
-
 	def Cronbach(self, muA):
 		'''
 		Compute Cronbach's Alpha
@@ -221,10 +200,3 @@ class Stats:
 			logging.error("Division by zero error computing Alpha!")
 			Alpha = np.nan
 		return Alpha
-
-	def WriteGNUplot(self,bfn):
-		absdir = os.path.dirname(os.path.abspath(__file__))
-		txt = open(absdir+'/../templates/statplot.gpin', 'rt').read() % (bfn, bfn)
-		fn = open('ttest_plot.gpin', 'wt')
-		fn.write(txt)
-		fn.close()

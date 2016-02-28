@@ -57,7 +57,7 @@ parser.add_argument('-D','--dir', metavar="OUTPUT DIR", dest='out_dir', default=
                 help="Output directory (combined with -o).")
 parser.add_argument('-l','--loglevel', default='info', choices=('info','warn','error','debug'),
                 help="Set the logging level.")
-parser.add_argument('-p','--plot', action='store_true', default=True,
+parser.add_argument('-p','--plot', action='store_true', default=False,
                 help="Plot data and save to png file.")
 parser.add_argument('-n','--nowrite', dest='write', action='store_false', default=True,
                 help="Do not write output files (implies -p).")
