@@ -57,7 +57,7 @@ parser.add_argument('-D','--dir', metavar="OUTPUT DIR", dest='out_dir', default=
                 help="Output directory (combined with -o).")
 parser.add_argument('-l','--loglevel', default='info', choices=('info','warn','error','debug'),
                 help="Set the logging level.")
-parser.add_argument('-p','--plot', action='store_true', default=False,
+parser.add_argument('-p','--plot', action='store_true', default=True,
                 help="Plot data and save to png file.")
 parser.add_argument('-n','--nowrite', dest='write', action='store_false', default=True,
                 help="Do not write output files (implies -p).")
@@ -108,8 +108,8 @@ parser.add_argument('--maxfev', type=int, default=1,
 
 Opts=parser.parse_args()
 
-#if not Opts.write:
-#	Opts.plot = True
+if not Opts.write:
+	Opts.plot = True
 
 if len(Opts.setA) and not Opts.outfile:
 	if Opts.setA[0][-4] == '.':

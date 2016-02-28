@@ -390,3 +390,69 @@ class Plotter():
 		self.PlotVtrans(ax4)
 		self.PlotG(ax3)
 		fig.savefig(self.opts.outfile+"_fig.png", format="png")
+
+class StatPlotter:
+	
+	def __init__(self, statparser):
+		self.opts = statparser.opts
+		self.dataset = statparser.dataset
+		self.cutoff = 0.01
+
+	def PlotData(self, key, ax, sym, **kw):
+		
+		xmin = np.asarray(self.dataset[key][0]).min() 
+		xmax = np.asarray(self.dataset[key][0]).max() 
+		ymin = np.asarray(self.dataset[key][1]).min() 
+		ymax = np.asarray(self.dataset[key][1]).max() 
+		if ymax < self.cutoff:
+			ymax = self.cutoff
+		if ymin > self.cutoff:
+			ymin = self.cutoff
+		ymax = ymax + ymax*0.1
+		ymin = ymin - ymin*0.1
+		ax.set_yscale('log')
+		ax.set_title("P-values for %s" % key)
+		ax.set_xlabel("Potenial (V)")
+		ax.set_ylabel('p-value')
+		
+		ax.plot(self.dataset[key][0],self.dataset[key][1], sym, **kw)
+		ax.axis([xmin,xmax,ymin,ymax])
+
+		self.PlotCutoff(xmin, xmax, ax)
+
+	def PlotCutoff(self, xmin, xmax,  ax):
+		X = np.linspace(xmin,xmax)
+		ax.plot(X, [ self.cutoff for x in X],  '-', lw='0.5', color='c')
+
+	def DoPlots(self, plt):
+		fig = plt.figure(figsize=(10,5))
+		ax1 = fig.add_axes([0.08, 0.1, 0.4, 0.8])
+		ax2 = fig.add_axes([0.56, 0.1, 0.4, 0.8])
+		self.PlotData('J',ax1,'.',lw=1.25, color='b')
+		self.PlotData('R',ax2,'.',lw=1.25, color='b')
+		fig.savefig(self.opts.outfile+"_statfig.png", format="png")
+
+def WriteStats(out_dir, outfile, dataset, bfn, labels=[]):
+	'''Output for a generic set of data expecting an n-dimensional array'''
+
+	if len(labels) and len(labels) != len(dataset):
+		logging.error("Length of column labels does not match number of data columns for WriteGeneric!")
+		return
+
+	lencola = len(dataset[0])
+	for d in dataset:
+		if len(d) != lencola:
+			logging.error("Length of columns differs for WriteGeneric!")
+			return
+	fn = os.path.join(out_dir,outfile+"_"+bfn+".txt")
+	with open(fn, 'w', newline='') as csvfile:
+		writer = csv.writer(csvfile, dialect='JV')
+		if len(labels):
+			writer.writerow(labels)
+
+		for n in range(0, lencola):
+			row = []
+			for i in range(0,len(dataset)):
+				row.append(dataset[i][n])
+			writer.writerow(row)
+

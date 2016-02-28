@@ -21,33 +21,13 @@ Description:
 '''
 
 
-#from gaussfit.Output import Writer,Plotter
+from gaussfit.Output import WriteStats,StatPlotter
 from gaussfit.StatArgs import Opts
 #from gaussfit.Parser import Parse
 #from gaussfit.Output import Writer
 
 import sys,os,logging,warnings,csv
 from gaussfit.colors import *
-
-#try:
-#	from scipy.optimize import curve_fit,OptimizeWarning
-#	import scipy.interpolate 
-#	from scipy.stats import gmean,kstest,ttest_ind,ttest_rel,ttest_1samp
-#	import scipy.misc 
-#	import numpy as np
-#	# SciPy throws a useless warning for noisy J/V traces
-#	warnings.filterwarnings('ignore','.*Covariance of the parameters.*',OptimizeWarning)
-#
-#except ImportError as msg:
-#	print("\n\t\t%s> > > Error importing numpy/scipy! %s%s%s < < <%s" % (RED,RS,str(msg),RED,RS))
-#	sys.exit()
-
-#warnings.filterwarnings('ignore','.*divide by zero.*',RuntimeWarning)
-#warnings.filterwarnings('ignore','.*',UserWarning)
-#warnings.filterwarnings('ignore','.*invalid value encountered in log.*',RuntimeWarning)
-#warnings.filterwarnings('ignore','.*invalid value encountered in true_divide.*',RuntimeWarning)
-##warnings.filterwarnings('ignore','.*impossible result.*',UserWarning)
-
 from gaussfit.stats import Stats
 
 def Go(opts):
@@ -57,12 +37,19 @@ def Go(opts):
 	'''
 
 	if len(opts.setA) and len(opts.setB):
-		s = Stats(opts)
-
-	elif len(opts.setA):
-		SigTest(opts)
+		statparser = Stats(opts)
 	else:
 		logging.error("No input files to parse!")
+
+	if opts.plot:
+			plotter = StatPlotter(statparser)
+			logging.info("Generating plots...")
+			try:
+					import matplotlib.pyplot as plt
+					plotter.DoPlots(plt)
+					plt.show()
+			except ImportError as msg:
+					logging.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
 
 
 opts = Opts

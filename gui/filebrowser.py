@@ -34,7 +34,10 @@ class ChooseFiles(Frame):
 		Frame.__init__(self, master)
 		self.Go = Go
 		self.boolmap = {1:True, 0:False}
-		self.last_input_path = os.environ['HOME']
+		try:
+			self.last_input_path = os.environ['PWD']
+		except KeyError:
+			self.last_input_path = os.environ['HOME']
 		self.opts = opts
 		self.master.title("File Browser")
 		self.master.geometry('850x750+250-250')
@@ -141,8 +144,8 @@ class ChooseFiles(Frame):
 			
 	def SpawnInputDialogClick(self):
 		self.opts.in_files += filedialog.askopenfilename(title="Files to parse", multiple=True, \
-										 initialdir=self.last_input_path,\
-										 filetypes=[('Data files','*_data.txt'),('Text files','*.txt'),('All files', '*')])
+						initialdir=self.last_input_path,\
+						 filetypes=[('Data files','*_data.txt'),('Text files','*.txt'),('All files', '*')])
 		if len(self.opts.in_files):
 			self.last_input_path = os.path.split(self.opts.in_files[0])[0]
 			self.updateFileListBox()

@@ -34,7 +34,10 @@ class ChooseFiles(Frame):
 		Frame.__init__(self, master)
 		self.Go = Go
 		self.boolmap = {1:True, 0:False}
-		self.defaultdir = os.environ['HOME']
+		try:
+			self.defaultdir = os.environ['PWD']
+		except KeyError:
+			self.defaultdir = os.environ['HOME']
 		self.last_input_pathA = self.defaultdir
 		self.last_input_pathB = self.defaultdir
 		self.opts = opts
@@ -80,7 +83,6 @@ class ChooseFiles(Frame):
 		self.logger = logging.getLogger(None)
 		self.logger.addHandler(LoggingToGUI(self.Logging))
 		self.logger.info("Logging...")
-
 
 		self.updateFileListBox('A')
 		self.updateFileListBox('B')
@@ -165,14 +167,10 @@ class ChooseFiles(Frame):
 	def SpawnInputDialogBClick(self):
 		self.SpawnInputDialogClick('B')
 
-
 	def updateFileListBox(self,ab):
 		ab = ab.upper()
 		getattr(self, 'filelist'+ab).set(" ".join([x.replace(" ","_") for x in getattr(self.opts, 'set'+ab)]))
 
-	#def updateFileListBoxB(self):
-	#	self.filelistB.set(" ".join([x.replace(" ","_") for x in self.opts.setB]))
-			
 	def SpawnOutputDialogClick(self):
 		outdir = filedialog.askdirectory(title="Select Output File(s)", initialdir=self.opts.out_dir)
 		if os.path.exists(outdir):
@@ -189,12 +187,12 @@ class ChooseFiles(Frame):
 		self.plot = IntVar()
 		self.write = IntVar()
 		self.Check_plot = Checkbutton(self.OptionsFrame, text="Plot", \
-										 variable=self.plot, command=self.checkOptions)
+							 variable=self.plot, command=self.checkOptions)
 		self.Check_plot.grid(column=0,row=1,sticky=W)
 		createToolTip(self.Check_plot, "Show summary plots after parsing.")
 		
 		self.Check_write = Checkbutton(self.OptionsFrame, text="Write", \
-										  variable=self.write, command=self.checkOptions)
+							  variable=self.write, command=self.checkOptions)
 		self.Check_write.grid(column=0,row=2,sticky=W)
 		createToolTip(self.Check_write, "Write results to text files after parsing.")
 
@@ -240,39 +238,39 @@ class ChooseFiles(Frame):
 		self.EntryVcutoff.grid(column=0,row=1)
 		createToolTip(self.EntryVcutoff, "Check the values of d2J/dV2 between |vcutoff| and Vmin/Vmax for line-shape filtering. Set to -1 for Vmin/Vmax.")
 
-		Label(self.LeftOptionsFrame, text="Smoothing parameter:").grid(column=0,row=2)
-		self.Smoothingcutoff = Entry(self.LeftOptionsFrame, width=8)
-		self.Smoothingcutoff.bind("<Return>", self.checkOptions)
-		self.Smoothingcutoff.bind("<Leave>", self.checkOptions)
-		self.Smoothingcutoff.bind("<Enter>", self.checkOptions)
-		self.Smoothingcutoff.grid(column=0,row=3)
-		createToolTip(self.Smoothingcutoff, "The cutoff value for the residual squares (the difference between experimental data points and the fit). The default is 1e-12. Set to 0 to disable smoothing.")
+		#Label(self.LeftOptionsFrame, text="Smoothing parameter:").grid(column=0,row=2)
+		#self.Smoothingcutoff = Entry(self.LeftOptionsFrame, width=8)
+		#self.Smoothingcutoff.bind("<Return>", self.checkOptions)
+		#self.Smoothingcutoff.bind("<Leave>", self.checkOptions)
+		#self.Smoothingcutoff.bind("<Enter>", self.checkOptions)
+		#self.Smoothingcutoff.grid(column=0,row=3)
+		#createToolTip(self.Smoothingcutoff, "The cutoff value for the residual squares (the difference between experimental data points and the fit). The default is 1e-12. Set to 0 to disable smoothing.")
 		
-		Label(self.LeftOptionsFrame, text="Bins for J/R Histograms:").grid(column=0,row=6)
-		self.EntryJRBins = Entry(self.LeftOptionsFrame, width=8)
-		self.EntryJRBins.bind("<Return>", self.checkOptions)
-		self.EntryJRBins.bind("<Leave>", self.checkOptions)
-		self.EntryJRBins.bind("<Enter>", self.checkOptions)
-		self.EntryJRBins.grid(column=0,row=7)
-		createToolTip(self.EntryJRBins, "Set binning for histograms of J and R.")
+		#Label(self.LeftOptionsFrame, text="Bins for J/R Histograms:").grid(column=0,row=6)
+		#self.EntryJRBins = Entry(self.LeftOptionsFrame, width=8)
+		#self.EntryJRBins.bind("<Return>", self.checkOptions)
+		#self.EntryJRBins.bind("<Leave>", self.checkOptions)
+		#self.EntryJRBins.bind("<Enter>", self.checkOptions)
+		#self.EntryJRBins.grid(column=0,row=7)
+		#createToolTip(self.EntryJRBins, "Set binning for histograms of J and R.")
 		
-		Label(self.LeftOptionsFrame, text="Bins for G Histograms:").grid(column=0,row=8)
-		self.Entryhmbins = Entry(self.LeftOptionsFrame, width=8)
-		self.Entryhmbins.bind("<Return>", self.checkOptions)
-		self.Entryhmbins.bind("<Leave>", self.checkOptions)
-		self.Entryhmbins.bind("<Enter>", self.checkOptions)
-		self.Entryhmbins.grid(column=0,row=9)
-		createToolTip(self.Entryhmbins, "Set binning for conductance heatmap histograms.")
+		#Label(self.LeftOptionsFrame, text="Bins for G Histograms:").grid(column=0,row=8)
+		#self.Entryhmbins = Entry(self.LeftOptionsFrame, width=8)
+		#self.Entryhmbins.bind("<Return>", self.checkOptions)
+		#self.Entryhmbins.bind("<Leave>", self.checkOptions)
+		#self.Entryhmbins.bind("<Enter>", self.checkOptions)
+		#self.Entryhmbins.grid(column=0,row=9)
+		#createToolTip(self.Entryhmbins, "Set binning for conductance heatmap histograms.")
 
-	# checkGminmaxEntry call must come last
-		Label(self.LeftOptionsFrame, text="Y-scale for conductance:").grid(column=0,row=4)
-		self.EntryGminmax = Entry(self.LeftOptionsFrame, width=8)
-		self.EntryGminmax.bind("<Return>", self.checkGminmaxEntry)
-		self.EntryGminmax.bind("<Leave>", self.checkGminmaxEntry)
-		self.EntryGminmax.bind("<Enter>", self.checkGminmaxEntry)
-		self.EntryGminmax.grid(column=0,row=5)
-		createToolTip(self.EntryGminmax, "Set Ymin,Ymax for the conductance plot (lower-left of plot output).")
-		self.checkGminmaxEntry(None)
+		# checkGminmaxEntry call must come last
+		#Label(self.LeftOptionsFrame, text="Y-scale for conductance:").grid(column=0,row=4)
+		#self.EntryGminmax = Entry(self.LeftOptionsFrame, width=8)
+		#self.EntryGminmax.bind("<Return>", self.checkGminmaxEntry)
+		#self.EntryGminmax.bind("<Leave>", self.checkGminmaxEntry)
+		#self.EntryGminmax.bind("<Enter>", self.checkGminmaxEntry)
+		#self.EntryGminmax.grid(column=0,row=5)
+		#createToolTip(self.EntryGminmax, "Set Ymin,Ymax for the conductance plot (lower-left of plot output).")
+		#self.checkGminmaxEntry(None)
 
 
 
@@ -323,29 +321,29 @@ class ChooseFiles(Frame):
 		else:
 			self.EntryVcutoff.insert(0,"Vmax")
 
-		try:
-			self.opts.smooth = abs(float(self.Smoothingcutoff.get()))	 
-		except ValueError:
-			self.opts.smooth = 1e-12
+		#try:
+		#	self.opts.smooth = abs(float(self.Smoothingcutoff.get()))	 
+		#except ValueError:
+		#	self.opts.smooth = 1e-12
 
-		self.Smoothingcutoff.delete(0, END)
-		self.Smoothingcutoff.insert(0,self.opts.smooth)
+		#self.Smoothingcutoff.delete(0, END)
+		#self.Smoothingcutoff.insert(0,self.opts.smooth)
 
-		try:
-			self.opts.bins = abs(int(self.EntryJRBins.get()))
-		except ValueError:
-			self.opts.bins = 50
+		#try:
+		#	self.opts.bins = abs(int(self.EntryJRBins.get()))
+		#except ValueError:
+		#	self.opts.bins = 50
 
-		self.EntryJRBins.delete(0, END)
-		self.EntryJRBins.insert(0,self.opts.bins)
+		#self.EntryJRBins.delete(0, END)
+		#self.EntryJRBins.insert(0,self.opts.bins)
 
-		try:
-			self.opts.heatmapbins = abs(int(self.Entryhmbins.get()))
-		except ValueError:
-			self.opts.heatmapbins = 25
+		#try:
+		#	self.opts.heatmapbins = abs(int(self.Entryhmbins.get()))
+		#except ValueError:
+		#	self.opts.heatmapbins = 25
 
-		self.Entryhmbins.delete(0, END)
-		self.Entryhmbins.insert(0,self.opts.heatmapbins)
+		#self.Entryhmbins.delete(0, END)
+		#self.Entryhmbins.insert(0,self.opts.heatmapbins)
 	
 	
 
@@ -372,15 +370,15 @@ class ChooseFiles(Frame):
 		self.EntryColumns.delete(0, END)
 		self.EntryColumns.insert(0, ",".join(( str(self.opts.Xcol+1), str(self.opts.Ycol+1) )))
 
-	def checkGminmaxEntry(self, event):
-		self.checkOptions()
-		try:
-			x, y = self.EntryGminmax.get().split(",")
-			self.opts.mlow, self.opts.mhi = int(x), int(y)
-		except ValueError as msg:
-			pass
-		self.EntryGminmax.delete(0, END)
-		self.EntryGminmax.insert(0, ",".join( (str(self.opts.mlow), str(self.opts.mhi)) ))
+#	def checkGminmaxEntry(self, event):
+#		self.checkOptions()
+#		try:
+#			x, y = self.EntryGminmax.get().split(",")
+#			self.opts.mlow, self.opts.mhi = int(x), int(y)
+#		except ValueError as msg:
+#			pass
+#		self.EntryGminmax.delete(0, END)
+#		self.EntryGminmax.insert(0, ",".join( (str(self.opts.mlow), str(self.opts.mhi)) ))
 
 	def createOutputLabel(self):
 		ab=('A','B')

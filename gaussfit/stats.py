@@ -21,31 +21,31 @@ Description:
 '''
 
 
-#from gaussfit.Output import Writer,Plotter
-from gaussfit.StatArgs import Opts
+from gaussfit.Output import WriteStats
+#from gaussfit.StatArgs import Opts
 from gaussfit.Parser import Parse
-from gaussfit.Output import Writer
+#from gaussfit.Output import Writer
 
 import sys,os,logging,warnings,csv
 from gaussfit.colors import *
 
 try:
-	from scipy.optimize import curve_fit,OptimizeWarning
-	import scipy.interpolate 
+	#from scipy.optimize import curve_fit,OptimizeWarning
+	#import scipy.interpolate 
 	from scipy.stats import gmean,kstest,ttest_ind,ttest_rel,ttest_1samp
-	import scipy.misc 
+	#import scipy.misc 
 	import numpy as np
 	# SciPy throws a useless warning for noisy J/V traces
-	warnings.filterwarnings('ignore','.*Covariance of the parameters.*',OptimizeWarning)
+	#warnings.filterwarnings('ignore','.*Covariance of the parameters.*',OptimizeWarning)
 
 except ImportError as msg:
 	print("\n\t\t%s> > > Error importing numpy/scipy! %s%s%s < < <%s" % (RED,RS,str(msg),RED,RS))
 	sys.exit()
 
-warnings.filterwarnings('ignore','.*divide by zero.*',RuntimeWarning)
-warnings.filterwarnings('ignore','.*',UserWarning)
-warnings.filterwarnings('ignore','.*invalid value encountered in log.*',RuntimeWarning)
-warnings.filterwarnings('ignore','.*invalid value encountered in true_divide.*',RuntimeWarning)
+#warnings.filterwarnings('ignore','.*divide by zero.*',RuntimeWarning)
+#warnings.filterwarnings('ignore','.*',UserWarning)
+#warnings.filterwarnings('ignore','.*invalid value encountered in log.*',RuntimeWarning)
+#warnings.filterwarnings('ignore','.*invalid value encountered in true_divide.*',RuntimeWarning)
 #warnings.filterwarnings('ignore','.*impossible result.*',UserWarning)
 
 class Stats:
@@ -81,19 +81,19 @@ class Stats:
 		maxfev = opts.maxfev
 		opts.maxfev=1000
 		parser = Parse(opts)
-		parser.ReadFiles(pop_files)
-		for x in parser.X:
-			if x == 0:
-				continue
-			Pop[x] = {'J':{'mean':0,'std':0},'R':{'mean':0,'std':0}, 'FN':{'pos':{'mean':0,'std':0},'neg':{'mean':0,'std':0}}}
-			Pop[x]['J']['mean'] = parser.XY[x]['hist']['mean']
-			Pop[x]['J']['std'] = parser.XY[x]['hist']['std']
-			Pop[x]['R']['mean'] = parser.R[abs(x)]['hist']['mean']
-			Pop[x]['R']['std'] = parser.R[abs(x)]['hist']['std']
-			Pop[x]['FN']['neg']['mean'] = parser.FN['neg']['mean']
-			Pop[x]['FN']['neg']['std'] = parser.FN['neg']['std']
-			Pop[x]['FN']['pos']['mean'] = parser.FN['pos']['mean']
-			Pop[x]['FN']['pos']['std'] = parser.FN['pos']['std']
+		#parser.ReadFiles(pop_files)
+		#for x in parser.X:
+		#	if x == 0:
+		#		continue
+		#	Pop[x] = {'J':{'mean':0,'std':0},'R':{'mean':0,'std':0}, 'FN':{'pos':{'mean':0,'std':0},'neg':{'mean':0,'std':0}}}
+		#	Pop[x]['J']['mean'] = parser.XY[x]['hist']['mean']
+		#	Pop[x]['J']['std'] = parser.XY[x]['hist']['std']
+		#	Pop[x]['R']['mean'] = parser.R[abs(x)]['hist']['mean']
+		#	Pop[x]['R']['std'] = parser.R[abs(x)]['hist']['std']
+		#	Pop[x]['FN']['neg']['mean'] = parser.FN['neg']['mean']
+		#	Pop[x]['FN']['neg']['std'] = parser.FN['neg']['std']
+		#	Pop[x]['FN']['pos']['mean'] = parser.FN['pos']['mean']
+		#	Pop[x]['FN']['pos']['std'] = parser.FN['pos']['std']
 		for f in pop_files:
 			opts.maxfev=maxfev
 			parser = Parse(opts)
@@ -153,7 +153,9 @@ class Stats:
 			dataset[3].append(AlphaA)
 			dataset[4].append(AlphaB)
 
-		self.WriteGeneric(dataset, "Ttest"+key, ["Voltage", "P-value", "T-stat", "AlphaA", "AlphaB"])
+		if self.opts.write:
+			WriteStats(self.opts.out_dir, self.opts.outfile, dataset, \
+				"Ttest"+key, ["Voltage", "P-value", "T-stat", "AlphaA", "AlphaB"])
 		
 		p_vals = np.array(p_vals)
 		aA_vals = np.array(aA_vals)
@@ -180,30 +182,30 @@ class Stats:
 		print("P-Value Vtrans(–): %s%s%s" % (c,str(p_neg),RS))
 		self.fnstats = {"p_pos":p_pos, "p_neg":p_neg, "t_pos":t_pos, "t_neg":t_neg}
 
-	def WriteGeneric(self, dataset, bfn, labels=[]):
-		'''Output for a generic set of data expecting an n-dimensional array'''
-
-		if len(labels) and len(labels) != len(dataset):
-			logging.error("Length of column labels does not match number of data columns for WriteGeneric!")
-			return
-
-		lencola = len(dataset[0])
-		for d in dataset:
-			if len(d) != lencola:
-				logging.error("Length of columns differs for WriteGeneric!")
-				return
-
-		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+bfn+".txt")
-		with open(fn, 'w', newline='') as csvfile:
-			writer = csv.writer(csvfile, dialect='JV')
-			if len(labels):
-				writer.writerow(labels)
-
-			for n in range(0, lencola):
-				row = []
-				for i in range(0,len(dataset)):
-					row.append(dataset[i][n])
-				writer.writerow(row)
+#	def WriteGeneric(self, dataset, bfn, labels=[]):
+#		'''Output for a generic set of data expecting an n-dimensional array'''
+#
+#		if len(labels) and len(labels) != len(dataset):
+#			logging.error("Length of column labels does not match number of data columns for WriteGeneric!")
+#			return
+#
+#		lencola = len(dataset[0])
+#		for d in dataset:
+#			if len(d) != lencola:
+#				logging.error("Length of columns differs for WriteGeneric!")
+#				return
+#
+#		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+bfn+".txt")
+#		with open(fn, 'w', newline='') as csvfile:
+#			writer = csv.writer(csvfile, dialect='JV')
+#			if len(labels):
+#				writer.writerow(labels)
+#
+#			for n in range(0, lencola):
+#				row = []
+#				for i in range(0,len(dataset)):
+#					row.append(dataset[i][n])
+#				writer.writerow(row)
 
 	def Cronbach(self, muA):
 		'''
