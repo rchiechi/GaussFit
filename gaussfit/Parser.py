@@ -69,7 +69,8 @@ class Parse():
 		try:
 			float(f)
 			return True
-		except ValueError:
+		except ValueError as msg:
+			logging.debug("%s: %s" %(f, str(msg)) )
 			return False
 	def tofloat(self, f):
 		try:
@@ -77,7 +78,13 @@ class Parse():
 		except ValueError:
 			f = np.NAN
 		return f
-		
+	def cleanrow(self, inrow):
+		# Hack to get rid of emtpy columns
+		return inrow
+		outrow = []
+		for i in inrow:
+			outrow.append(list(filter(None,i)))
+		return outrow
 	def ReadFiles(self, fns):
 		''' Walk through input files and parse
 		them into attributes '''
@@ -93,18 +100,24 @@ class Parse():
 				with open(fn, 'rt', newline='') as csvfile:
 					if self.opts.Ycol > 0:
 						for row in csv.reader(csvfile, dialect='JV'):
+							# Hack to get rid of emtpy columns
+							row = list(filter(None,row))
 							rows.append(row)
 							if False in [self.isfloat(n) for n in row]:
+								logging.debug("|%s is not all floats!" % "|".join(row))
 								continue
 							#print('row %s Xcol %s Ycol %s' % (row, self.opts.Xcol, self.opts.Ycol))
 							rawx.append(row[self.opts.Xcol])
 							rawy.append(row[self.opts.Ycol])
 					else:
+						logging.debug("Grabbing all Y-columns")
 						# To catch all Y-vals and keep X in order,
 						# we have to copy the whole file to memory
 						# and then loop over it one column at a time
 						rawrows = []
 						for row in csv.reader(csvfile, dialect='JV'):
+							# Hack to get rid of emtpy columns
+							row = list(filter(None,row))
 							rawrows.append(row)
 						for n in range(0, len(rawrows[0])):
 							if n == self.opts.Xcol:
