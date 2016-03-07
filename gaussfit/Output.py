@@ -408,7 +408,7 @@ class Plotter():
 		self.PlotHist(ax2)
 		self.PlotVtrans(ax4)
 		self.PlotG(ax3)
-		fig.savefig(self.opts.outfile+"_fig.png", format="png")
+		fig.savefig(os.path.join(self.opts.out_dir,self.opts.outfile+"_fig.png"), format="png")
 
 class StatPlotter:
 	
