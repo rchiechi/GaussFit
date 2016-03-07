@@ -513,7 +513,7 @@ class Parse():
 		
 		if not Ys or not Ym:
 			logging.error("Failed to find G-mean and G-std!")
-
+			print(Ys,Ym)
 		# Initital conditions for Gauss-fit
 		p0 = [1., Ym, Ys]
 		
