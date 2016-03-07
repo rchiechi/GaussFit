@@ -265,7 +265,11 @@ class Writer():
 		absdir = os.path.dirname(os.path.abspath(__file__))
 		tdir = os.path.join(absdir,'../templates/')
 		gpintp = os.path.join(tdir,gpinbn+'.gpin')
-		nsub = str(open(gpintp,'rt').read()).count('%s')
+		try:
+			nsub = str(open(gpintp,'rt').read()).count('%s')
+		except FileNotFoundError as msg:
+			print("Could not read template file %s" % gpintp)
+			return
 		ssub = []
 		for i in range(0,nsub):
 			ssub.append(self.opts.outfile)
