@@ -40,6 +40,8 @@ warnings.filterwarnings('ignore','.*divide by zero.*',RuntimeWarning)
 warnings.filterwarnings('ignore','.*',UserWarning)
 warnings.filterwarnings('ignore','.*invalid value encountered in log.*',RuntimeWarning)
 warnings.filterwarnings('ignore','.*invalid value encountered in true_divide.*',RuntimeWarning)
+#warnings.filterwarnings('error','.*Mean of empty slice.*', RuntimeWarning)
+#warnings.filterwarnings('error','.*Degrees of freedom <= 0 for slice.*', RuntimeWarning)
 #warnings.filterwarnings('ignore','.*impossible result.*',UserWarning)
 
 class Parse():
@@ -511,9 +513,10 @@ class Parse():
 		# Somehow this produces negative sigmas
 		Ys = abs(Y.std())
 		
-		if not Ys or not Ym:
-			logging.error("Failed to find G-mean and G-std!")
-			print(Ys,Ym)
+		# This will trigger if the mean happens to be zero
+		#if not Ys or not Ym:
+		#	logging.error("Failed to find G-mean and G-std!")
+		#	print(Ys,Ym)
 		# Initital conditions for Gauss-fit
 		p0 = [1., Ym, Ys]
 		
@@ -525,7 +528,6 @@ class Parse():
 			else:
 				coeff, covar = curve_fit(self.gauss, bin_centers, freq, p0=p0, maxfev=self.opts.maxfev)
 				hist_fit = self.gauss(bin_centers, *coeff)
-					
 		except RuntimeError as msg:
 			if self.opts.maxfev > 10:
 				logging.warning("|%s| Fit did not converge (%s)", label, str(msg), exc_info=False)

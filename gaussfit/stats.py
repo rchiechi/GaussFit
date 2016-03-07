@@ -35,13 +35,15 @@ try:
 	from scipy.stats import gmean,kstest,ttest_ind,ttest_rel,ttest_1samp
 	#import scipy.misc 
 	import numpy as np
+	np.seterr(invalid='raise')
 	# SciPy throws a useless warning for noisy J/V traces
 	#warnings.filterwarnings('ignore','.*Covariance of the parameters.*',OptimizeWarning)
 
 except ImportError as msg:
 	print("\n\t\t%s> > > Error importing numpy/scipy! %s%s%s < < <%s" % (RED,RS,str(msg),RED,RS))
 	sys.exit()
-
+#warnings.filterwarnings('error','.*Mean of empty slice.*', RuntimeWarning)
+#warnings.filterwarnings('error','.*Degrees of freedom <= 0 for slice.*', RuntimeWarning)
 #warnings.filterwarnings('ignore','.*divide by zero.*',RuntimeWarning)
 #warnings.filterwarnings('ignore','.*',UserWarning)
 #warnings.filterwarnings('ignore','.*invalid value encountered in log.*',RuntimeWarning)
@@ -61,13 +63,13 @@ class Stats:
 		self.fnstats = {}
 		logging.info("Gathering Statistics")
 
+		
 		self.SetA, self.PopA = self.__getsetpop(self.opts, self.opts.setA)
 
-		if not len(self.opts.setB):
-			return
+		#if not len(self.opts.setB):
+		#	return
 
 		self.SetB, self.PopB = self.__getsetpop(self.opts, self.opts.setB)
-			
 		if self.SetA.keys()  != self.SetB.keys():
 			logging.error("Are you trying to compare two datasets with different voltage steps?")
 			sys.exit()
@@ -99,7 +101,11 @@ class Stats:
 		for f in pop_files:
 			opts.maxfev=maxfev
 			parser = Parse(opts)
-			parser.ReadFiles([f])
+			try:
+				parser.ReadFiles([f])
+			except FloatingPointError as msg:
+				logging.warning("Skipping %s because of %s." % (f, str(msg)))
+				continue
 			for x in parser.X:
 				if x == 0:
 					continue
@@ -192,11 +198,14 @@ class Stats:
 		'''
 		muI = np.asarray(muA)
 		K = len(muI)
-		tscores = muI.sum(axis=0)
-		muvars = muI.var(axis=1,ddof=1)
 		try:
+			tscores = muI.sum(axis=0)
+			muvars = muI.var(axis=1,ddof=1)
 			Alpha =  K/(K-1.) * (1 - muvars.sum() / tscores.var(ddof=1))
 		except ZeroDivisionError:
 			logging.error("Division by zero error computing Alpha!")
-			Alpha = np.nan
+			Alpha = np.inf
+		except ValueError as msg:
+			logging.error("%s while computing Cronbach's Alpha." % str(msg))
+			Alpha = np.inf
 		return Alpha
