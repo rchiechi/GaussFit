@@ -72,6 +72,13 @@ class Stats:
 		self.SetB, self.PopB = self.__getsetpop(self.opts, self.opts.setB)
 		if self.SetA.keys()  != self.SetB.keys():
 			logging.error("Are you trying to compare two datasets with different voltage steps?")
+			print("Set A:")
+			print("|",end='')
+			for k in self.SetA.keys(): print(k, end='|')
+			print("\nSet B:")
+			print("|",end='')
+			for k in self.SetB.keys(): print(k, end='|')
+			print("\n")
 			sys.exit()
 		self.Ttest('R')
 		self.Ttest('J')
@@ -98,6 +105,8 @@ class Stats:
 		#	Pop[x]['FN']['neg']['std'] = parser.FN['neg']['std']
 		#	Pop[x]['FN']['pos']['mean'] = parser.FN['pos']['mean']
 		#	Pop[x]['FN']['pos']['std'] = parser.FN['pos']['std']
+		traces = 0
+		trace_error = 90
 		for f in pop_files:
 			opts.maxfev=maxfev
 			parser = Parse(opts)
@@ -122,6 +131,15 @@ class Stats:
 				Set[x]['FN']['pos']['std'].append(parser.FN['pos']['Gstd'])
 				Set[x]['FN']['neg']['mean'].append(parser.FN['neg']['Gmean'])
 				Set[x]['FN']['neg']['std'].append(parser.FN['neg']['Gstd'])
+				#print(parser.R[abs(x)]['r'])
+				#if traces == 0:
+				#	traces = len(parser.R[abs(x)]['r'])
+				#elif len(parser.R[abs(x)]['r']) != traces:
+				#	trace_error = (x, traces, len(parser.R[abs(x)]['r']))
+			#		print(trace_error)
+			#if trace_error:
+			#	logging.warning("%s has a different numbers of traces (%s vs %s)." % trace_error)
+			#	traces = 0
 		return Set, Pop	
 
 	def Ttest(self, key):
@@ -142,12 +160,28 @@ class Stats:
 			#if p < 0.001: c = GREEN
 			#else: c = RED
 			#print("P-value at %s%s V%s: %s%s%s" % (TEAL,str(x),RS,c,str(p),RS) )
-		
-			AlphaA = self.Cronbach( self.SetA[x][key]['Y'] )
-			AlphaB = self.Cronbach( self.SetB[x][key]['Y'] )
+			#print(self.SetA[x][key]['Y'])
 			
-			aA_vals.append(AlphaA)
-			aB_vals.append(AlphaB)
+			ssetsA = self.Sortsets(self.SetA[x][key]['Y'])
+			ssetsB = self.Sortsets(self.SetB[x][key]['Y'])
+			AlphaA = []
+			AlphaB = []
+			for k in ssetsA:
+				A = self.Cronbach(ssetsA[k])
+				aA_vals.append(A)
+				AlphaA.append(A)
+			for k in ssetsB:
+				A = self.Cronbach(ssetsB[k])
+				aB_vals.append(A)
+				AlphaB.append(A)
+
+			AlphaA = np.array(AlphaA)
+			AlphaB = np.array(AlphaB)
+			#AlphaA = self.Cronbach( self.SetA[x][key]['Y'] )
+			#AlphaB = self.Cronbach( self.SetB[x][key]['Y'] )
+			
+			#aA_vals.append(AlphaA)
+			#aB_vals.append(AlphaB)
 
 			#if AlphaA > 0.7: c = GREEN
 			#else: c = RED
@@ -156,11 +190,15 @@ class Stats:
 			#else: c = RED
 			#print("α SetB at %s%s V%s: %s%s%s" % (TEAL,str(x),RS,c,str(AlphaB),RS) )
 
+
 			dataset[0].append(x)
 			dataset[1].append(p)
 			dataset[2].append(t)
-			dataset[3].append(AlphaA)
-			dataset[4].append(AlphaB)
+			dataset[3].append(AlphaA[AlphaA > 0].mean())
+			dataset[4].append(AlphaB[AlphaB > 0].mean())
+			
+			#dataset[3].append(AlphaA)
+			#dataset[4].append(AlphaB)
 
 		if self.opts.write:
 			logging.info("Writing stats to %s" % self.opts.outfile+"_Ttest"+key+".txt")
@@ -170,10 +208,17 @@ class Stats:
 		p_vals = np.array(p_vals)
 		aA_vals = np.array(aA_vals)
 		aB_vals = np.array(aB_vals)
-
-		print("p-value Mean: %s" % p_vals.mean())
-		print("α  SetA Mean: %s" % aA_vals[aA_vals > 0].mean())
-		print("α  SetB Mean: %s" % aB_vals[aB_vals > 0].mean())
+		
+		if p_vals.mean() < 0.001: c = GREEN
+		else: c = RED
+		print("p-value Mean: %s%s%s" % (GREEN, p_vals.mean(), RS))
+		if aA_vals[aA_vals > 0].mean() > 0.7: c = GREEN
+		else: c = RED
+		print("α  SetA Mean: %s%s%s" % (c,aA_vals[aA_vals > 0].mean(),RS))
+		if aB_vals[aB_vals > 0].mean() > 0.7: c = GREEN
+		else: c = RED
+		print("α  SetB Mean: %s%s%s" % (c,aB_vals[aB_vals > 0].mean(),RS))
+		
 		self.dataset[key] = dataset
 
 	def TtestFN(self):
@@ -192,6 +237,15 @@ class Stats:
 		print("P-Value Vtrans(–): %s%s%s" % (c,str(p_neg),RS))
 		self.fnstats = {"p_pos":p_pos, "p_neg":p_neg, "t_pos":t_pos, "t_neg":t_neg}
 
+	def Sortsets(self, traces):
+		ssets = {}
+		for t in traces:
+			if len(t) in ssets:
+				ssets[len(t)].append(t)
+			else:
+				ssets[len(t)] = [t]
+		return ssets
+
 	def Cronbach(self, muA):
 		'''
 		Compute Cronbach's Alpha
@@ -206,6 +260,6 @@ class Stats:
 			logging.error("Division by zero error computing Alpha!")
 			Alpha = np.inf
 		except ValueError as msg:
-			logging.error("%s while computing Cronbach's Alpha." % str(msg))
+			logging.debug("%s while computing Cronbach's Alpha." % str(msg))
 			Alpha = np.inf
 		return Alpha
