@@ -216,9 +216,9 @@ class Stats:
 			dataset[1].append(p)
 			dataset[2].append(t)
 			dataset[3].append(Yp)
-			dataset[3].append(Yt)
-			dataset[4].append(meanAlphaA)
-			dataset[5].append(meanAlphaB)
+			dataset[4].append(Yt)
+			dataset[5].append(meanAlphaA)
+			dataset[6].append(meanAlphaB)
 			
 			#dataset[3].append(AlphaA)
 			#dataset[4].append(AlphaB)

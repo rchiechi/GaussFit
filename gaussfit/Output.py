@@ -239,13 +239,13 @@ class Writer():
 		'''Output for a generic set of data expecting an n-dimensional array'''
 
 		if len(labels) and len(labels) != len(dataset):
-			logging.error("Length of column labels does not match number of data columns for WriteGeneric!")
+			print("ERROR: Length of column labels does not match number of data columns for WriteGeneric!")
 			return
 
 		lencola = len(dataset[0])
 		for d in dataset:
 			if len(d) != lencola:
-				logging.error("Length of columns differs for WriteGeneric!")
+				print("ERROR: Length of columns differs for WriteGeneric!")
 				return
 
 		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+bfn+".txt")
@@ -455,13 +455,13 @@ def WriteStats(out_dir, outfile, dataset, bfn, labels=[]):
 	'''Output for a generic set of data expecting an n-dimensional array'''
 
 	if len(labels) and len(labels) != len(dataset):
-		logging.error("Length of column labels does not match number of data columns for WriteGeneric!")
+		print("ERROR: Length of column labels does not match number of data columns for WriteGeneric!")
 		return
 
 	lencola = len(dataset[0])
 	for d in dataset:
 		if len(d) != lencola:
-			logging.error("Length of columns differs for WriteGeneric!")
+			print("ERROR: Length of columns differs for WriteGeneric!")
 			return
 	fn = os.path.join(out_dir,outfile+"_"+bfn+".txt")
 	with open(fn, 'w', newline='') as csvfile:
