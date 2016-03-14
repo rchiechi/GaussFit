@@ -430,7 +430,7 @@ class StatPlotter:
 		ymax = ymax + ymax*0.1
 		ymin = ymin - ymin*0.1
 		ax.set_yscale('log')
-		ax.set_title("P-values for %s" % key)
+		ax.set_title("P-values for %s (Gmean)" % key)
 		ax.set_xlabel("Potenial (V)")
 		ax.set_ylabel('p-value')
 		

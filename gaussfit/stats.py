@@ -158,10 +158,7 @@ class Stats:
 			# Welch's T-test
 			t,p= ttest_ind(self.SetA[x][key]['mean'], self.SetB[x][key]['mean'], equal_var=False)
 			p_vals.append(p)
-			
 
-			#print(ttest_ind(self.SetA[x][key]['Y'], self.SetB[x][key]['Y'], equal_var=False))
-			#print(ttest_ind(self.Sortsets(self.SetA[x][key]['Y']),self.Sortsets(self.SetB[x][key]['Y']),equal_var=False))
 			#if p < 0.001: c = GREEN
 			#else: c = RED
 			#print("P-value at %s%s V%s: %s%s%s" % (TEAL,str(x),RS,c,str(p),RS) )
@@ -181,27 +178,32 @@ class Stats:
 				AlphaB.append(A)
 			AlphaA = np.array(AlphaA)
 			AlphaB = np.array(AlphaB)
-			Yab= [[],[]]
+			ya,yb = np.array([]),np.array([])
 			for y in self.SetA[x][key]['Y']:
-				Yab[0]+=list(y)
+				ya = np.append(ya,y)
 			for y in self.SetB[x][key]['Y']:
-				Yab[1]+=list(y)
-			Yt,Yp = ttest_ind(Yab[0],Yab[1], equal_var=False)
+				yb = np.append(yb,y)
+			if not self.opts.nobs:
+				Yab = [ya,yb]
+			else:
+				Yab = [[],[]]
+				for n in np.array_split(ya,self.opts.nobs):
+					Yab[0].append(n.mean())
+				for n in np.array_split(yb,self.opts.nobs):
+					Yab[1].append(n.mean())
+			Yt,Yp = ttest_ind(np.asarray(Yab[0]),np.asarray(Yab[1]), equal_var=False)
 			Yp_vals.append(Yp)
 			
 			#AlphaA = self.Cronbach( self.SetA[x][key]['Y'] )
 			#AlphaB = self.Cronbach( self.SetB[x][key]['Y'] )
-			
 			#aA_vals.append(AlphaA)
 			#aB_vals.append(AlphaB)
-
 			#if AlphaA > 0.7: c = GREEN
 			#else: c = RED
 			#print("α SetA at %s%s V%s: %s%s%s" % (TEAL,str(x),RS,c,str(AlphaA),RS) )
 			#if AlphaB > 0.7: c = GREEN
 			#else: c = RED
 			#print("α SetB at %s%s V%s: %s%s%s" % (TEAL,str(x),RS,c,str(AlphaB),RS) )
-
 
 			try:
 				meanAlphaA = AlphaA[AlphaA > 0].mean()
@@ -219,9 +221,6 @@ class Stats:
 			dataset[4].append(Yt)
 			dataset[5].append(meanAlphaA)
 			dataset[6].append(meanAlphaB)
-			
-			#dataset[3].append(AlphaA)
-			#dataset[4].append(AlphaB)
 
 		if self.opts.write:
 			logging.info("Writing stats to %s" % self.opts.outfile+"_Ttest"+key+".txt")

@@ -238,6 +238,15 @@ class ChooseFiles(Frame):
 		self.EntryVcutoff.grid(column=0,row=1)
 		createToolTip(self.EntryVcutoff, "Check the values of d2J/dV2 between |vcutoff| and Vmin/Vmax for line-shape filtering. Set to -1 for Vmin/Vmax.")
 
+		Label(self.LeftOptionsFrame, text="N for p-test of J:").grid(column=0,row=2)
+		self.EntryNobs = Entry(self.LeftOptionsFrame, width=8)
+		self.EntryNobs.bind("<Return>", self.checkOptions)
+		self.EntryNobs.bind("<Leave>", self.checkOptions)
+		self.EntryNobs.bind("<Enter>", self.checkOptions)
+		self.EntryNobs.grid(column=0,row=3)
+		createToolTip(self.EntryNobs, "Compute p-values for J (not Gmean!) using this number of observations.")
+
+
 		#Label(self.LeftOptionsFrame, text="Smoothing parameter:").grid(column=0,row=2)
 		#self.Smoothingcutoff = Entry(self.LeftOptionsFrame, width=8)
 		#self.Smoothingcutoff.bind("<Return>", self.checkOptions)
@@ -294,7 +303,6 @@ class ChooseFiles(Frame):
 		self.opts.nomin = self.boolmap[self.nomin.get()]
 		self.opts.logr = self.boolmap[self.logr.get()]
 		self.opts.lorenzian = self.boolmap[self.lorenzian.get()]
-		
 		if not self.opts.write:
 			self.opts.plot = True
 			self.plot.set(1)
@@ -321,6 +329,14 @@ class ChooseFiles(Frame):
 		else:
 			self.EntryVcutoff.insert(0,"Vmax")
 
+		try:
+			nobs = int(self.EntryNobs.get())
+		except ValueError:
+			nobs = -1
+		if nobs > 0:
+			self.opts.nobs = nobs
+		self.EntryNobs.delete(0,END)
+		self.EntryNobs.insert(0,self.opts.nobs)
 		#try:
 		#	self.opts.smooth = abs(float(self.Smoothingcutoff.get()))	 
 		#except ValueError:
