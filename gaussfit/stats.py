@@ -147,16 +147,21 @@ class Stats:
 		logging.info("Performing independent T-test on %s" % key)
 		logging.info("Gathering mean %s-values" % key)
 		
-		dataset = ([],[],[],[],[])
+		dataset = ([],[],[],[],[],[],[])
 		
 		p_vals = []
+		Yp_vals = []
 		aA_vals = []
 		aB_vals = []
 
 		for x in self.SetA:
+			# Welch's T-test
 			t,p= ttest_ind(self.SetA[x][key]['mean'], self.SetB[x][key]['mean'], equal_var=False)
 			p_vals.append(p)
 			
+
+			#print(ttest_ind(self.SetA[x][key]['Y'], self.SetB[x][key]['Y'], equal_var=False))
+			#print(ttest_ind(self.Sortsets(self.SetA[x][key]['Y']),self.Sortsets(self.SetB[x][key]['Y']),equal_var=False))
 			#if p < 0.001: c = GREEN
 			#else: c = RED
 			#print("P-value at %s%s V%s: %s%s%s" % (TEAL,str(x),RS,c,str(p),RS) )
@@ -174,9 +179,16 @@ class Stats:
 				A = self.Cronbach(ssetsB[k])
 				aB_vals.append(A)
 				AlphaB.append(A)
-
 			AlphaA = np.array(AlphaA)
 			AlphaB = np.array(AlphaB)
+			Yab= [[],[]]
+			for y in self.SetA[x][key]['Y']:
+				Yab[0]+=list(y)
+			for y in self.SetB[x][key]['Y']:
+				Yab[1]+=list(y)
+			Yt,Yp = ttest_ind(Yab[0],Yab[1], equal_var=False)
+			Yp_vals.append(Yp)
+			
 			#AlphaA = self.Cronbach( self.SetA[x][key]['Y'] )
 			#AlphaB = self.Cronbach( self.SetB[x][key]['Y'] )
 			
@@ -191,11 +203,22 @@ class Stats:
 			#print("α SetB at %s%s V%s: %s%s%s" % (TEAL,str(x),RS,c,str(AlphaB),RS) )
 
 
+			try:
+				meanAlphaA = AlphaA[AlphaA > 0].mean()
+			except FloatingPointError:
+				meanAlphaA = np.inf
+			try:
+				meanAlphaB = AlphaB[AlphaB > 0].mean()
+			except FloatingPointError:
+				meanAlphaB = np.inf
+
 			dataset[0].append(x)
 			dataset[1].append(p)
 			dataset[2].append(t)
-			dataset[3].append(AlphaA[AlphaA > 0].mean())
-			dataset[4].append(AlphaB[AlphaB > 0].mean())
+			dataset[3].append(Yp)
+			dataset[3].append(Yt)
+			dataset[4].append(meanAlphaA)
+			dataset[5].append(meanAlphaB)
 			
 			#dataset[3].append(AlphaA)
 			#dataset[4].append(AlphaB)
@@ -203,7 +226,7 @@ class Stats:
 		if self.opts.write:
 			logging.info("Writing stats to %s" % self.opts.outfile+"_Ttest"+key+".txt")
 			WriteStats(self.opts.out_dir, self.opts.outfile, dataset, \
-				"Ttest"+key, ["Voltage", "P-value", "T-stat", "AlphaA", "AlphaB"])
+				"Ttest"+key, ["Voltage", "P-value (Gmean)", "T-stat (Gmean)", "P-value (J)","T-stat (J)", "AlphaA", "AlphaB"])
 		
 		p_vals = np.array(p_vals)
 		aA_vals = np.array(aA_vals)
