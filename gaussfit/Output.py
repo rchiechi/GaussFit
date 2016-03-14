@@ -417,7 +417,7 @@ class StatPlotter:
 		self.dataset = statparser.dataset
 		self.cutoff = 0.01
 
-	def PlotData(self, key, ax, sym, **kw):
+	def PlotGmeanData(self, key, ax, sym, **kw):
 		
 		xmin = np.asarray(self.dataset[key][0]).min() 
 		xmax = np.asarray(self.dataset[key][0]).max() 
@@ -439,16 +439,44 @@ class StatPlotter:
 
 		self.PlotCutoff(xmin, xmax, ax)
 
+	def PlotJData(self, key, ax, sym, **kw):
+		
+		xmin = np.asarray(self.dataset[key][0]).min() 
+		xmax = np.asarray(self.dataset[key][0]).max() 
+		ymin = np.asarray(self.dataset[key][3]).min() 
+		ymax = np.asarray(self.dataset[key][3]).max() 
+		if ymax < self.cutoff:
+			ymax = self.cutoff
+		if ymin > self.cutoff:
+			ymin = self.cutoff
+		ymax = ymax + ymax*0.1
+		ymin = ymin - ymin*0.1
+		ax.set_yscale('log')
+		ax.set_title("P-values for %s (mean using N)" % key)
+		ax.set_xlabel("Potenial (V)")
+		ax.set_ylabel('p-value')
+		
+		ax.plot(self.dataset[key][0],self.dataset[key][3], sym, **kw)
+		ax.axis([xmin,xmax,ymin,ymax])
+
+		self.PlotCutoff(xmin, xmax, ax)
+
 	def PlotCutoff(self, xmin, xmax,  ax):
 		X = np.linspace(xmin,xmax)
 		ax.plot(X, [ self.cutoff for x in X],  '-', lw='0.5', color='c')
 
 	def DoPlots(self, plt):
 		fig = plt.figure(figsize=(10,5))
-		ax1 = fig.add_axes([0.08, 0.1, 0.4, 0.8])
-		ax2 = fig.add_axes([0.56, 0.1, 0.4, 0.8])
-		self.PlotData('J',ax1,'.',lw=1.25, color='b')
-		self.PlotData('R',ax2,'.',lw=1.25, color='b')
+		#ax1 = fig.add_axes([0.08, 0.1, 0.4, 0.8])
+		#ax2 = fig.add_axes([0.56, 0.1, 0.4, 0.8])
+		ax1 = fig.add_axes([0.06, 0.55, 0.4, 0.35])
+		ax2 = fig.add_axes([0.56, 0.55, 0.4, 0.35])
+		ax3 = fig.add_axes([0.06, 0.05, 0.4, 0.35])
+		ax4 = fig.add_axes([0.56, 0.05, 0.4, 0.35])
+		self.PlotGmeanData('J',ax1,'.',lw=1.25, color='b')
+		self.PlotGmeanData('R',ax2,'.',lw=1.25, color='b')
+		self.PlotJData('J',ax3,'.',lw=1.25, color='b')
+		self.PlotJData('R',ax4,'.',lw=1.25, color='b')
 		fig.savefig(self.opts.outfile+"_statfig.png", format="png")
 
 def WriteStats(out_dir, outfile, dataset, bfn, labels=[]):
