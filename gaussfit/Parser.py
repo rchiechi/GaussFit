@@ -20,7 +20,7 @@ Description:
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-import sys,os,logging,warnings,csv
+import sys,os,logging,warnings,csv,threading
 from gaussfit.colors import *
 
 try:
@@ -53,7 +53,7 @@ class Parse():
 	operations: Gaussian fits, F-N calculations, Rectification,
 	Vtrans, and dJ/DV.
 	'''
-	def __init__(self,opts):
+	def __init__(self,opts,lock=None):
 		self.opts = opts
 		self.parsed = {}
 		self.XY ={}
@@ -66,6 +66,10 @@ class Parse():
 		self.filtered = []
 		self.R = {}
 		self.traces = {}
+		if lock:
+			self.lock = lock
+		else:
+			self.lock = threading.RLock()
 	def isfloat(self,f):
 		try:
 			float(f)
@@ -536,11 +540,13 @@ class Parse():
 		
 		bin_centers = (bins[:-1] + bins[1:])/2
 		try:
-			if self.opts.lorenzian:
-				coeff, covar = curve_fit(self.lorenz, bin_centers, freq, p0=p0, maxfev=self.opts.maxfev)
-				hist_fit = self.lorenz(bin_centers, *coeff)
-			else:
-				coeff, covar = curve_fit(self.gauss, bin_centers, freq, p0=p0, maxfev=self.opts.maxfev)
+			with self.lock:
+				if self.opts.lorenzian:
+					coeff, covar = curve_fit(self.lorenz, bin_centers, freq, p0=p0, maxfev=self.opts.maxfev)
+					#hist_fit = self.lorenz(bin_centers, *coeff)
+				else:
+					coeff, covar = curve_fit(self.gauss, bin_centers, freq, p0=p0, maxfev=self.opts.maxfev)
+					#hist_fit = self.gauss(bin_centers, *coeff)
 				hist_fit = self.gauss(bin_centers, *coeff)
 		except RuntimeError as msg:
 			if self.opts.maxfev > 10:

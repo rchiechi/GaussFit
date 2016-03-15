@@ -26,7 +26,7 @@ from gaussfit.Output import Writer,WriteStats
 from gaussfit.Parser import Parse
 #from gaussfit.Output import Writer
 
-import sys,os,logging,warnings,csv
+import sys,os,logging,warnings,csv,datetime,threading,time
 from gaussfit.colors import *
 
 try:
@@ -50,6 +50,44 @@ except ImportError as msg:
 #warnings.filterwarnings('ignore','.*invalid value encountered in true_divide.*',RuntimeWarning)
 #warnings.filterwarnings('ignore','.*impossible result.*',UserWarning)
 
+class ParserThread(threading.Thread):
+
+	def __init__(self,alive,lock,opts,files,Set,Pop):
+		threading.Thread.__init__(self)
+		self.alive = alive
+		self.files = files
+		self.Set, self.Pop = Set,Pop
+		self.lock = lock
+		self.parser = Parse(opts,self.lock)
+	def run(self):
+		try:
+			self.parser.ReadFiles([self.files])
+		except FloatingPointError as msg:
+			logging.warning("Skipping %s because of %s." % (f, str(msg)))
+			return False
+		#except Exception as msg:
+		#	logging.error("Parser thread died: %s" % str(msg))
+		for x in self.parser.X:
+			if not self.alive.isSet():
+				break
+			if x == 0:
+				continue
+			with self.lock:
+				if x not in self.Set:
+					self.Set[x] = {'J':{'mean':[],'std':[], 'Y':[]},'R':{'mean':[],'std':[], 'Y':[]}, \
+							'FN':{'pos':{'mean':[],'std':[]},'neg':{'mean':[],'std':[]}}}
+				self.Set[x]['J']['mean'].append(self.parser.XY[x]['hist']['Gmean'])
+				self.Set[x]['J']['std'].append(self.parser.XY[x]['hist']['Gstd'])
+				self.Set[x]['J']['Y'].append(self.parser.XY[x]['LogY'])
+				self.Set[x]['R']['mean'].append(self.parser.R[abs(x)]['hist']['Gmean'])
+				self.Set[x]['R']['std'].append(self.parser.R[abs(x)]['hist']['Gstd'])
+				self.Set[x]['R']['Y'].append(self.parser.R[abs(x)]['r'])
+				self.Set[x]['FN']['pos']['mean'].append(self.parser.FN['pos']['Gmean'])
+				self.Set[x]['FN']['pos']['std'].append(self.parser.FN['pos']['Gstd'])
+				self.Set[x]['FN']['neg']['mean'].append(self.parser.FN['neg']['Gmean'])
+				self.Set[x]['FN']['neg']['std'].append(self.parser.FN['neg']['Gstd'])
+		return True
+
 class Stats:
 
 	def __init__(self,opts):
@@ -59,16 +97,16 @@ class Stats:
 		self.SetB = []
 		self.PopA = []
 		self.PopB = []
+		self.autonobs = {}
 		self.dataset = {}
 		self.fnstats = {}
 		logging.info("Gathering Statistics")
 
+		self.autonobs['A'] = self.__autonobs(self.opts, self.opts.setA)
+		self.autonobs['B'] = self.__autonobs(self.opts, self.opts.setB)
+
 		
 		self.SetA, self.PopA = self.__getsetpop(self.opts, self.opts.setA)
-
-		#if not len(self.opts.setB):
-		#	return
-
 		self.SetB, self.PopB = self.__getsetpop(self.opts, self.opts.setB)
 		if self.SetA.keys()  != self.SetB.keys():
 			logging.error("Are you trying to compare two datasets with different voltage steps?")
@@ -86,7 +124,7 @@ class Stats:
 		if self.opts.write:
 			writer = Writer(self)
 			writer.WriteGNUplot("statplot")
-		
+	
 	def __getsetpop(self,opts,pop_files):
 		Set, Pop = {}, {}
 		maxfev = opts.maxfev
@@ -107,40 +145,107 @@ class Stats:
 		#	Pop[x]['FN']['pos']['std'] = parser.FN['pos']['std']
 		traces = 0
 		trace_error = 90
-		for f in pop_files:
-			opts.maxfev=maxfev
-			parser = Parse(opts)
+		opts.maxfev=maxfev
+		
+		if opts.threads > 1 and not opts.GUI:
+			nthreads = 1
+			logging.info("Using %s threads." % opts.threads)
+			alive = threading.Event()
+			lock = threading.RLock()
+			alive.set()
+			children = []
+			for f in pop_files:
+				children.append(ParserThread(alive,lock,opts,f,Set,Pop))
+			i = list(range(0,len(children)))
 			try:
-				parser.ReadFiles([f])
-			except FloatingPointError as msg:
-				logging.warning("Skipping %s because of %s." % (f, str(msg)))
-				continue
-			for x in parser.X:
-				if x == 0:
+				while len(i):
+					if threading.activeCount() <= opts.threads:
+						children[i.pop()].start()
+					else:
+						time.sleep(1)
+				while threading.activeCount() > nthreads:
+					time.sleep(1)
+			except Exception as msg:
+				print(str(msg))
+				sys.exit()
+			return Set,Pop
+		else:
+			for f in pop_files:
+				opts.maxfev=maxfev
+				parser = Parse(opts)
+				try:
+					parser.ReadFiles([f])
+				except FloatingPointError as msg:
+					logging.warning("Skipping %s because of %s." % (f, str(msg)))
 					continue
-				if x not in Set:
-					Set[x] = {'J':{'mean':[],'std':[], 'Y':[]},'R':{'mean':[],'std':[], 'Y':[]}, \
-							'FN':{'pos':{'mean':[],'std':[]},'neg':{'mean':[],'std':[]}}}
-				Set[x]['J']['mean'].append(parser.XY[x]['hist']['Gmean'])
-				Set[x]['J']['std'].append(parser.XY[x]['hist']['Gstd'])
-				Set[x]['J']['Y'].append(parser.XY[x]['LogY'])
-				Set[x]['R']['mean'].append(parser.R[abs(x)]['hist']['Gmean'])
-				Set[x]['R']['std'].append(parser.R[abs(x)]['hist']['Gstd'])
-				Set[x]['R']['Y'].append(parser.R[abs(x)]['r'])
-				Set[x]['FN']['pos']['mean'].append(parser.FN['pos']['Gmean'])
-				Set[x]['FN']['pos']['std'].append(parser.FN['pos']['Gstd'])
-				Set[x]['FN']['neg']['mean'].append(parser.FN['neg']['Gmean'])
-				Set[x]['FN']['neg']['std'].append(parser.FN['neg']['Gstd'])
-				#print(parser.R[abs(x)]['r'])
-				#if traces == 0:
-				#	traces = len(parser.R[abs(x)]['r'])
-				#elif len(parser.R[abs(x)]['r']) != traces:
-				#	trace_error = (x, traces, len(parser.R[abs(x)]['r']))
-			#		print(trace_error)
-			#if trace_error:
-			#	logging.warning("%s has a different numbers of traces (%s vs %s)." % trace_error)
-			#	traces = 0
-		return Set, Pop	
+				for x in parser.X:
+					if x == 0:
+						continue
+					if x not in Set:
+						Set[x] = {'J':{'mean':[],'std':[], 'Y':[]},'R':{'mean':[],'std':[], 'Y':[]}, \
+								'FN':{'pos':{'mean':[],'std':[]},'neg':{'mean':[],'std':[]}}}
+					Set[x]['J']['mean'].append(parser.XY[x]['hist']['Gmean'])
+					Set[x]['J']['std'].append(parser.XY[x]['hist']['Gstd'])
+					Set[x]['J']['Y'].append(parser.XY[x]['LogY'])
+					Set[x]['R']['mean'].append(parser.R[abs(x)]['hist']['Gmean'])
+					Set[x]['R']['std'].append(parser.R[abs(x)]['hist']['Gstd'])
+					Set[x]['R']['Y'].append(parser.R[abs(x)]['r'])
+					Set[x]['FN']['pos']['mean'].append(parser.FN['pos']['Gmean'])
+					Set[x]['FN']['pos']['std'].append(parser.FN['pos']['Gstd'])
+					Set[x]['FN']['neg']['mean'].append(parser.FN['neg']['Gmean'])
+					Set[x]['FN']['neg']['std'].append(parser.FN['neg']['Gstd'])
+					#print(parser.R[abs(x)]['r'])
+					#if traces == 0:
+					#	traces = len(parser.R[abs(x)]['r'])
+					#elif len(parser.R[abs(x)]['r']) != traces:
+					#	trace_error = (x, traces, len(parser.R[abs(x)]['r']))
+				#		print(trace_error)
+				#if trace_error:
+				#	logging.warning("%s has a different numbers of traces (%s vs %s)." % trace_error)
+				#	traces = 0
+			return Set, Pop	
+
+	def __autonobs(self,opts,pop_files):
+		Set,Pop = {},{}
+		cTimes = {}
+		for f in pop_files:
+			try:
+				with open(f.replace('_data.txt','')) as fh:
+					lines = fh.readlines()
+					#ds = '%s; %s' % (lines[0].strip(), lines[1].strip())
+					dt = datetime.datetime.strptime('%s; %s' % (lines[0].strip(), lines[1].strip()),\
+							"%A, %B %d, %Y; %I:%M %p")
+					cTimes[f] = dt
+			except FileNotFoundError:
+				logging.debug("%s does not exist, not doing autonobs." % f.replace('_data.txt',''))
+				return Set, Pop	
+		#print(ds)
+		#Wednesday, April 02, 2015; 12:05 PM
+		#print(dt)
+		#print(cTimes)
+		
+		#diffsecs = []
+		diffdays = {}
+		for f in cTimes:
+			for s in cTimes:
+				td = cTimes[s]-cTimes[f]
+				if td.total_seconds() == 0:
+					continue
+				#diffsecs.append(abs(td.total_seconds()))
+				if abs(td.days) != 0:
+					if abs(td.days) not in diffdays:
+						diffdays[abs(td.days)] = [(f,s)]
+					else:
+						diffdays[abs(td.days)].append((f,s))
+		#print(diffdays.keys())
+		#print(np.asarray(diffsecs).mean())
+		
+		#for d in diffdays:
+		#	print("Measurements done %s days apart: " % d, end='')
+		#	for f in diffdays[d]:
+		#		print("%s & %s" % f)
+		
+	#	sys.exit()
 
 	def Ttest(self, key):
 		
@@ -188,9 +293,11 @@ class Stats:
 			else:
 				Yab = [[],[]]
 				for n in np.array_split(ya,self.opts.nobs):
-					Yab[0].append(n.mean())
+					#Yab[0].append(n.mean())
+					Yab[0].append(gmean(abs(n)))
 				for n in np.array_split(yb,self.opts.nobs):
-					Yab[1].append(n.mean())
+					#Yab[1].append(n.mean())
+					Yab[1].append(gmean(abs(n)))
 			Yt,Yp = ttest_ind(np.asarray(Yab[0]),np.asarray(Yab[1]), equal_var=False)
 			Yp_vals.append(Yp)
 			

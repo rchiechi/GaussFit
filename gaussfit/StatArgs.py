@@ -99,8 +99,8 @@ parser.add_argument('-B','--setB',  metavar='setB', type=str, nargs='*', default
 		help='Datafiles to parse for set B.')
 parser.add_argument('--maxfev', type=int, default=1, 
 		help="Maximum interations for fitting histograms.")
-
-
+parser.add_argument('-T','--threads', type=int,default=1, 
+		help="Use n threads for parsing for marginal speed boost.")
 
 
 
