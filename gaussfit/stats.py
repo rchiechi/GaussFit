@@ -26,7 +26,7 @@ from gaussfit.Output import Writer,WriteStats
 from gaussfit.Parser import Parse
 #from gaussfit.Output import Writer
 
-import sys,os,logging,warnings,csv,datetime,threading,time
+import sys,os,logging,warnings,csv,datetime,threading,time,math,tempfile
 from gaussfit.colors import *
 
 try:
@@ -93,21 +93,23 @@ class Stats:
 	def __init__(self,opts):
 
 		self.opts = opts
-		self.SetA = []
-		self.SetB = []
-		self.PopA = []
-		self.PopB = []
-		self.autonobs = {}
+		self.SetA = {}
+		self.SetB = {}
+		self.PopA = {}
+		self.PopB = {}
 		self.dataset = {}
 		self.fnstats = {}
 		logging.info("Gathering Statistics")
 
-		self.autonobs['A'] = self.__autonobs(self.opts, self.opts.setA)
-		self.autonobs['B'] = self.__autonobs(self.opts, self.opts.setB)
+			
 
-		
-		self.SetA, self.PopA = self.__getsetpop(self.opts, self.opts.setA)
-		self.SetB, self.PopB = self.__getsetpop(self.opts, self.opts.setB)
+		if not self.opts.autonobs:
+			self.SetA, self.PopA = self.__getsetpop(self.opts, self.opts.setA)
+			self.SetB, self.PopB = self.__getsetpop(self.opts, self.opts.setB)
+		else:
+			self.SetA, self.PopA = self.__autonobs(self.opts, self.opts.setA)
+			self.SetB, self.PopB = self.__autonobs(self.opts, self.opts.setB)
+
 		if self.SetA.keys()  != self.SetB.keys():
 			logging.error("Are you trying to compare two datasets with different voltage steps?")
 			print("Set A:")
@@ -121,10 +123,13 @@ class Stats:
 		self.Ttest('R')
 		self.Ttest('J')
 		self.TtestFN()
+
 		if self.opts.write:
 			writer = Writer(self)
 			writer.WriteGNUplot("statplot")
 	
+
+
 	def __getsetpop(self,opts,pop_files):
 		Set, Pop = {}, {}
 		maxfev = opts.maxfev
@@ -219,33 +224,77 @@ class Stats:
 			except FileNotFoundError:
 				logging.debug("%s does not exist, not doing autonobs." % f.replace('_data.txt',''))
 				return Set, Pop	
-		#print(ds)
-		#Wednesday, April 02, 2015; 12:05 PM
-		#print(dt)
-		#print(cTimes)
-		
-		#diffsecs = []
 		diffdays = {}
+		diffmins = {}
+		min_factor = 60
 		for f in cTimes:
 			for s in cTimes:
 				td = cTimes[s]-cTimes[f]
 				if td.total_seconds() == 0:
 					continue
 				#diffsecs.append(abs(td.total_seconds()))
-				if abs(td.days) != 0:
-					if abs(td.days) not in diffdays:
-						diffdays[abs(td.days)] = [(f,s)]
-					else:
-						diffdays[abs(td.days)].append((f,s))
-		#print(diffdays.keys())
-		#print(np.asarray(diffsecs).mean())
+				if abs(td.days) not in diffdays:
+					diffdays[abs(td.days)] = [(f,s)]
+				else:
+					diffdays[abs(td.days)].append((f,s))
+				dm = math.floor(abs(td.total_seconds())/(min_factor*60))
+				if dm not in diffmins:
+					diffmins[dm] = [(f,s)]
+				else:
+					diffmins[dm].append((f,s))
 		
-		#for d in diffdays:
-		#	print("Measurements done %s days apart: " % d, end='')
-		#	for f in diffdays[d]:
-		#		print("%s & %s" % f)
 		
-	#	sys.exit()
+		def __maketmpfiles(popfiles):
+				outfile = tempfile.NamedTemporaryFile(mode='w+t',delete=False)
+				header = False
+				for f in popfiles:
+					with open(f, 'rt', newline='') as csvfile:
+						writer = csv.writer(outfile,dialect='JV')
+						for row in csv.reader(csvfile,dialect='JV'):
+							try:
+								float(row[0])
+							except ValueError:
+								if not header:
+									header = True
+									writer.writerow(row)
+								continue
+							writer.writerow(row)
+				#tmpfiles[outfile.name]=outfile
+				return outfile.name
+		
+		tmpfiles = []
+		if len(diffdays.keys()) < 3:
+			days, minutes = False, True
+		elif len(diffmins.keys()) < 100:
+			days, minutes = True, False
+		else:
+			logging.error("Too few days apart and too many minutes!")
+			sys.exit()
+		if days:
+			for d in diffdays:
+				popfiles = []
+				for f in diffdays[d]:
+					if f[0] not in popfiles:
+						popfiles.append(f[0])
+					if f[1] not in popfiles:
+						popfiles.append(f[1])
+				n = __maketmpfiles(popfiles)
+				tmpfiles.append(n)
+				print("Measurements done %s days apart: %s " % (d,n))
+								
+		if minutes:
+			for m in diffmins:
+				popfiles = []
+				for f in diffmins[m]:
+					if f[0] not in popfiles:
+						popfiles.append(f[0])
+					if f[1] not in popfiles:
+						popfiles.append(f[1])
+				n = __maketmpfiles(popfiles)
+				tmpfiles.append(n)
+				print("Measurements done %s minutes apart: %s " % (m*min_factor,n))
+				
+		return self.__getsetpop(opts,tmpfiles)
 
 	def Ttest(self, key):
 		
@@ -300,6 +349,10 @@ class Stats:
 					Yab[1].append(gmean(abs(n)))
 			Yt,Yp = ttest_ind(np.asarray(Yab[0]),np.asarray(Yab[1]), equal_var=False)
 			Yp_vals.append(Yp)
+			if not Yp > 0:
+				print("Negaive P-value (%s) setting to 1.0." % Yp)
+				Yp = 1.0
+				#sys.exit()
 			
 			#AlphaA = self.Cronbach( self.SetA[x][key]['Y'] )
 			#AlphaB = self.Cronbach( self.SetB[x][key]['Y'] )
@@ -333,22 +386,23 @@ class Stats:
 			logging.info("Writing stats to %s" % self.opts.outfile+"_Ttest"+key+".txt")
 			WriteStats(self.opts.out_dir, self.opts.outfile, dataset, \
 				"Ttest"+key, ["Voltage", "P-value (Gmean)", "T-stat (Gmean)", "P-value (J)","T-stat (J)", "AlphaA", "AlphaB"])
-		
+		self.dataset[key] = dataset
+
 		p_vals = np.array(p_vals)
 		aA_vals = np.array(aA_vals)
 		aB_vals = np.array(aB_vals)
-		
-		if p_vals.mean() < 0.001: c = GREEN
-		else: c = RED
-		print("p-value Mean: %s%s%s" % (GREEN, p_vals.mean(), RS))
-		if aA_vals[aA_vals > 0].mean() > 0.7: c = GREEN
-		else: c = RED
-		print("α  SetA Mean: %s%s%s" % (c,aA_vals[aA_vals > 0].mean(),RS))
-		if aB_vals[aB_vals > 0].mean() > 0.7: c = GREEN
-		else: c = RED
-		print("α  SetB Mean: %s%s%s" % (c,aB_vals[aB_vals > 0].mean(),RS))
-		
-		self.dataset[key] = dataset
+		try:	
+			if p_vals.mean() < 0.001: c = GREEN 
+			else: c = RED
+			print("p-value Mean: %s%s%s" % (GREEN, p_vals.mean(), RS))
+			if aA_vals[aA_vals > 0].mean() > 0.7: c = GREEN 
+			else: c = RED
+			print("α  SetA Mean: %s%s%s" % (c,aA_vals[aA_vals > 0].mean(),RS))
+			if aB_vals[aB_vals > 0].mean() > 0.7: c = GREEN 
+			else: c = RED
+			print("α  SetB Mean: %s%s%s" % (c,aB_vals[aB_vals > 0].mean(),RS))
+		except FloatingPointError:
+			logging.error("Error outputting mean stats.")
 
 	def TtestFN(self):
 		x = list(self.SetA.keys())[-1]
@@ -386,7 +440,7 @@ class Stats:
 			muvars = muI.var(axis=1,ddof=1)
 			Alpha =  K/(K-1.) * (1 - muvars.sum() / tscores.var(ddof=1))
 		except ZeroDivisionError:
-			logging.error("Division by zero error computing Alpha!")
+			logging.debug("Division by zero error computing Alpha!")
 			Alpha = np.inf
 		except ValueError as msg:
 			logging.debug("%s while computing Cronbach's Alpha." % str(msg))
