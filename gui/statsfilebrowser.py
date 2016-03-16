@@ -19,20 +19,29 @@ Description:
 		You should have received a copy of the GNU General Public License
 		along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
-import sys,os,platform
+import sys,os,platform,threading,time
+from gaussfit.stats import Stats
+from gaussfit.Output import WriteStats,StatPlotter
 from tkinter import filedialog #some weird bug...
 from tkinter import *
 from tkinter.ttk import *
 import logging
 from gui.tooltip import *
 
+class ParseThread(threading.Thread):
+	def __init__(self,statparser):
+		threading.Thread.__init__(self)
+		self.statparser = statparser 
+	def run(self):
+		self.statparser.parse()
+		return
 
 
 class ChooseFiles(Frame):
 
-	def __init__(self, opts, Go, master=None):
+	def __init__(self, opts, master=None):
 		Frame.__init__(self, master)
-		self.Go = Go
+		#self.Go = Go
 		self.boolmap = {1:True, 0:False}
 		try:
 			self.defaultdir = os.getcwd()
@@ -41,6 +50,7 @@ class ChooseFiles(Frame):
 		self.last_input_pathA = self.defaultdir
 		self.last_input_pathB = self.defaultdir
 		self.opts = opts
+		self.gothreads = []
 		self.master.title("File Browser")
 		self.master.geometry('1400x700+250-250')
 		self.pack(fill=BOTH)
@@ -80,7 +90,11 @@ class ChooseFiles(Frame):
 		self.ColumnFrame.pack(side=LEFT)
 		self.LeftOptionsFrame.pack(side=LEFT)
 		self.LoggingFrame.pack(side=BOTTOM)
-		self.logger = logging.getLogger(None)
+		
+		if self.opts.threads == 1:
+			self.logger = logging.getLogger(None)
+		else:
+			self.logger = logging.getLogger('gui')
 		self.logger.addHandler(LoggingToGUI(self.Logging))
 		self.logger.info("Logging...")
 
@@ -125,11 +139,31 @@ class ChooseFiles(Frame):
 		self.master.destroy()
 
 	def Parse(self):
-		if len(self.opts.setA) and len(self.opts.setB):
-			self.Go(self.opts)
-		else:
-			self.logger.warn("No input files!")
-
+		if len(self.gothreads):
+			for c in self.gothreads:
+				if c.is_alive():
+					self.ButtonGo.after('500',self.Parse)
+					return	
+			logging.info("Parse complete!")
+			gothread = self.gothreads.pop()
+			if self.opts.plot:
+				plotter = StatPlotter(gothread.statparser)
+				logging.info("Generating plots...")
+				try:
+						import matplotlib.pyplot as plt
+						plotter.DoPlots(plt)
+						plt.show()
+				except ImportError as msg:
+						logging.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
+		else: 
+			if len(self.opts.setA) and len(self.opts.setB):
+				#self.Go(self.opts)
+				statparser = Stats(self.opts)
+				self.gothreads.append(ParseThread(statparser))
+				self.gothreads[-1].start()
+				self.ButtonGo.after('500',self.Parse)
+			else:
+				self.logger.warn("No input files!")
 	def RemoveFileClick(self):
 		for ab in ('A','B'):
 			flb = getattr(self,'FileListBox'+ab)
@@ -186,6 +220,7 @@ class ChooseFiles(Frame):
 
 		self.plot = IntVar()
 		self.write = IntVar()
+
 		self.Check_plot = Checkbutton(self.OptionsFrame, text="Plot", \
 							 variable=self.plot, command=self.checkOptions)
 		self.Check_plot.grid(column=0,row=1,sticky=W)
@@ -228,6 +263,14 @@ class ChooseFiles(Frame):
 										 variable=self.lorenzian, command=self.checkOptions)
 		self.Check_lorenzian.grid(column=0,row=8,sticky=W)
 		createToolTip(self.Check_lorenzian, "Fit a Lorenzian instead of a Gaussian.")
+
+		self.autonobs = IntVar()
+		self.Check_autonobs = Checkbutton(self.OptionsFrame, text="Auto N", \
+							  variable=self.autonobs, command=self.checkOptions)
+		self.Check_autonobs.grid(column=0,row=9,sticky=W)
+		createToolTip(self.Check_autonobs, "Determine N (degrees of freedom) from metadata (if provided with the _data.txt files).")
+
+
 
 
 		Label(self.LeftOptionsFrame, text="Cuttoff for d2J/dV2:").grid(column=0,row=0)
@@ -303,6 +346,7 @@ class ChooseFiles(Frame):
 		self.opts.nomin = self.boolmap[self.nomin.get()]
 		self.opts.logr = self.boolmap[self.logr.get()]
 		self.opts.lorenzian = self.boolmap[self.lorenzian.get()]
+		self.opts.autonobs = self.boolmap[self.autonobs.get()]
 		if not self.opts.write:
 			self.opts.plot = True
 			self.plot.set(1)
@@ -337,30 +381,7 @@ class ChooseFiles(Frame):
 			self.opts.nobs = nobs
 		self.EntryNobs.delete(0,END)
 		self.EntryNobs.insert(0,self.opts.nobs)
-		#try:
-		#	self.opts.smooth = abs(float(self.Smoothingcutoff.get()))	 
-		#except ValueError:
-		#	self.opts.smooth = 1e-12
 
-		#self.Smoothingcutoff.delete(0, END)
-		#self.Smoothingcutoff.insert(0,self.opts.smooth)
-
-		#try:
-		#	self.opts.bins = abs(int(self.EntryJRBins.get()))
-		#except ValueError:
-		#	self.opts.bins = 50
-
-		#self.EntryJRBins.delete(0, END)
-		#self.EntryJRBins.insert(0,self.opts.bins)
-
-		#try:
-		#	self.opts.heatmapbins = abs(int(self.Entryhmbins.get()))
-		#except ValueError:
-		#	self.opts.heatmapbins = 25
-
-		#self.Entryhmbins.delete(0, END)
-		#self.Entryhmbins.insert(0,self.opts.heatmapbins)
-	
 	
 
 
@@ -435,25 +456,3 @@ class LoggingToGUI(logging.Handler):
 		self.console["state"] = DISABLED
 		self.console.see(END)
 
-
-#if __name__ == "__main__":
-#
-#	class Opts():
-#			def __init__(self):
-#					self.setA = []
-#					self.setB = []
-#					self.Xcol = 0
-#					self.Ycol = 2
-#					self.plot = True
-#					self.write= True
-#					self.out_dir = os.environ['PWD']
-#					self.outfile = "test"
-#					logging.basicConfig(level=logging.INFO,format = os.path.basename(sys.argv[0])+' %(levelname)s %(message)s')
-#	def Go(arg):
-#		logging.info("Dummy function")
-#		print("Not to logger.")
-#		return
-# 
-#
-#	gui = ChooseFiles(Opts(),Go)
- 

@@ -69,7 +69,38 @@ class Parse():
 		if lock:
 			self.lock = lock
 		else:
-			self.lock = threading.RLock()
+			self.lock = threading.Lock()
+	
+	@classmethod
+	def doOutput(cls,writer):
+		logging.info("Writing files...")
+		writer.WriteParseInfo()
+		writer.WriteVtrans()
+		writer.WriteGNUplot('Vtransplot')
+		writer.WriteFN()
+		writer.WriteGauss()
+		writer.WriteGNUplot('JVplot')
+		writer.WriteData()
+		writer.WriteDJDV()
+		writer.WriteFiltered()
+		writer.WriteData(True)
+		writer.WriteRData()
+		writer.WriteGNUplot('Rplot')
+		try:
+			writer.WriteHistograms()
+			writer.WriteGNUplot('JVhistplot')
+		except IndexError:
+			print("Error outputting histrograms")
+		try:
+			writer.WriteGHistogram()
+		except IndexError:
+			print("Error outputting Ghistrograms")
+		try:
+			writer.WriteGMatrix()
+			writer.WriteGNUplot('Gplot', ['parula.pal']) 
+		except IndexError:
+			print("Error outputting GMatrix")
+
 	def isfloat(self,f):
 		try:
 			float(f)
@@ -99,7 +130,10 @@ class Parse():
 		uniqueX = {}
 		rawx, rawy = [],[]
 		for fn in fns:
-			logging.info("Parsing %s%s%s", TEAL,fn,YELLOW)
+			if self.opts.GUI:
+				logging.info("Parsing %s", fn)
+			else:
+				logging.info("Parsing %s%s%s", TEAL,fn,YELLOW)
 			try:
 				rows = []
 				with open(fn, 'rt', newline='') as csvfile:

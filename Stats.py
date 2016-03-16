@@ -38,6 +38,7 @@ def Go(opts):
 
 	if len(opts.setA) and len(opts.setB):
 		statparser = Stats(opts)
+		statparser.parse()
 	else:
 		logging.error("No input files to parse!")
 
@@ -55,6 +56,6 @@ def Go(opts):
 opts = Opts
 if opts.GUI:
 		from gui import statsfilebrowser
-		gui = statsfilebrowser.ChooseFiles(opts,Go)
+		gui = statsfilebrowser.ChooseFiles(opts)
 else:
 		Go(opts)

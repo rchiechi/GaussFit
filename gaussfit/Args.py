@@ -130,6 +130,8 @@ if not os.path.exists(Opts.out_dir):
 LOG = False
 if LOG:
 	logging.basicConfig(level=LOGLEVEL,format = '%(asctime)s %(process)d %(levelname)s %(message)s', filename=LOG,filemode='a+')
+elif Opts.GUI:
+	logging.basicConfig(level=LOGLEVEL,format = '%(levelname)s %(message)s')
 else:
 	logging.basicConfig(level=LOGLEVEL,format = GREEN+os.path.basename(sys.argv[0]+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE)
 

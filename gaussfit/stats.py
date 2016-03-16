@@ -52,28 +52,31 @@ except ImportError as msg:
 
 class ParserThread(threading.Thread):
 
-	def __init__(self,alive,lock,opts,files,Set,Pop):
+	def __init__(self,limiter,alive,lock,opts,files,Set,Pop):
 		threading.Thread.__init__(self)
 		self.alive = alive
 		self.files = files
 		self.Set, self.Pop = Set,Pop
 		self.lock = lock
+		self.limiter = limiter
 		self.parser = Parse(opts,self.lock)
 	def run(self):
+		self.limiter.acquire()
+		logging.info("Starting thread...")
 		try:
 			self.parser.ReadFiles([self.files])
+			for x in self.parser.X:
+				if not self.alive.isSet():
+					break
+				if x == 0:
+					continue
+				with self.lock:
+					Stats.DoSet(self.parser, self.Set, x)
 		except FloatingPointError as msg:
 			logging.warning("Skipping %s because of %s." % (f, str(msg)))
-			return False
-		for x in self.parser.X:
-			if not self.alive.isSet():
-				break
-			if x == 0:
-				continue
-			with self.lock:
-				Stats.DoSet(self.parser, self.Set, x)
-		return True
-
+		finally:
+			self.limiter.release()
+		
 class Stats:
 
 	def __init__(self,opts):
@@ -89,7 +92,7 @@ class Stats:
 		logging.info("Gathering Statistics")
 
 			
-
+	def parse(self):
 		if not self.opts.autonobs:
 			self.SetA, self.PopA = self.__getsetpop(self.opts, self.opts.setA)
 			self.SetB, self.PopB = self.__getsetpop(self.opts, self.opts.setB)
@@ -130,32 +133,21 @@ class Stats:
 		traces = 0
 		trace_error = 90
 		opts.maxfev=maxfev
-		
-		if opts.threads > 1 and not opts.GUI:
-			nthreads = 1
+		if opts.threads > 1:
 			logging.info("Using %s threads." % opts.threads)
 			alive = threading.Event()
-			lock = threading.RLock()
+			lock = threading.Lock()
+			limiter = threading.BoundedSemaphore(opts.threads)
 			alive.set()
 			children = []
 			for f in pop_files:
-				children.append(ParserThread(alive,lock,opts,f,Set,Pop))
-			i = list(range(0,len(children)))
-			try:
-				while len(i):
-					if threading.activeCount() <= opts.threads:
-						children[i.pop()].start()
-					else:
-						time.sleep(1)
-				while threading.activeCount() > nthreads:
-					time.sleep(1)
-			except Exception as msg:
-				print(str(msg))
-				sys.exit()
+				children.append(ParserThread(limiter,alive,lock,opts,f,Set,Pop))
+				children[-1].start()
+			for c in children:
+				c.join()
 			return Set,Pop
 		else:
 			for f in pop_files:
-				opts.maxfev=maxfev
 				parser = Parse(opts)
 				try:
 					parser.ReadFiles([f])
@@ -163,7 +155,7 @@ class Stats:
 					logging.warning("Skipping %s because of %s." % (f, str(msg)))
 					continue
 				for x in parser.X:
-					Stats.DoSet(parser,Set,x)
+					self.DoSet(parser,Set,x)
 		return Set, Pop	
 
 	@classmethod
@@ -171,6 +163,8 @@ class Stats:
 		if x not in Set:
 			Set[x] = {'J':{'mean':[],'std':[], 'Y':[]},'R':{'mean':[],'std':[], 'Y':[]}, \
 					'FN':{'pos':{'mean':[],'std':[]},'neg':{'mean':[],'std':[]}}}
+		if abs(x) not in parser.R:
+			parser.R[abs(x)] = {'hist':{'Gmean':1.0, 'Gstd':0.0},'r':[]}
 		Set[x]['J']['mean'].append(parser.XY[x]['hist']['Gmean'])
 		Set[x]['J']['std'].append(parser.XY[x]['hist']['Gstd'])
 		Set[x]['J']['Y'].append(parser.XY[x]['LogY'])
@@ -429,6 +423,9 @@ class Stats:
 			logging.debug("Division by zero error computing Alpha!")
 			Alpha = np.inf
 		except ValueError as msg:
+			logging.debug("%s while computing Cronbach's Alpha." % str(msg))
+			Alpha = np.inf
+		except FloatingPointError as msg:
 			logging.debug("%s while computing Cronbach's Alpha." % str(msg))
 			Alpha = np.inf
 		return Alpha

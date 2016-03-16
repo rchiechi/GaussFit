@@ -19,7 +19,9 @@ Description:
 		You should have received a copy of the GNU General Public License
 		along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
-import sys,os,platform
+import sys,os,platform,threading
+from gaussfit.Output import Writer,Plotter
+from gaussfit.Parser import Parse
 from tkinter import filedialog #some weird bug...
 from tkinter import *
 from tkinter.ttk import *
@@ -28,17 +30,26 @@ from gui.tooltip import *
 
 
 
+class ParseThread(threading.Thread):
+	def __init__(self,opts,parser):
+		threading.Thread.__init__(self)
+		self.parser = parser
+		self.opts = opts
+	def run(self):
+		self.parser.ReadFiles(self.opts.in_files)
+
+
 class ChooseFiles(Frame):
 
-	def __init__(self, opts, Go, master=None):
+	def __init__(self, opts, master=None):
 		Frame.__init__(self, master)
-		self.Go = Go
 		self.boolmap = {1:True, 0:False}
 		try:
 			self.last_input_path = os.getcwd()
 		except KeyError:
 			self.last_input_path = os.path.expanduser('~')
 		self.opts = opts
+		self.gothreads = []
 		self.master.title("File Browser")
 		self.master.geometry('850x750+250-250')
 		self.pack(fill=BOTH)
@@ -120,10 +131,33 @@ class ChooseFiles(Frame):
 		self.master.destroy()
 
 	def Parse(self):
-		if len(self.opts.in_files):
-			self.Go(self.opts)
-		else:
-			self.logger.warn("No input files!")
+		if len(self.gothreads):
+			for c in self.gothreads:
+				if c.is_alive():
+					self.ButtonGo.after('500',self.Parse)
+					return	
+			logging.info("Parse complete!")
+			gothread = self.gothreads.pop()
+			if self.opts.write:	
+				writer = Writer(parser)
+				Parse.doOutput(writer)
+			if self.opts.plot:
+				plotter = Plotter(gothread.parser)
+				logging.info("Generating plots...")
+				try:
+						import matplotlib.pyplot as plt
+						plotter.DoPlots(plt)
+						plt.show()
+				except ImportError as msg:
+						logging.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
+		else: 
+			if len(self.opts.in_files):
+				parser = Parse(self.opts)
+				self.gothreads.append(ParseThread(self.opts,parser))
+				self.gothreads[-1].start()
+				self.ButtonGo.after('500',self.Parse)
+			else:
+				self.logger.warn("No input files!")
 
 	def RemoveFileClick(self):
 		selected = [self.FileListBox.get(x) for x in self.FileListBox.curselection()]
