@@ -20,7 +20,7 @@ Description:
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-import os,csv,warnings
+import os,csv,warnings,datetime
 from shutil import copyfile
 try:
 	import numpy as np
@@ -39,6 +39,15 @@ class Writer():
     			return getattr(self.parser, name)
 		except AttributeError as e:
     			raise AttributeError("Writer object has no attribute '%s'" % name)
+
+	def WriteParseInfo(self,extra=''):
+		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_parseinfo.txt")
+		with open(fn, 'a') as fh:
+			fh.write("Parsed: %s\n" % str(datetime.datetime.today().ctime()) )
+			t = str(vars(self.opts))
+			t = t.replace(",","\n").replace("[","\n[")
+			fh.write(t)
+			fh.write(extra+"\n")	
 
 	def WriteHistograms(self):
 		fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms.txt")

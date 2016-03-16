@@ -37,6 +37,7 @@ def Go(opts):
 	if opts.write:	
 			writer = Writer(parser)
 			logging.info("Writing files...")
+			writer.WriteParseInfo()
 			writer.WriteVtrans()
 			writer.WriteGNUplot('Vtransplot')
 			writer.WriteFN()

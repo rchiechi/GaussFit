@@ -99,6 +99,7 @@ class Stats:
 		self.PopB = {}
 		self.dataset = {}
 		self.fnstats = {}
+		self.extrainfo=''
 		logging.info("Gathering Statistics")
 
 			
@@ -127,7 +128,7 @@ class Stats:
 		if self.opts.write:
 			writer = Writer(self)
 			writer.WriteGNUplot("statplot")
-	
+			writer.WriteParseInfo(self.extrainfo)
 
 
 	def __getsetpop(self,opts,pop_files):
@@ -217,7 +218,6 @@ class Stats:
 			try:
 				with open(f.replace('_data.txt','')) as fh:
 					lines = fh.readlines()
-					#ds = '%s; %s' % (lines[0].strip(), lines[1].strip())
 					dt = datetime.datetime.strptime('%s; %s' % (lines[0].strip(), lines[1].strip()),\
 							"%A, %B %d, %Y; %I:%M %p")
 					cTimes[f] = dt
@@ -232,18 +232,17 @@ class Stats:
 				td = cTimes[s]-cTimes[f]
 				if td.total_seconds() == 0:
 					continue
-				#diffsecs.append(abs(td.total_seconds()))
-				if abs(td.days) not in diffdays:
-					diffdays[abs(td.days)] = [(f,s)]
-				else:
-					diffdays[abs(td.days)].append((f,s))
+				dd = td.days
+				if dd not in diffdays:
+					diffdays[dd] = [(f,s)]
+				elif (s,f) not in diffdays[dd] and (f,s) not in diffdays[dd]:
+					diffdays[dd].append((f,s))
 				dm = math.floor(abs(td.total_seconds())/(min_factor*60))
 				if dm not in diffmins:
 					diffmins[dm] = [(f,s)]
-				else:
+				elif (s,f) not in diffmins[dm] and (f,s) not in diffmins[dm]:
 					diffmins[dm].append((f,s))
-		
-		
+			
 		def __maketmpfiles(popfiles):
 				outfile = tempfile.NamedTemporaryFile(mode='w+t',delete=False)
 				header = False
@@ -281,7 +280,9 @@ class Stats:
 				n = __maketmpfiles(popfiles)
 				tmpfiles.append(n)
 				print("Measurements done %s days apart: %s " % (d,n))
-								
+				self.extrainfo += "Measurements done %s days apart: %s\n" % (d,n)	
+				for p in popfiles:
+					self.extrainfo += p+"\n"
 		if minutes:
 			for m in diffmins:
 				popfiles = []
@@ -293,7 +294,9 @@ class Stats:
 				n = __maketmpfiles(popfiles)
 				tmpfiles.append(n)
 				print("Measurements done %s minutes apart: %s " % (m*min_factor,n))
-				
+				self.extrainfo += "Measurements done %s minutes apart: %s\n" % (m*min_factor,n)
+				for p in popfiles:
+					self.extrainfo += p+"\n"
 		return self.__getsetpop(opts,tmpfiles)
 
 	def Ttest(self, key):
@@ -350,7 +353,7 @@ class Stats:
 			Yt,Yp = ttest_ind(np.asarray(Yab[0]),np.asarray(Yab[1]), equal_var=False)
 			Yp_vals.append(Yp)
 			if not Yp > 0:
-				print("Negaive P-value (%s) setting to 1.0." % Yp)
+				#print("Negaive P-value (%s) setting to 1.0." % Yp)
 				Yp = 1.0
 				#sys.exit()
 			
