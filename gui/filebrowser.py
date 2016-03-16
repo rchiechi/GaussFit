@@ -35,9 +35,9 @@ class ChooseFiles(Frame):
 		self.Go = Go
 		self.boolmap = {1:True, 0:False}
 		try:
-			self.last_input_path = os.environ['PWD']
+			self.last_input_path = os.getcwd()
 		except KeyError:
-			self.last_input_path = os.environ['HOME']
+			self.last_input_path = os.path.expanduser('~')
 		self.opts = opts
 		self.master.title("File Browser")
 		self.master.geometry('850x750+250-250')

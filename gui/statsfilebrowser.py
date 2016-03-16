@@ -35,9 +35,9 @@ class ChooseFiles(Frame):
 		self.Go = Go
 		self.boolmap = {1:True, 0:False}
 		try:
-			self.defaultdir = os.environ['PWD']
+			self.defaultdir = os.getcwd()
 		except KeyError:
-			self.defaultdir = os.environ['HOME']
+			self.defaultdir = os.path.expanduser('~')
 		self.last_input_pathA = self.defaultdir
 		self.last_input_pathB = self.defaultdir
 		self.opts = opts
