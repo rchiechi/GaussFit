@@ -65,27 +65,13 @@ class ParserThread(threading.Thread):
 		except FloatingPointError as msg:
 			logging.warning("Skipping %s because of %s." % (f, str(msg)))
 			return False
-		#except Exception as msg:
-		#	logging.error("Parser thread died: %s" % str(msg))
 		for x in self.parser.X:
 			if not self.alive.isSet():
 				break
 			if x == 0:
 				continue
 			with self.lock:
-				if x not in self.Set:
-					self.Set[x] = {'J':{'mean':[],'std':[], 'Y':[]},'R':{'mean':[],'std':[], 'Y':[]}, \
-							'FN':{'pos':{'mean':[],'std':[]},'neg':{'mean':[],'std':[]}}}
-				self.Set[x]['J']['mean'].append(self.parser.XY[x]['hist']['Gmean'])
-				self.Set[x]['J']['std'].append(self.parser.XY[x]['hist']['Gstd'])
-				self.Set[x]['J']['Y'].append(self.parser.XY[x]['LogY'])
-				self.Set[x]['R']['mean'].append(self.parser.R[abs(x)]['hist']['Gmean'])
-				self.Set[x]['R']['std'].append(self.parser.R[abs(x)]['hist']['Gstd'])
-				self.Set[x]['R']['Y'].append(self.parser.R[abs(x)]['r'])
-				self.Set[x]['FN']['pos']['mean'].append(self.parser.FN['pos']['Gmean'])
-				self.Set[x]['FN']['pos']['std'].append(self.parser.FN['pos']['Gstd'])
-				self.Set[x]['FN']['neg']['mean'].append(self.parser.FN['neg']['Gmean'])
-				self.Set[x]['FN']['neg']['std'].append(self.parser.FN['neg']['Gstd'])
+				Stats.DoSet(self.parser, self.Set, x)
 		return True
 
 class Stats:
@@ -140,15 +126,7 @@ class Stats:
 		#for x in parser.X:
 		#	if x == 0:
 		#		continue
-		#	Pop[x] = {'J':{'mean':0,'std':0},'R':{'mean':0,'std':0}, 'FN':{'pos':{'mean':0,'std':0},'neg':{'mean':0,'std':0}}}
-		#	Pop[x]['J']['mean'] = parser.XY[x]['hist']['mean']
-		#	Pop[x]['J']['std'] = parser.XY[x]['hist']['std']
-		#	Pop[x]['R']['mean'] = parser.R[abs(x)]['hist']['mean']
-		#	Pop[x]['R']['std'] = parser.R[abs(x)]['hist']['std']
-		#	Pop[x]['FN']['neg']['mean'] = parser.FN['neg']['mean']
-		#	Pop[x]['FN']['neg']['std'] = parser.FN['neg']['std']
-		#	Pop[x]['FN']['pos']['mean'] = parser.FN['pos']['mean']
-		#	Pop[x]['FN']['pos']['std'] = parser.FN['pos']['std']
+		#	Stats.DoPop(parser,Pop,x)
 		traces = 0
 		trace_error = 90
 		opts.maxfev=maxfev
@@ -185,31 +163,36 @@ class Stats:
 					logging.warning("Skipping %s because of %s." % (f, str(msg)))
 					continue
 				for x in parser.X:
-					if x == 0:
-						continue
-					if x not in Set:
-						Set[x] = {'J':{'mean':[],'std':[], 'Y':[]},'R':{'mean':[],'std':[], 'Y':[]}, \
-								'FN':{'pos':{'mean':[],'std':[]},'neg':{'mean':[],'std':[]}}}
-					Set[x]['J']['mean'].append(parser.XY[x]['hist']['Gmean'])
-					Set[x]['J']['std'].append(parser.XY[x]['hist']['Gstd'])
-					Set[x]['J']['Y'].append(parser.XY[x]['LogY'])
-					Set[x]['R']['mean'].append(parser.R[abs(x)]['hist']['Gmean'])
-					Set[x]['R']['std'].append(parser.R[abs(x)]['hist']['Gstd'])
-					Set[x]['R']['Y'].append(parser.R[abs(x)]['r'])
-					Set[x]['FN']['pos']['mean'].append(parser.FN['pos']['Gmean'])
-					Set[x]['FN']['pos']['std'].append(parser.FN['pos']['Gstd'])
-					Set[x]['FN']['neg']['mean'].append(parser.FN['neg']['Gmean'])
-					Set[x]['FN']['neg']['std'].append(parser.FN['neg']['Gstd'])
-					#print(parser.R[abs(x)]['r'])
-					#if traces == 0:
-					#	traces = len(parser.R[abs(x)]['r'])
-					#elif len(parser.R[abs(x)]['r']) != traces:
-					#	trace_error = (x, traces, len(parser.R[abs(x)]['r']))
-				#		print(trace_error)
-				#if trace_error:
-				#	logging.warning("%s has a different numbers of traces (%s vs %s)." % trace_error)
-				#	traces = 0
-			return Set, Pop	
+					Stats.DoSet(parser,Set,x)
+		return Set, Pop	
+
+	@classmethod
+	def DoSet(cls,parser,Set,x):
+		if x not in Set:
+			Set[x] = {'J':{'mean':[],'std':[], 'Y':[]},'R':{'mean':[],'std':[], 'Y':[]}, \
+					'FN':{'pos':{'mean':[],'std':[]},'neg':{'mean':[],'std':[]}}}
+		Set[x]['J']['mean'].append(parser.XY[x]['hist']['Gmean'])
+		Set[x]['J']['std'].append(parser.XY[x]['hist']['Gstd'])
+		Set[x]['J']['Y'].append(parser.XY[x]['LogY'])
+		Set[x]['R']['mean'].append(parser.R[abs(x)]['hist']['Gmean'])
+		Set[x]['R']['std'].append(parser.R[abs(x)]['hist']['Gstd'])
+		Set[x]['R']['Y'].append(parser.R[abs(x)]['r'])
+		Set[x]['FN']['pos']['mean'].append(parser.FN['pos']['Gmean'])
+		Set[x]['FN']['pos']['std'].append(parser.FN['pos']['Gstd'])
+		Set[x]['FN']['neg']['mean'].append(parser.FN['neg']['Gmean'])
+		Set[x]['FN']['neg']['std'].append(parser.FN['neg']['Gstd'])
+
+	@classmethod
+	def DoPop(cls,parser,Set,x):
+		Pop[x] = {'J':{'mean':0,'std':0},'R':{'mean':0,'std':0}, 'FN':{'pos':{'mean':0,'std':0},'neg':{'mean':0,'std':0}}}
+		Pop[x]['J']['mean'] = parser.XY[x]['hist']['mean']
+		Pop[x]['J']['std'] = parser.XY[x]['hist']['std']
+		Pop[x]['R']['mean'] = parser.R[abs(x)]['hist']['mean']
+		Pop[x]['R']['std'] = parser.R[abs(x)]['hist']['std']
+		Pop[x]['FN']['neg']['mean'] = parser.FN['neg']['mean']
+		Pop[x]['FN']['neg']['std'] = parser.FN['neg']['std']
+		Pop[x]['FN']['pos']['mean'] = parser.FN['pos']['mean']
+		Pop[x]['FN']['pos']['std'] = parser.FN['pos']['std']
 
 	def __autonobs(self,opts,pop_files):
 		Set,Pop = {},{}
@@ -232,7 +215,7 @@ class Stats:
 				td = cTimes[s]-cTimes[f]
 				if td.total_seconds() == 0:
 					continue
-				dd = td.days
+				dd = abs(td.days)
 				if dd not in diffdays:
 					diffdays[dd] = [(f,s)]
 				elif (s,f) not in diffdays[dd] and (f,s) not in diffdays[dd]:
