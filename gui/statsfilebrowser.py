@@ -140,19 +140,21 @@ class ChooseFiles(Frame):
 
 	def Parse(self):
 		if len(self.gothreads):
+			self.ButtonGo['state']=DISABLED
 			for c in self.gothreads:
 				if c.is_alive():
 					self.ButtonGo.after('500',self.Parse)
 					return	
 			logging.info("Parse complete!")
 			gothread = self.gothreads.pop()
+			self.ButtonGo['state']=NORMAL
 			if self.opts.plot:
 				plotter = StatPlotter(gothread.statparser)
 				logging.info("Generating plots...")
 				try:
 						import matplotlib.pyplot as plt
 						plotter.DoPlots(plt)
-						plt.show()
+						plt.show(block=False)
 				except ImportError as msg:
 						logging.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
 		else: 
