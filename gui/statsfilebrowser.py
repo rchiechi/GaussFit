@@ -170,8 +170,7 @@ class ChooseFiles(Frame):
 			createToolTip(entry, l['tooltip'])
 			setattr(self, 'Entry'+l['name'], entry)
 			i+=2
-		
-	
+
 		self.checkOptions()
 
 	def __createColumnEntry(self):
@@ -180,7 +179,6 @@ class ChooseFiles(Frame):
 			self.EntryColumns.bind(t, self.checkColumnEntry)
 		self.EntryColumns.pack()
 		self.checkColumnEntry(None)
-
 
 	def __createOutputLabel(self):
 		ab=('A','B')
@@ -200,8 +198,6 @@ class ChooseFiles(Frame):
 			getattr(self,'xScroll'+ab[i])['command'] = getattr(self,'FileListBox'+ab[i]).xview
 			getattr(self,'yScroll'+ab[i])['command'] = getattr(self,'FileListBox'+ab[i]).yview
 
-
-
 	def ToFront(self):
 		if platform.system() == "Darwin":
 			os.system('''/usr/bin/osascript -e 'tell app "Finder" to set frontmost of process "Python" to true' ''')
@@ -217,6 +213,7 @@ class ChooseFiles(Frame):
 		self.master.destroy()
 
 	def ParseClick(self):
+		self.checkOptions()
 		self.Parse()
 
 	def Parse(self):
@@ -265,6 +262,7 @@ class ChooseFiles(Frame):
 			getattr(self,'FileListBox'+ab).selection_clear(0,END)
 
 	def SpawnInputDialogClick(self,ab):
+		self.checkOptions()
 		ab=ab.upper()
 		if ab == 'A': a,b='A','B'
 		else: a,b = 'B','A'
@@ -289,6 +287,7 @@ class ChooseFiles(Frame):
 		getattr(self, 'filelist'+ab).set(" ".join([x.replace(" ","_") for x in getattr(self.opts, 'set'+ab)]))
 
 	def SpawnOutputDialogClick(self):
+		self.checkOptions()
 		outdir = filedialog.askdirectory(title="Select Output File(s)", initialdir=self.opts.out_dir)
 		if os.path.exists(outdir):
 			self.opts.out_dir = outdir
