@@ -127,8 +127,14 @@ class ChooseFiles(Frame):
 			self.master.attributes('-topmost', 0)
 		self.master.lift()
 
+	def QuitClick(self):
+		self.Quit()
+
 	def Quit(self):
 		self.master.destroy()
+
+	def ParseClick(self):
+		self.Parse()
 
 	def Parse(self):
 		if len(self.gothreads):
@@ -203,119 +209,69 @@ class ChooseFiles(Frame):
 	def createOptions(self):
 ##		Label( self.OptionsFrame,text="Select Options:").grid(column=1, row=0)
 
-		self.plot = IntVar()
-		self.write = IntVar()
-		self.Check_plot = Checkbutton(self.OptionsFrame, text="Plot", \
-										 variable=self.plot, command=self.checkOptions)
-		self.Check_plot.grid(column=0,row=1,sticky=W)
-		createToolTip(self.Check_plot, "Show summary plots after parsing.")
-		
-		self.Check_write = Checkbutton(self.OptionsFrame, text="Write", \
-										  variable=self.write, command=self.checkOptions)
-		self.Check_write.grid(column=0,row=2,sticky=W)
-		createToolTip(self.Check_write, "Write results to text files after parsing.")
+		self.checks = [
+			  {'name':'plot','text':'Plot','row':1,'tooltip':"Show summary plots after parsing."},
+			  {'name':'write','text':'Write','row':2,'tooltip':"Write results to text files after parsing."},
+			  {'name':'skipohmic','text':'Skip bad dJ/dV','row':5,'tooltip':'Skip plots with d2J/dV2 < 0 between Vcutoff and Vmin/Vmax.'},
+			  {'name':'nomin','text':'Use dJ/dV for Vtrans','row':6,'tooltip':'Use dJ/dV plots to find the minimum of F-N plots when computing Vtrans.'},
+			  {'name':'logr','text':'Use |R|','row':7,'tooltip':'Use |R| instead of log|R| when computing histograms.'},
+			  {'name':'lorenzian','text':'Lorenzian','row':8,'tooltip':'Fit a Lorenzian instead of a Gaussian.'}
+			  ]
+
+
+		for c in self.checks:
+			setattr(self,c['name'],IntVar())
+			check = Checkbutton(self.OptionsFrame, text=c['text'],
+					variable=getattr(self,c['name']), command=self.checkOptions)
+			check.grid(column=0,row=c['row'],sticky=W)
+			createToolTip(check,c['tooltip'])
+			setattr(self,'Check_'+c['name'],check)
+			if getattr(self.opts,c['name']):
+				getattr(self,c['name']).set(1)
+
 
 		Label(self.OptionsFrame, text="Output file base name:").grid(column=0,row=3)
-
 		self.OutputFileName = Entry(self.OptionsFrame, width=16)
-		self.OutputFileName.bind("<Return>", self.checkOutputFileName)
-		self.OutputFileName.bind("<Leave>", self.checkOutputFileName)
-		self.OutputFileName.bind("<Enter>", self.checkOutputFileName)
+		for n in ('<Return>','<Leave>','<Enter>'):
+			self.OutputFileName.bind(n, self.checkOutputFileName)
 		self.OutputFileName.grid(column=0,row=4)
-
-		self.skip = IntVar()
-		self.Check_skip = Checkbutton(self.OptionsFrame, text="Skip bad dJ/dV", \
-										 variable=self.skip, command=self.checkOptions)
-		self.Check_skip.grid(column=0,row=5,sticky=W)
-		createToolTip(self.Check_skip, "Skip plots with d2J/dV2 < 0 between Vcutoff and Vmin/Vmax.")
-
-		self.nomin = IntVar()
-		self.Check_smooth = Checkbutton(self.OptionsFrame, text="Use dJ/dV for Vtrans", \
-										 variable=self.nomin, command=self.checkOptions)
-		self.Check_smooth.grid(column=0,row=6,sticky=W)
-		createToolTip(self.Check_smooth, "Use dJ/dV plots to find the minimum of F-N plots when computing Vtrans.")
-
-		self.logr = IntVar()
-		self.Check_logr = Checkbutton(self.OptionsFrame, text="Use log|R|", \
-										 variable=self.logr, command=self.checkOptions)
-		self.Check_logr.grid(column=0,row=7,sticky=W)
-		createToolTip(self.Check_logr, "Use log|R| instead of |R| when computing histograms.")
-
-		self.lorenzian = IntVar()
-		self.Check_lorenzian = Checkbutton(self.OptionsFrame, text="Lorenzian", \
-										 variable=self.lorenzian, command=self.checkOptions)
-		self.Check_lorenzian.grid(column=0,row=8,sticky=W)
-		createToolTip(self.Check_lorenzian, "Fit a Lorenzian instead of a Gaussian.")
-
-
-		Label(self.LeftOptionsFrame, text="Cuttoff for d2J/dV2:").grid(column=0,row=0)
-		self.EntryVcutoff = Entry(self.LeftOptionsFrame, width=8)
-		self.EntryVcutoff.bind("<Return>", self.checkOptions)
-		self.EntryVcutoff.bind("<Leave>", self.checkOptions)
-		self.EntryVcutoff.bind("<Enter>", self.checkOptions)
-		self.EntryVcutoff.grid(column=0,row=1)
-		createToolTip(self.EntryVcutoff, "Check the values of d2J/dV2 between |vcutoff| and Vmin/Vmax for line-shape filtering. Set to -1 for Vmin/Vmax.")
-
-		Label(self.LeftOptionsFrame, text="Smoothing parameter:").grid(column=0,row=2)
-		self.Smoothingcutoff = Entry(self.LeftOptionsFrame, width=8)
-		self.Smoothingcutoff.bind("<Return>", self.checkOptions)
-		self.Smoothingcutoff.bind("<Leave>", self.checkOptions)
-		self.Smoothingcutoff.bind("<Enter>", self.checkOptions)
-		self.Smoothingcutoff.grid(column=0,row=3)
-		createToolTip(self.Smoothingcutoff, "The cutoff value for the residual squares (the difference between experimental data points and the fit). The default is 1e-12. Set to 0 to disable smoothing.")
 		
-		Label(self.LeftOptionsFrame, text="Bins for J/R Histograms:").grid(column=0,row=6)
-		self.EntryJRBins = Entry(self.LeftOptionsFrame, width=8)
-		self.EntryJRBins.bind("<Return>", self.checkOptions)
-		self.EntryJRBins.bind("<Leave>", self.checkOptions)
-		self.EntryJRBins.bind("<Enter>", self.checkOptions)
-		self.EntryJRBins.grid(column=0,row=7)
-		createToolTip(self.EntryJRBins, "Set binning for histograms of J and R.")
-		
-		Label(self.LeftOptionsFrame, text="Bins for G Histograms:").grid(column=0,row=8)
-		self.Entryhmbins = Entry(self.LeftOptionsFrame, width=8)
-		self.Entryhmbins.bind("<Return>", self.checkOptions)
-		self.Entryhmbins.bind("<Leave>", self.checkOptions)
-		self.Entryhmbins.bind("<Enter>", self.checkOptions)
-		self.Entryhmbins.grid(column=0,row=9)
-		createToolTip(self.Entryhmbins, "Set binning for conductance heatmap histograms.")
-
-	# checkGminmaxEntry call must come last
-		Label(self.LeftOptionsFrame, text="Y-scale for conductance:").grid(column=0,row=4)
-		self.EntryGminmax = Entry(self.LeftOptionsFrame, width=8)
-		self.EntryGminmax.bind("<Return>", self.checkGminmaxEntry)
-		self.EntryGminmax.bind("<Leave>", self.checkGminmaxEntry)
-		self.EntryGminmax.bind("<Enter>", self.checkGminmaxEntry)
-		self.EntryGminmax.grid(column=0,row=5)
-		createToolTip(self.EntryGminmax, "Set Ymin,Ymax for the conductance plot (lower-left of plot output).")
-
-
-		if self.opts.write:
-			self.write.set(1)
-		if self.opts.plot:
-			self.plot.set(1)
-		if self.opts.logr:
-			self.logr.set(1)
 		if self.opts.outfile:
 			self.OutputFileName.insert(0,self.opts.outfile)
-		if self.opts.skipohmic:
-			self.skip.set(1)
-		if self.opts.nomin:
-			self.nomin.set(1)
-		if self.opts.lorenzian:
-			self.lorenzian.set(1)
+		
+	
+
+		lbls = [
+			{'name': 'Vcutoff', 'text': "Cuttoff for d2J/dV2:",
+			 'tooltip': "Check the values of d2J/dV2 between |vcutoff| and Vmin/Vmax for line-shape filtering. Set to -1 for Vmin/Vmax."},
+			{'name': 'Smooth', 'text': "Smoothing parameter:",
+			 'tooltip': "The cutoff value for the residual squares (the difference between experimental data points and the fit). The default is 1e-12. Set to 0 to disable smoothing."},
+			{'name': 'Gminmax', 'text': "Y-scale for conductance:",
+		         'tooltip': "Set Ymin,Ymax for the conductance plot (lower-left of plot output)."},
+			{'name': 'Bins', 'text': "Bins for J/R Histograms:",
+			 'tooltip': "Set binning for histograms of J and R."},
+			{'name': 'Heatmapbins', 'text': "Bins for G Histograms:",
+			 'tooltip': "Set binning for conductance heatmap histograms."}
+			]
+		
+		i = 0
+		for l in lbls:
+			Label(self.LeftOptionsFrame, text=l['text']).grid(column=0,row=i)
+			entry = Entry(self.LeftOptionsFrame, width=8)
+			entry.bind("<Return>", self.checkOptions)
+			entry.bind("<Leave>", self.checkOptions)
+			entry.bind("<Enter>", self.checkOptions)
+			entry.grid(column=0,row=i+1)
+			createToolTip(entry, l['tooltip'])
+			setattr(self, 'Entry'+l['name'], entry)
+			i+=2
 
 
 		self.checkOptions()
-		self.checkGminmaxEntry(None)
 
 	def checkOptions(self, event=None):
-		self.opts.plot = self.boolmap[self.plot.get()]
-		self.opts.write = self.boolmap[self.write.get()]
-		self.opts.skipohmic = self.boolmap[self.skip.get()]
-		self.opts.nomin = self.boolmap[self.nomin.get()]
-		self.opts.logr = self.boolmap[self.logr.get()]
-		self.opts.lorenzian = self.boolmap[self.lorenzian.get()]
+		for c in self.checks:
+			setattr(self.opts,c['name'],self.boolmap[getattr(self,c['name']).get()])
 		
 		if not self.opts.write:
 			self.opts.plot = True
@@ -323,11 +279,6 @@ class ChooseFiles(Frame):
 			self.Check_plot["state"]=DISABLED
 		else:
 			self.Check_plot["state"]=NORMAL
-
-		#if not self.opts.plot:
-		#	self.EntryGminmax["state"]=DISABLED
-		#else:
-		#	self.EntryGminmax["state"]=NORMAL
 
 		try:
 			vcutoff = float(self.EntryVcutoff.get())
@@ -343,30 +294,18 @@ class ChooseFiles(Frame):
 		else:
 			self.EntryVcutoff.insert(0,"Vmax")
 
-		try:
-			self.opts.smooth = abs(float(self.Smoothingcutoff.get()))	 
-		except ValueError:
-			self.opts.smooth = 1e-12
 
-		self.Smoothingcutoff.delete(0, END)
-		self.Smoothingcutoff.insert(0,self.opts.smooth)
-
-		try:
-			self.opts.bins = abs(int(self.EntryJRBins.get()))
-		except ValueError:
-			self.opts.bins = 50
-
-		self.EntryJRBins.delete(0, END)
-		self.EntryJRBins.insert(0,self.opts.bins)
-
-		try:
-			self.opts.heatmapbins = abs(int(self.Entryhmbins.get()))
-		except ValueError:
-			self.opts.heatmapbins = 25
-
-		self.Entryhmbins.delete(0, END)
-		self.Entryhmbins.insert(0,self.opts.heatmapbins)
+		for n in (('Smooth',1e-12),('Bins',50),('Heatmapbins',25)):
+			try:
+				var = int(getattr(self,'Entry'+n[0]).get())
+			except ValueError:
+				var = n[1]
+			if var > 0:
+				setattr(self.opts,n[0].lower(),var)
+			getattr(self,'Entry'+n[0]).delete(0,END)
+			getattr(self,'Entry'+n[0]).insert(0,getattr(self.opts,n[0].lower()))
 	
+		self.checkGminmaxEntry(None)
 	
 
 
@@ -393,7 +332,6 @@ class ChooseFiles(Frame):
 		self.EntryColumns.insert(0, ",".join(( str(self.opts.Xcol+1), str(self.opts.Ycol+1) )))
 
 	def checkGminmaxEntry(self, event):
-		self.checkOptions()
 		try:
 			x, y = self.EntryGminmax.get().split(",")
 			self.opts.mlow, self.opts.mhi = int(x), int(y)
