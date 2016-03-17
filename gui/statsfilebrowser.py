@@ -101,29 +101,20 @@ class ChooseFiles(Frame):
 
 	def __createButtons(self):
 			
-		self.ButtonQuit = Button(self.ButtonFrame)
-		self.ButtonQuit.config(text="QUIT", command=self.Quit)
-		self.ButtonQuit.pack(side=BOTTOM)
-		
-		self.ButtonSpawnInputDialogA = Button(self.ButtonFrame)
-		self.ButtonSpawnInputDialogA.config(text="Add Input Files A", command=self.SpawnInputDialogAClick)
-		self.ButtonSpawnInputDialogA.pack(side=LEFT)
-		
-		self.ButtonSpawnInputDialogB = Button(self.ButtonFrame)
-		self.ButtonSpawnInputDialogB.config(text="Add Input Files B", command=self.SpawnInputDialogBClick)
-		self.ButtonSpawnInputDialogB.pack(side=LEFT)
+		buttons = [
+			   {'name':'Quit','text':'QUIT','command':'Quit','side':BOTTOM},
+			   {'name':'SpawnInputDialogA','text':'Add Input Files A','side':LEFT},
+			   {'name':'SpawnInputDialogB','text':'Add Input Files B','side':LEFT},
+			   {'name':'RemoveFile','text':'Remove Files','side':LEFT},
+			   {'name':'SpawnOutputDialog','text':'Choose Output Directory','side':LEFT},
+			   {'name':'Parse','text':'Parse!','side':LEFT}
+			   ]
 
-		self.ButtonRemoveFile = Button(self.ButtonFrame)
-		self.ButtonRemoveFile.config(text="Remove Input Files",command=self.RemoveFileClick)
-		self.ButtonRemoveFile.pack(side=LEFT)
-		
-		self.ButtonSpawnOutputDialog = Button(self.ButtonFrame)
-		self.ButtonSpawnOutputDialog.config(text="Choose Output Directory",command=self.SpawnOutputDialogClick)
-		self.ButtonSpawnOutputDialog.pack(side=LEFT)
-		
-		self.ButtonGo = Button(self.ButtonFrame)
-		self.ButtonGo.config(text="Parse!", command=self.Parse)
-		self.ButtonGo.pack(side=LEFT)
+		for b in buttons:
+			button = Button(self.ButtonFrame)
+			button.config(text=b['text'],command=getattr(self,b['name']+'Click'))
+			button.pack(side=b['side'])
+			setattr(self,'Button'+b['name'],button)
 
 		
 	def __createOptions(self):
@@ -145,14 +136,19 @@ class ChooseFiles(Frame):
 			check.grid(column=0,row=c['row'],sticky=W)
 			createToolTip(check,c['tooltip'])
 			setattr(self,'Check_'+c['name'],check)
+			if getattr(self.opts,c['name']):
+				getattr(self,c['name']).set(1)
+		
 
 		Label(self.OptionsFrame, text="Output file base name:").grid(column=0,row=3)
-
 		self.OutputFileName = Entry(self.OptionsFrame, width=16)
-		self.OutputFileName.bind("<Return>", self.checkOutputFileName)
-		self.OutputFileName.bind("<Leave>", self.checkOutputFileName)
-		self.OutputFileName.bind("<Enter>", self.checkOutputFileName)
+		for n in ('<Return>','<Leave>','<Enter>'):
+			self.OutputFileName.bind(n, self.checkOutputFileName)
 		self.OutputFileName.grid(column=0,row=4)
+		
+		if self.opts.outfile:
+			self.OutputFileName.insert(0,self.opts.outfile)
+		
 
 		lbls = [
 			{'name': 'Vcutoff', 'text': "Cuttoff for d2J/dV2:",
@@ -175,20 +171,7 @@ class ChooseFiles(Frame):
 			setattr(self, 'Entry'+l['name'], entry)
 			i+=2
 		
-		if self.opts.write:
-			self.write.set(1)
-		if self.opts.plot:
-			self.plot.set(1)
-		if self.opts.outfile:
-			self.OutputFileName.insert(0,self.opts.outfile)
-		if self.opts.skipohmic:
-			self.skipohmic.set(1)
-		if self.opts.nomin:
-			self.nomin.set(1)
-		if self.opts.lorenzian:
-			self.lorenzian.set(1)
-		if self.opts.autonobs:
-			self.autonobs.set(1)
+	
 		self.checkOptions()
 
 	def __createColumnEntry(self):
@@ -227,19 +210,25 @@ class ChooseFiles(Frame):
 			self.master.attributes('-topmost', 0)
 		self.master.lift()
 
+	def QuitClick(self):
+		self.Quit()
+
 	def Quit(self):
 		self.master.destroy()
 
+	def ParseClick(self):
+		self.Parse()
+
 	def Parse(self):
 		if len(self.gothreads):
-			self.ButtonGo['state']=DISABLED
+			self.ButtonParse['state']=DISABLED
 			for c in self.gothreads:
 				if c.is_alive():
-					self.ButtonGo.after('500',self.Parse)
+					self.ButtonParse.after('500',self.Parse)
 					return	
 			logging.info("Parse complete!")
 			gothread = self.gothreads.pop()
-			self.ButtonGo['state']=NORMAL
+			self.ButtonParse['state']=NORMAL
 			if self.opts.plot:
 				plotter = StatPlotter(gothread.statparser)
 				logging.info("Generating plots...")
@@ -255,7 +244,7 @@ class ChooseFiles(Frame):
 				statparser = Stats(self.opts)
 				self.gothreads.append(ParseThread(statparser))
 				self.gothreads[-1].start()
-				self.ButtonGo.after('500',self.Parse)
+				self.ButtonParse.after('500',self.Parse)
 			else:
 				self.logger.warn("No input files!")
 	def RemoveFileClick(self):
@@ -341,8 +330,6 @@ class ChooseFiles(Frame):
 			getattr(self,'Entry'+n).delete(0,END)
 			getattr(self,'Entry'+n).insert(0,getattr(self.opts,n.lower()))
 	
-	
-
 		
 	def checkOutputFileName(self, event):
 		self.opts.outfile = self.OutputFileName.get()
@@ -357,21 +344,6 @@ class ChooseFiles(Frame):
 		self.EntryColumns.delete(0, END)
 		self.EntryColumns.insert(0, ",".join(( str(self.opts.Xcol+1), str(self.opts.Ycol+1) )))
 
-#	def checkGminmaxEntry(self, event):
-#		self.checkOptions()
-#		try:
-#			x, y = self.EntryGminmax.get().split(",")
-#			self.opts.mlow, self.opts.mhi = int(x), int(y)
-#		except ValueError as msg:
-#			pass
-#		self.EntryGminmax.delete(0, END)
-#		self.EntryGminmax.insert(0, ",".join( (str(self.opts.mlow), str(self.opts.mhi)) ))
-
-
-
-
-
-#############
 
 
 class LoggingToGUI(logging.Handler):

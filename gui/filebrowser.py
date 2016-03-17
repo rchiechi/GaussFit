@@ -236,10 +236,10 @@ class ChooseFiles(Frame):
 		createToolTip(self.Check_smooth, "Use dJ/dV plots to find the minimum of F-N plots when computing Vtrans.")
 
 		self.logr = IntVar()
-		self.Check_logr = Checkbutton(self.OptionsFrame, text="Use |R|", \
+		self.Check_logr = Checkbutton(self.OptionsFrame, text="Use log|R|", \
 										 variable=self.logr, command=self.checkOptions)
 		self.Check_logr.grid(column=0,row=7,sticky=W)
-		createToolTip(self.Check_logr, "Use |R| instead of log|R| when computing histograms.")
+		createToolTip(self.Check_logr, "Use log|R| instead of |R| when computing histograms.")
 
 		self.lorenzian = IntVar()
 		self.Check_lorenzian = Checkbutton(self.OptionsFrame, text="Lorenzian", \
@@ -288,14 +288,14 @@ class ChooseFiles(Frame):
 		self.EntryGminmax.bind("<Enter>", self.checkGminmaxEntry)
 		self.EntryGminmax.grid(column=0,row=5)
 		createToolTip(self.EntryGminmax, "Set Ymin,Ymax for the conductance plot (lower-left of plot output).")
-		self.checkGminmaxEntry(None)
-
 
 
 		if self.opts.write:
 			self.write.set(1)
 		if self.opts.plot:
 			self.plot.set(1)
+		if self.opts.logr:
+			self.logr.set(1)
 		if self.opts.outfile:
 			self.OutputFileName.insert(0,self.opts.outfile)
 		if self.opts.skipohmic:
@@ -307,6 +307,7 @@ class ChooseFiles(Frame):
 
 
 		self.checkOptions()
+		self.checkGminmaxEntry(None)
 
 	def checkOptions(self, event=None):
 		self.opts.plot = self.boolmap[self.plot.get()]

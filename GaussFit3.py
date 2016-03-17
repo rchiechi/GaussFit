@@ -37,33 +37,6 @@ def Go(opts):
 	if opts.write:	
 			writer = Writer(parser)
 			Parse.doOutput(writer)
-			#logging.info("Writing files...")
-			#writer.WriteParseInfo()
-			#writer.WriteVtrans()
-			#writer.WriteGNUplot('Vtransplot')
-			#writer.WriteFN()
-			#writer.WriteGauss()
-			#writer.WriteGNUplot('JVplot')
-			#writer.WriteData()
-			#writer.WriteDJDV()
-			#writer.WriteFiltered()
-			#writer.WriteData(True)
-			#writer.WriteRData()
-			#writer.WriteGNUplot('Rplot')
-			#try:
-			#	writer.WriteHistograms()
-			#	writer.WriteGNUplot('JVhistplot')
-			#except IndexError:
-			#	print("Error outputting histrograms")
-			#try:
-			#	writer.WriteGHistogram()
-			#except IndexError:
-			#	print("Error outputting Ghistrograms")
-			#try:
-			#	writer.WriteGMatrix()
-			#	writer.WriteGNUplot('Gplot', ['parula.pal']) 
-			#except IndexError:
-			#	print("Error outputting GMatrix")
 	parser.PrintFN()
 	if opts.plot:
 			plotter = Plotter(parser)
