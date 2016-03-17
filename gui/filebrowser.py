@@ -53,16 +53,14 @@ class ChooseFiles(Frame):
 		self.master.title("File Browser")
 		self.master.geometry('850x750+250-250')
 		self.pack(fill=BOTH)
-		self.createWidgets()
+		self.__createWidgets()
 		self.ToFront()
 		self.mainloop()
 
-	def createWidgets(self):
+	def __createWidgets(self):
 			
 		self.ButtonFrame = Frame(self)
-
 		self.OptionsFrame = Frame(self)
-		
 
 		self.ColumnFrame = Frame(self)
 		self.ColumnFrameLabel = Label(self.ColumnFrame, text="Columns to parse:" ).pack(side=TOP, ipadx=10)
@@ -79,10 +77,10 @@ class ChooseFiles(Frame):
 		self.Logging = Text(self.LoggingFrame, height=20)
 		self.Logging.pack()
 
-		self.createButtons()
-		self.createOutputLabel()
-		self.createOptions()
-		self.createColumnEntry()
+		self.__createButtons()
+		self.__createOutputLabel()
+		self.__createOptions()
+		self.__createColumnEntry()
 
 		self.ButtonFrame.pack(side=BOTTOM, fill=Y)
 		self.FileListBoxFrame.pack(side=TOP, fil=Y, expand=1)
@@ -97,116 +95,24 @@ class ChooseFiles(Frame):
 
 		self.updateFileListBox()
 
-	def createButtons(self):
+	def __createButtons(self):
 			
-		self.ButtonQuit = Button(self.ButtonFrame)
-		self.ButtonQuit.config(text="QUIT", command=self.Quit)
-		self.ButtonQuit.pack(side=BOTTOM)
-		
-		self.ButtonSpawnInputDialog = Button(self.ButtonFrame)
-		self.ButtonSpawnInputDialog.config(text="Add Input Files", command=self.SpawnInputDialogClick)
-		self.ButtonSpawnInputDialog.pack(side=LEFT)
+		buttons = [
+			   {'name':'Quit','text':'QUIT','command':'Quit','side':BOTTOM},
+			   {'name':'SpawnInputDialog','text':'Add Input Files','side':LEFT},
+			   {'name':'RemoveFile','text':'Remove Files','side':LEFT},
+			   {'name':'SpawnOutputDialog','text':'Choose Output Directory','side':LEFT},
+			   {'name':'Parse','text':'Parse!','side':LEFT}
+			   ]
 
-		self.ButtonRemoveFile = Button(self.ButtonFrame)
-		self.ButtonRemoveFile.config(text="Remove Input Files",command=self.RemoveFileClick)
-		self.ButtonRemoveFile.pack(side=LEFT)
-		
-		self.ButtonSpawnOutputDialog = Button(self.ButtonFrame)
-		self.ButtonSpawnOutputDialog.config(text="Choose Output Directory",command=self.SpawnOutputDialogClick)
-		self.ButtonSpawnOutputDialog.pack(side=LEFT)
-		
-		self.ButtonGo = Button(self.ButtonFrame)
-		self.ButtonGo.config(text="Parse!", command=self.Parse)
-		self.ButtonGo.pack(side=LEFT)
-
-	def ToFront(self):
-		if platform.system() == "Darwin":
-			os.system('''/usr/bin/osascript -e 'tell app "Finder" to set frontmost of process "Python" to true' ''')
-		else:
-			self.master.attributes('-topmost', 1)
-			self.master.attributes('-topmost', 0)
-		self.master.lift()
-
-	def QuitClick(self):
-		self.Quit()
-
-	def Quit(self):
-		self.master.destroy()
-
-	def ParseClick(self):
-		self.Parse()
-
-	def Parse(self):
-		if len(self.gothreads):
-			self.ButtonGo['state']=DISABLED
-			for c in self.gothreads:
-				if c.is_alive():
-					self.ButtonGo.after('500',self.Parse)
-					return	
-			logging.info("Parse complete!")
-			gothread = self.gothreads.pop()
-			self.ButtonGo['state']=NORMAL
-			if self.opts.write:	
-				writer = Writer(parser)
-				Parse.doOutput(writer)
-			if self.opts.plot:
-				plotter = Plotter(gothread.parser)
-				logging.info("Generating plots...")
-				try:
-						import matplotlib.pyplot as plt
-						plotter.DoPlots(plt)
-						plt.show(block=False)
-				except ImportError as msg:
-						logging.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
-		else: 
-			if len(self.opts.in_files):
-				parser = Parse(self.opts)
-				self.gothreads.append(ParseThread(self.opts,parser))
-				self.gothreads[-1].start()
-				self.ButtonGo.after('500',self.Parse)
-			else:
-				self.logger.warn("No input files!")
-
-	def RemoveFileClick(self):
-		selected = [self.FileListBox.get(x) for x in self.FileListBox.curselection()]
-		todel = []
-		filelist = []
-		for i in range(0, len(self.opts.in_files)):
-			for s in selected:
-				if self.opts.in_files[i].replace(" ","_") == s:
-					todel.append(i)
-		
-		for i in range(0, len(self.opts.in_files)):
-			if i not in todel:
-					   filelist.append(self.opts.in_files[i])
-		self.opts.in_files = filelist
-		self.updateFileListBox()
-		self.FileListBox.selection_clear(0,END)
-		
-			
-	def SpawnInputDialogClick(self):
-		self.opts.in_files += filedialog.askopenfilename(title="Files to parse", multiple=True, \
-						initialdir=self.last_input_path,\
-						 filetypes=[('Data files','*_data.txt'),('Text files','*.txt'),('All files', '*')])
-		if len(self.opts.in_files):
-			self.last_input_path = os.path.split(self.opts.in_files[0])[0]
-			self.updateFileListBox()
-
-
-	def updateFileListBox(self):
-		self.filelist.set(" ".join([x.replace(" ","_") for x in self.opts.in_files]))
-			
-	def SpawnOutputDialogClick(self):
-		outdir = filedialog.askdirectory(title="Select Output File(s)", initialdir=self.opts.out_dir)
-		if os.path.exists(outdir):
-			self.opts.out_dir = outdir
-			self.UpdateFileListBoxFrameLabel()
-
-	def UpdateFileListBoxFrameLabel(self):
-		self.FileListBoxFrameLabelVar.set("Output to: %s/%s_*.txt"% (self.opts.out_dir, self.opts.outfile) )
+		for b in buttons:
+			button = Button(self.ButtonFrame)
+			button.config(text=b['text'],command=getattr(self,b['name']+'Click'))
+			button.pack(side=b['side'])
+			setattr(self,'Button'+b['name'],button)
 
 		
-	def createOptions(self):
+	def __createOptions(self):
 ##		Label( self.OptionsFrame,text="Select Options:").grid(column=1, row=0)
 
 		self.checks = [
@@ -214,7 +120,7 @@ class ChooseFiles(Frame):
 			  {'name':'write','text':'Write','row':2,'tooltip':"Write results to text files after parsing."},
 			  {'name':'skipohmic','text':'Skip bad dJ/dV','row':5,'tooltip':'Skip plots with d2J/dV2 < 0 between Vcutoff and Vmin/Vmax.'},
 			  {'name':'nomin','text':'Use dJ/dV for Vtrans','row':6,'tooltip':'Use dJ/dV plots to find the minimum of F-N plots when computing Vtrans.'},
-			  {'name':'logr','text':'Use |R|','row':7,'tooltip':'Use |R| instead of log|R| when computing histograms.'},
+			  {'name':'logr','text':'Use |R|','row':7,'tooltip':'Use log |R| instead of |R| when computing histograms.'},
 			  {'name':'lorenzian','text':'Lorenzian','row':8,'tooltip':'Fit a Lorenzian instead of a Gaussian.'}
 			  ]
 
@@ -269,6 +175,125 @@ class ChooseFiles(Frame):
 
 		self.checkOptions()
 
+
+
+	def __createOutputLabel(self):
+
+		self.yScroll = Scrollbar(self.FileListBoxFrame, orient=VERTICAL)
+		self.yScroll.grid(row=1, column=1, sticky=N+S)
+
+		self.xScroll = Scrollbar(self.FileListBoxFrame, orient=HORIZONTAL)
+		self.xScroll.grid(row=2, column=0, sticky=E+W)
+
+ 
+		self.filelist = StringVar()
+		self.FileListBox = Listbox(self.FileListBoxFrame, listvariable=self.filelist, selectmode=EXTENDED, 
+						height = 20, width = 100, relief=RAISED, bd=1, 
+									  xscrollcommand=self.xScroll.set, 
+									  yscrollcommand=self.yScroll.set)
+		self.FileListBox.grid(row=1, column=0, sticky=N+S+E+W)
+		self.xScroll['command'] = self.FileListBox.xview
+		self.yScroll['command'] = self.FileListBox.yview
+
+
+
+
+	def __createColumnEntry(self):
+
+		self.EntryColumns = Entry(self.ColumnFrame, width=8)
+		self.EntryColumns.bind("<Return>", self.checkColumnEntry)
+		self.EntryColumns.bind("<Leave>", self.checkColumnEntry)
+		self.EntryColumns.bind("<Enter>", self.checkColumnEntry)
+		self.EntryColumns.pack()
+		self.checkColumnEntry(None)
+	
+
+	def ToFront(self):
+		if platform.system() == "Darwin":
+			os.system('''/usr/bin/osascript -e 'tell app "Finder" to set frontmost of process "Python" to true' ''')
+		else:
+			self.master.attributes('-topmost', 1)
+			self.master.attributes('-topmost', 0)
+		self.master.lift()
+
+	def QuitClick(self):
+		self.Quit()
+
+	def Quit(self):
+		self.master.destroy()
+
+	def ParseClick(self):
+		self.Parse()
+
+	def Parse(self):
+		if len(self.gothreads):
+			self.ButtonParse['state']=DISABLED
+			for c in self.gothreads:
+				if c.is_alive():
+					self.ButtonParse.after('500',self.Parse)
+					return	
+			logging.info("Parse complete!")
+			gothread = self.gothreads.pop()
+			self.ButtonParse['state']=NORMAL
+			if self.opts.write:	
+				writer = Writer(gothread.parser)
+				Parse.doOutput(writer)
+			if self.opts.plot:
+				plotter = Plotter(gothread.parser)
+				logging.info("Generating plots...")
+				try:
+						import matplotlib.pyplot as plt
+						plotter.DoPlots(plt)
+						plt.show(block=False)
+				except ImportError as msg:
+						logging.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
+		else: 
+			if len(self.opts.in_files):
+				parser = Parse(self.opts)
+				self.gothreads.append(ParseThread(self.opts,parser))
+				self.gothreads[-1].start()
+				self.ButtonParse.after('500',self.Parse)
+			else:
+				self.logger.warn("No input files!")
+
+	def RemoveFileClick(self):
+		selected = [self.FileListBox.get(x) for x in self.FileListBox.curselection()]
+		todel = []
+		filelist = []
+		for i in range(0, len(self.opts.in_files)):
+			for s in selected:
+				if self.opts.in_files[i].replace(" ","_") == s:
+					todel.append(i)
+		
+		for i in range(0, len(self.opts.in_files)):
+			if i not in todel:
+					   filelist.append(self.opts.in_files[i])
+		self.opts.in_files = filelist
+		self.updateFileListBox()
+		self.FileListBox.selection_clear(0,END)
+		
+			
+	def SpawnInputDialogClick(self):
+		self.opts.in_files += filedialog.askopenfilename(title="Files to parse", multiple=True, \
+						initialdir=self.last_input_path,\
+						 filetypes=[('Data files','*_data.txt'),('Text files','*.txt'),('All files', '*')])
+		if len(self.opts.in_files):
+			self.last_input_path = os.path.split(self.opts.in_files[0])[0]
+			self.updateFileListBox()
+
+
+	def updateFileListBox(self):
+		self.filelist.set(" ".join([x.replace(" ","_") for x in self.opts.in_files]))
+			
+	def SpawnOutputDialogClick(self):
+		outdir = filedialog.askdirectory(title="Select Output File(s)", initialdir=self.opts.out_dir)
+		if os.path.exists(outdir):
+			self.opts.out_dir = outdir
+			self.UpdateFileListBoxFrameLabel()
+
+	def UpdateFileListBoxFrameLabel(self):
+		self.FileListBoxFrameLabelVar.set("Output to: %s/%s_*.txt"% (self.opts.out_dir, self.opts.outfile) )
+
 	def checkOptions(self, event=None):
 		for c in self.checks:
 			setattr(self.opts,c['name'],self.boolmap[getattr(self,c['name']).get()])
@@ -307,17 +332,7 @@ class ChooseFiles(Frame):
 	
 		self.checkGminmaxEntry(None)
 	
-
-
-	def createColumnEntry(self):
-
-		self.EntryColumns = Entry(self.ColumnFrame, width=8)
-		self.EntryColumns.bind("<Return>", self.checkColumnEntry)
-		self.EntryColumns.bind("<Leave>", self.checkColumnEntry)
-		self.EntryColumns.bind("<Enter>", self.checkColumnEntry)
-		self.EntryColumns.pack()
-		self.checkColumnEntry(None)
-		
+	
 	def checkOutputFileName(self, event):
 		self.opts.outfile = self.OutputFileName.get()
 		self.UpdateFileListBoxFrameLabel()
@@ -339,26 +354,6 @@ class ChooseFiles(Frame):
 			pass
 		self.EntryGminmax.delete(0, END)
 		self.EntryGminmax.insert(0, ",".join( (str(self.opts.mlow), str(self.opts.mhi)) ))
-
-	def createOutputLabel(self):
-
-		self.yScroll = Scrollbar(self.FileListBoxFrame, orient=VERTICAL)
-		self.yScroll.grid(row=1, column=1, sticky=N+S)
-
-		self.xScroll = Scrollbar(self.FileListBoxFrame, orient=HORIZONTAL)
-		self.xScroll.grid(row=2, column=0, sticky=E+W)
-
- 
-		self.filelist = StringVar()
-		self.FileListBox = Listbox(self.FileListBoxFrame, listvariable=self.filelist, selectmode=EXTENDED, 
-						height = 20, width = 100, relief=RAISED, bd=1, 
-									  xscrollcommand=self.xScroll.set, 
-									  yscrollcommand=self.yScroll.set)
-		self.FileListBox.grid(row=1, column=0, sticky=N+S+E+W)
-		self.xScroll['command'] = self.FileListBox.xview
-		self.yScroll['command'] = self.FileListBox.yview
-
-
 
 
 #############
