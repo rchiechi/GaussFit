@@ -94,11 +94,6 @@ parser.add_argument('-L','--lorenzian', default=False, action='store_true',
 parser.add_argument('--maxfev', type=int, default=10000, 
 		help="Maximum interations for fitting histograms.")
 
-
-
-
-
-
 Opts=parser.parse_args()
 
 if not Opts.write:
@@ -111,15 +106,6 @@ if len(Opts.in_files) and not Opts.outfile:
 		Opts.outfile = Opts.in_files[0]
 Opts.Xcol -= 1
 Opts.Ycol -= 1
-
-if Opts.loglevel == 'debug':
-	LOGLEVEL = logging.DEBUG
-elif Opts.loglevel == 'warn':
-	LOGLEVEL = logging.WARN
-elif Opts.loglevel == 'error':
-	LOGLEVEL = logging.ERROR
-elif Opts.loglevel == 'info':
-	LOGLEVEL = logging.INFO
 			
 if not os.path.exists(Opts.out_dir):
 	parser.print_help()
@@ -129,16 +115,15 @@ if not os.path.exists(Opts.out_dir):
 # Set up terminal logging. Set LOG to a file for debugging.
 LOG = False
 if LOG:
-	logging.basicConfig(level=LOGLEVEL,format = '%(asctime)s %(process)d %(levelname)s %(message)s', filename=LOG,filemode='a+')
-elif Opts.GUI:
-	logging.basicConfig(level=LOGLEVEL,format = '%(levelname)s %(message)s')
+	logging.basicConfig(level= getattr(logging,Opts.loglevel.upper()),format = '%(asctime)s %(process)d %(levelname)s %(message)s', filename=LOG,filemode='a+')
 else:
-	logging.basicConfig(level=LOGLEVEL,format = GREEN+os.path.basename(sys.argv[0]+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE)
+	logging.basicConfig(level= getattr(logging,Opts.loglevel.upper()),format = GREEN+os.path.basename(sys.argv[0]+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE)
 
 if not len(Opts.in_files) and not Opts.GUI:
 	parser.print_help()
 	print(RED+"\n\t\t> > > No input files! < < < "+RS)
 	sys.exit()
+
 
 if Opts.delim == 'tab':
 	delim='\t'
@@ -146,5 +131,6 @@ if Opts.delim == 'comma':
 	delim=','
 if Opts.delim == 'space':
 	delim=' '
+
 # Setup CSV parser dialect
 csv.register_dialect('JV', delimiter=delim, quoting=csv.QUOTE_MINIMAL)

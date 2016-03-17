@@ -45,6 +45,8 @@ warnings.filterwarnings('ignore','.*invalid value encountered.*',RuntimeWarning)
 #warnings.filterwarnings('error','.*Degrees of freedom <= 0 for slice.*', RuntimeWarning)
 #warnings.filterwarnings('ignore','.*impossible result.*',UserWarning)
 
+
+
 class Parse():
 	'''
 	This is the main parsing class that takes input data
@@ -70,7 +72,8 @@ class Parse():
 			self.lock = lock
 		else:
 			self.lock = threading.Lock()
-	
+
+
 	@classmethod
 	def doOutput(cls,writer):
 		logging.info("Writing files...")

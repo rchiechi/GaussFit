@@ -236,11 +236,10 @@ class ChooseFiles(Frame):
 		createToolTip(self.Check_smooth, "Use dJ/dV plots to find the minimum of F-N plots when computing Vtrans.")
 
 		self.logr = IntVar()
-		self.logr.set(True)
-		self.Check_logr = Checkbutton(self.OptionsFrame, text="Use log|R|", \
+		self.Check_logr = Checkbutton(self.OptionsFrame, text="Use |R|", \
 										 variable=self.logr, command=self.checkOptions)
 		self.Check_logr.grid(column=0,row=7,sticky=W)
-		createToolTip(self.Check_logr, "Use log|R| when computing histograms.")
+		createToolTip(self.Check_logr, "Use |R| instead of log|R| when computing histograms.")
 
 		self.lorenzian = IntVar()
 		self.Check_lorenzian = Checkbutton(self.OptionsFrame, text="Lorenzian", \
@@ -303,6 +302,9 @@ class ChooseFiles(Frame):
 			self.skip.set(1)
 		if self.opts.nomin:
 			self.nomin.set(1)
+		if self.opts.lorenzian:
+			self.lorenzian.set(1)
+
 
 		self.checkOptions()
 
@@ -427,6 +429,7 @@ class LoggingToGUI(logging.Handler):
 	""" Used to redirect logging output to the widget passed in parameters """
 	def __init__(self, console):
 		logging.Handler.__init__(self)
+		self.setFormatter(logging.Formatter('%(levelname)s %(message)s'))
 		self.console = console #Any text widget, you can use the class above or not
 
 	def emit(self, message): # Overwrites the default handler's emit method
@@ -437,23 +440,3 @@ class LoggingToGUI(logging.Handler):
 		self.console.see(END)
 
 
-if __name__ == "__main__":
-
-	class Opts():
-			def __init__(self):
-					self.in_files = []
-					self.Xcol = 0
-					self.Ycol = 2
-					self.plot = True
-					self.write= True
-					self.out_dir = os.environ['PWD']
-					self.outfile = "test"
-					logging.basicConfig(level=logging.INFO,format = os.path.basename(sys.argv[0])+' %(levelname)s %(message)s')
-	def Go(arg):
-		logging.info("Dummy function")
-		print("Not to logger.")
-		return
- 
-
-	gui = ChooseFiles(Opts(),Go)
- 

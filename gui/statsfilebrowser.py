@@ -41,7 +41,6 @@ class ChooseFiles(Frame):
 
 	def __init__(self, opts, master=None):
 		Frame.__init__(self, master)
-		#self.Go = Go
 		self.boolmap = {1:True, 0:False}
 		try:
 			self.defaultdir = os.getcwd()
@@ -54,16 +53,15 @@ class ChooseFiles(Frame):
 		self.master.title("File Browser")
 		self.master.geometry('1400x700+250-250')
 		self.pack(fill=BOTH)
-		self.createWidgets()
+		self.__createWidgets()
 		self.ToFront()
 		self.mainloop()
 
-	def createWidgets(self):
+	def __createWidgets(self):
 			
 		self.ButtonFrame = Frame(self)
 
 		self.OptionsFrame = Frame(self)
-		
 
 		self.ColumnFrame = Frame(self)
 		self.ColumnFrameLabel = Label(self.ColumnFrame, text="Columns to parse:" ).pack(side=TOP, ipadx=10)
@@ -79,10 +77,10 @@ class ChooseFiles(Frame):
 		self.Logging = Text(self.LoggingFrame, height=20)
 		self.Logging.pack()
 
-		self.createButtons()
-		self.createOutputLabel()
-		self.createOptions()
-		self.createColumnEntry()
+		self.__createButtons()
+		self.__createOutputLabel()
+		self.__createOptions()
+		self.__createColumnEntry()
 
 		self.ButtonFrame.pack(side=BOTTOM, fill=Y)
 		self.FileListBoxFrame.pack(side=TOP, fil=Y, expand=1)
@@ -92,7 +90,7 @@ class ChooseFiles(Frame):
 		self.LoggingFrame.pack(side=BOTTOM)
 		
 		if self.opts.threads == 1:
-			self.logger = logging.getLogger(None)
+			self.logger = logging.getLogger()
 		else:
 			self.logger = logging.getLogger('gui')
 		self.logger.addHandler(LoggingToGUI(self.Logging))
@@ -101,7 +99,7 @@ class ChooseFiles(Frame):
 		self.updateFileListBox('A')
 		self.updateFileListBox('B')
 
-	def createButtons(self):
+	def __createButtons(self):
 			
 		self.ButtonQuit = Button(self.ButtonFrame)
 		self.ButtonQuit.config(text="QUIT", command=self.Quit)
@@ -126,6 +124,100 @@ class ChooseFiles(Frame):
 		self.ButtonGo = Button(self.ButtonFrame)
 		self.ButtonGo.config(text="Parse!", command=self.Parse)
 		self.ButtonGo.pack(side=LEFT)
+
+		
+	def __createOptions(self):
+		
+		self.checks = [
+			  {'name':'plot','text':'Plot','row':1,'tooltip':"Show summary plots after parsing."},
+			  {'name':'write','text':'Write','row':2,'tooltip':"Write results to text files after parsing."},
+			  {'name':'skipohmic','text':'Skip bad dJ/dV','row':5,'tooltip':'Skip plots with d2J/dV2 < 0 between Vcutoff and Vmin/Vmax.'},
+			  {'name':'nomin','text':'Use dJ/dV for Vtrans','row':6,'tooltip':'Use dJ/dV plots to find the minimum of F-N plots when computing Vtrans.'},
+			  {'name':'logr','text':'Use |R|','row':7,'tooltip':'Use |R| instead of log|R| when computing histograms.'},
+			  {'name':'lorenzian','text':'Lorenzian','row':8,'tooltip':'Fit a Lorenzian instead of a Gaussian.'},
+			  {'name':'autonobs','text':'Auto N','row':9,'tooltip':'Determine N (degrees of freedom) from metadata (if provided with the _data.txt files).'},
+			  ]
+
+		for c in self.checks:
+			setattr(self,c['name'],IntVar())
+			check = Checkbutton(self.OptionsFrame, text=c['text'],
+					variable=getattr(self,c['name']), command=self.checkOptions)
+			check.grid(column=0,row=c['row'],sticky=W)
+			createToolTip(check,c['tooltip'])
+			setattr(self,'Check_'+c['name'],check)
+
+		Label(self.OptionsFrame, text="Output file base name:").grid(column=0,row=3)
+
+		self.OutputFileName = Entry(self.OptionsFrame, width=16)
+		self.OutputFileName.bind("<Return>", self.checkOutputFileName)
+		self.OutputFileName.bind("<Leave>", self.checkOutputFileName)
+		self.OutputFileName.bind("<Enter>", self.checkOutputFileName)
+		self.OutputFileName.grid(column=0,row=4)
+
+		lbls = [
+			{'name': 'Vcutoff', 'text': "Cuttoff for d2J/dV2:",
+			 'tooltip': "Check the values of d2J/dV2 between |vcutoff| and Vmin/Vmax for line-shape filtering. Set to -1 for Vmin/Vmax."},
+			{'name': 'Nobs', 'text': "N for p-test of J:",
+		         'tooltip': "Compute p-values for J (not Gmean!) using this number of observations."},
+			{'name': 'Threads', 'text': "Parser threads:",
+			 'tooltip': "Number of parser threads to start. Provides a small speed boost."}
+			]
+		
+		i = 0
+		for l in lbls:
+			Label(self.LeftOptionsFrame, text=l['text']).grid(column=0,row=i)
+			entry = Entry(self.LeftOptionsFrame, width=8)
+			entry.bind("<Return>", self.checkOptions)
+			entry.bind("<Leave>", self.checkOptions)
+			entry.bind("<Enter>", self.checkOptions)
+			entry.grid(column=0,row=i+1)
+			createToolTip(entry, l['tooltip'])
+			setattr(self, 'Entry'+l['name'], entry)
+			i+=2
+		
+		if self.opts.write:
+			self.write.set(1)
+		if self.opts.plot:
+			self.plot.set(1)
+		if self.opts.outfile:
+			self.OutputFileName.insert(0,self.opts.outfile)
+		if self.opts.skipohmic:
+			self.skipohmic.set(1)
+		if self.opts.nomin:
+			self.nomin.set(1)
+		if self.opts.lorenzian:
+			self.lorenzian.set(1)
+		if self.opts.autonobs:
+			self.autonobs.set(1)
+		self.checkOptions()
+
+	def __createColumnEntry(self):
+		self.EntryColumns = Entry(self.ColumnFrame, width=8)
+		for t in ["<Return>","<Leave>","<Enter>"]:
+			self.EntryColumns.bind(t, self.checkColumnEntry)
+		self.EntryColumns.pack()
+		self.checkColumnEntry(None)
+
+
+	def __createOutputLabel(self):
+		ab=('A','B')
+		for i in range(0,2):
+			setattr(self,'yScroll'+ab[i], Scrollbar(self.FileListBoxFrame, orient=VERTICAL))
+			getattr(self,'yScroll'+ab[i]).grid(row=1, column=1, sticky=N+S)
+
+			setattr(self,'xScroll'+ab[i], Scrollbar(self.FileListBoxFrame, orient=HORIZONTAL))
+			getattr(self,'xScroll'+ab[i]).grid(row=2, column=0, sticky=E+W)
+	 
+			setattr(self, 'filelist'+ab[i], StringVar())
+			setattr(self, 'FileListBox'+ab[i], Listbox(self.FileListBoxFrame, listvariable=getattr(self,'filelist'+ab[i]), selectmode=EXTENDED, 
+							height = 20, width = 75, relief=RAISED, bd=1, 
+										  xscrollcommand=getattr(self,'xScroll'+ab[i]).set, 
+										  yscrollcommand=getattr(self,'yScroll'+ab[i]).set))
+			getattr(self, 'FileListBox'+ab[i]).grid(row=1, column=i, sticky=N+S+E+W)
+			getattr(self,'xScroll'+ab[i])['command'] = getattr(self,'FileListBox'+ab[i]).xview
+			getattr(self,'yScroll'+ab[i])['command'] = getattr(self,'FileListBox'+ab[i]).yview
+
+
 
 	def ToFront(self):
 		if platform.system() == "Darwin":
@@ -216,151 +308,16 @@ class ChooseFiles(Frame):
 	def UpdateFileListBoxFrameLabel(self):
 		self.FileListBoxFrameLabelVar.set("Output to: %s/%s_*.txt"% (self.opts.out_dir, self.opts.outfile) )
 
-		
-	def createOptions(self):
-##		Label( self.OptionsFrame,text="Select Options:").grid(column=1, row=0)
-
-		self.plot = IntVar()
-		self.write = IntVar()
-
-		self.Check_plot = Checkbutton(self.OptionsFrame, text="Plot", \
-							 variable=self.plot, command=self.checkOptions)
-		self.Check_plot.grid(column=0,row=1,sticky=W)
-		createToolTip(self.Check_plot, "Show summary plots after parsing.")
-		
-		self.Check_write = Checkbutton(self.OptionsFrame, text="Write", \
-							  variable=self.write, command=self.checkOptions)
-		self.Check_write.grid(column=0,row=2,sticky=W)
-		createToolTip(self.Check_write, "Write results to text files after parsing.")
-
-		Label(self.OptionsFrame, text="Output file base name:").grid(column=0,row=3)
-
-		self.OutputFileName = Entry(self.OptionsFrame, width=16)
-		self.OutputFileName.bind("<Return>", self.checkOutputFileName)
-		self.OutputFileName.bind("<Leave>", self.checkOutputFileName)
-		self.OutputFileName.bind("<Enter>", self.checkOutputFileName)
-		self.OutputFileName.grid(column=0,row=4)
-
-		self.skip = IntVar()
-		self.Check_skip = Checkbutton(self.OptionsFrame, text="Skip bad dJ/dV", \
-										 variable=self.skip, command=self.checkOptions)
-		self.Check_skip.grid(column=0,row=5,sticky=W)
-		createToolTip(self.Check_skip, "Skip plots with d2J/dV2 < 0 between Vcutoff and Vmin/Vmax.")
-
-		self.nomin = IntVar()
-		self.Check_smooth = Checkbutton(self.OptionsFrame, text="Use dJ/dV for Vtrans", \
-										 variable=self.nomin, command=self.checkOptions)
-		self.Check_smooth.grid(column=0,row=6,sticky=W)
-		createToolTip(self.Check_smooth, "Use dJ/dV plots to find the minimum of F-N plots when computing Vtrans.")
-
-		self.logr = IntVar()
-		self.logr.set(True)
-		self.Check_logr = Checkbutton(self.OptionsFrame, text="Use log|R|", \
-										 variable=self.logr, command=self.checkOptions)
-		self.Check_logr.grid(column=0,row=7,sticky=W)
-		createToolTip(self.Check_logr, "Use log|R| when computing histograms.")
-
-		self.lorenzian = IntVar()
-		self.Check_lorenzian = Checkbutton(self.OptionsFrame, text="Lorenzian", \
-										 variable=self.lorenzian, command=self.checkOptions)
-		self.Check_lorenzian.grid(column=0,row=8,sticky=W)
-		createToolTip(self.Check_lorenzian, "Fit a Lorenzian instead of a Gaussian.")
-
-		self.autonobs = IntVar()
-		self.Check_autonobs = Checkbutton(self.OptionsFrame, text="Auto N", \
-							  variable=self.autonobs, command=self.checkOptions)
-		self.Check_autonobs.grid(column=0,row=9,sticky=W)
-		createToolTip(self.Check_autonobs, "Determine N (degrees of freedom) from metadata (if provided with the _data.txt files).")
-
-
-
-
-		Label(self.LeftOptionsFrame, text="Cuttoff for d2J/dV2:").grid(column=0,row=0)
-		self.EntryVcutoff = Entry(self.LeftOptionsFrame, width=8)
-		self.EntryVcutoff.bind("<Return>", self.checkOptions)
-		self.EntryVcutoff.bind("<Leave>", self.checkOptions)
-		self.EntryVcutoff.bind("<Enter>", self.checkOptions)
-		self.EntryVcutoff.grid(column=0,row=1)
-		createToolTip(self.EntryVcutoff, "Check the values of d2J/dV2 between |vcutoff| and Vmin/Vmax for line-shape filtering. Set to -1 for Vmin/Vmax.")
-
-		Label(self.LeftOptionsFrame, text="N for p-test of J:").grid(column=0,row=2)
-		self.EntryNobs = Entry(self.LeftOptionsFrame, width=8)
-		self.EntryNobs.bind("<Return>", self.checkOptions)
-		self.EntryNobs.bind("<Leave>", self.checkOptions)
-		self.EntryNobs.bind("<Enter>", self.checkOptions)
-		self.EntryNobs.grid(column=0,row=3)
-		createToolTip(self.EntryNobs, "Compute p-values for J (not Gmean!) using this number of observations.")
-
-
-		#Label(self.LeftOptionsFrame, text="Smoothing parameter:").grid(column=0,row=2)
-		#self.Smoothingcutoff = Entry(self.LeftOptionsFrame, width=8)
-		#self.Smoothingcutoff.bind("<Return>", self.checkOptions)
-		#self.Smoothingcutoff.bind("<Leave>", self.checkOptions)
-		#self.Smoothingcutoff.bind("<Enter>", self.checkOptions)
-		#self.Smoothingcutoff.grid(column=0,row=3)
-		#createToolTip(self.Smoothingcutoff, "The cutoff value for the residual squares (the difference between experimental data points and the fit). The default is 1e-12. Set to 0 to disable smoothing.")
-		
-		#Label(self.LeftOptionsFrame, text="Bins for J/R Histograms:").grid(column=0,row=6)
-		#self.EntryJRBins = Entry(self.LeftOptionsFrame, width=8)
-		#self.EntryJRBins.bind("<Return>", self.checkOptions)
-		#self.EntryJRBins.bind("<Leave>", self.checkOptions)
-		#self.EntryJRBins.bind("<Enter>", self.checkOptions)
-		#self.EntryJRBins.grid(column=0,row=7)
-		#createToolTip(self.EntryJRBins, "Set binning for histograms of J and R.")
-		
-		#Label(self.LeftOptionsFrame, text="Bins for G Histograms:").grid(column=0,row=8)
-		#self.Entryhmbins = Entry(self.LeftOptionsFrame, width=8)
-		#self.Entryhmbins.bind("<Return>", self.checkOptions)
-		#self.Entryhmbins.bind("<Leave>", self.checkOptions)
-		#self.Entryhmbins.bind("<Enter>", self.checkOptions)
-		#self.Entryhmbins.grid(column=0,row=9)
-		#createToolTip(self.Entryhmbins, "Set binning for conductance heatmap histograms.")
-
-		# checkGminmaxEntry call must come last
-		#Label(self.LeftOptionsFrame, text="Y-scale for conductance:").grid(column=0,row=4)
-		#self.EntryGminmax = Entry(self.LeftOptionsFrame, width=8)
-		#self.EntryGminmax.bind("<Return>", self.checkGminmaxEntry)
-		#self.EntryGminmax.bind("<Leave>", self.checkGminmaxEntry)
-		#self.EntryGminmax.bind("<Enter>", self.checkGminmaxEntry)
-		#self.EntryGminmax.grid(column=0,row=5)
-		#createToolTip(self.EntryGminmax, "Set Ymin,Ymax for the conductance plot (lower-left of plot output).")
-		#self.checkGminmaxEntry(None)
-
-
-
-		if self.opts.write:
-			self.write.set(1)
-		if self.opts.plot:
-			self.plot.set(1)
-		if self.opts.outfile:
-			self.OutputFileName.insert(0,self.opts.outfile)
-		if self.opts.skipohmic:
-			self.skip.set(1)
-		if self.opts.nomin:
-			self.nomin.set(1)
-
-		self.checkOptions()
-
 	def checkOptions(self, event=None):
-		self.opts.plot = self.boolmap[self.plot.get()]
-		self.opts.write = self.boolmap[self.write.get()]
-		self.opts.skipohmic = self.boolmap[self.skip.get()]
-		self.opts.nomin = self.boolmap[self.nomin.get()]
-		self.opts.logr = self.boolmap[self.logr.get()]
-		self.opts.lorenzian = self.boolmap[self.lorenzian.get()]
-		self.opts.autonobs = self.boolmap[self.autonobs.get()]
+		for c in self.checks:
+			setattr(self.opts,c['name'],self.boolmap[getattr(self,c['name']).get()])
+		
 		if not self.opts.write:
 			self.opts.plot = True
 			self.plot.set(1)
 			self.Check_plot["state"]=DISABLED
 		else:
 			self.Check_plot["state"]=NORMAL
-
-		#if not self.opts.plot:
-		#	self.EntryGminmax["state"]=DISABLED
-		#else:
-		#	self.EntryGminmax["state"]=NORMAL
-
 		try:
 			vcutoff = float(self.EntryVcutoff.get())
 			if vcutoff != -1:
@@ -368,33 +325,24 @@ class ChooseFiles(Frame):
 			self.opts.vcutoff = vcutoff	 
 		except ValueError:
 			self.opts.vcutoff = -1
-
 		self.EntryVcutoff.delete(0, END)
 		if self.opts.vcutoff > 0:
 			self.EntryVcutoff.insert(0,self.opts.vcutoff)
 		else:
 			self.EntryVcutoff.insert(0,"Vmax")
 
-		try:
-			nobs = int(self.EntryNobs.get())
-		except ValueError:
-			nobs = -1
-		if nobs > 0:
-			self.opts.nobs = nobs
-		self.EntryNobs.delete(0,END)
-		self.EntryNobs.insert(0,self.opts.nobs)
-
+		for n in 'Nobs', 'Threads':
+			try:
+				var = int(getattr(self,'Entry'+n).get())
+			except ValueError:
+				var = -1
+			if var > 0:
+				setattr(self.opts,n.lower(),var)
+			getattr(self,'Entry'+n).delete(0,END)
+			getattr(self,'Entry'+n).insert(0,getattr(self.opts,n.lower()))
+	
 	
 
-
-	def createColumnEntry(self):
-
-		self.EntryColumns = Entry(self.ColumnFrame, width=8)
-		self.EntryColumns.bind("<Return>", self.checkColumnEntry)
-		self.EntryColumns.bind("<Leave>", self.checkColumnEntry)
-		self.EntryColumns.bind("<Enter>", self.checkColumnEntry)
-		self.EntryColumns.pack()
-		self.checkColumnEntry(None)
 		
 	def checkOutputFileName(self, event):
 		self.opts.outfile = self.OutputFileName.get()
@@ -419,25 +367,6 @@ class ChooseFiles(Frame):
 #		self.EntryGminmax.delete(0, END)
 #		self.EntryGminmax.insert(0, ",".join( (str(self.opts.mlow), str(self.opts.mhi)) ))
 
-	def createOutputLabel(self):
-		ab=('A','B')
-		for i in range(0,2):
-			setattr(self,'yScroll'+ab[i], Scrollbar(self.FileListBoxFrame, orient=VERTICAL))
-			getattr(self,'yScroll'+ab[i]).grid(row=1, column=1, sticky=N+S)
-
-			setattr(self,'xScroll'+ab[i], Scrollbar(self.FileListBoxFrame, orient=HORIZONTAL))
-			getattr(self,'xScroll'+ab[i]).grid(row=2, column=0, sticky=E+W)
-	 
-			setattr(self, 'filelist'+ab[i], StringVar())
-			setattr(self, 'FileListBox'+ab[i], Listbox(self.FileListBoxFrame, listvariable=getattr(self,'filelist'+ab[i]), selectmode=EXTENDED, 
-							height = 20, width = 75, relief=RAISED, bd=1, 
-										  xscrollcommand=getattr(self,'xScroll'+ab[i]).set, 
-										  yscrollcommand=getattr(self,'yScroll'+ab[i]).set))
-			getattr(self, 'FileListBox'+ab[i]).grid(row=1, column=i, sticky=N+S+E+W)
-			getattr(self,'xScroll'+ab[i])['command'] = getattr(self,'FileListBox'+ab[i]).xview
-			getattr(self,'yScroll'+ab[i])['command'] = getattr(self,'FileListBox'+ab[i]).yview
-
-
 
 
 
@@ -449,6 +378,7 @@ class LoggingToGUI(logging.Handler):
 	""" Used to redirect logging output to the widget passed in parameters """
 	def __init__(self, console):
 		logging.Handler.__init__(self)
+		self.setFormatter(logging.Formatter('%(levelname)s %(message)s'))
 		self.console = console #Any text widget, you can use the class above or not
 
 	def emit(self, message): # Overwrites the default handler's emit method
