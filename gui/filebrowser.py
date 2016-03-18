@@ -144,8 +144,13 @@ class ChooseFiles(Frame):
 		
 		if self.opts.outfile:
 			self.OutputFileName.insert(0,self.opts.outfile)
-		
 	
+		Label(self.OptionsFrame, text="What to plot:").grid(column=0,row=9)
+		self.OptionsPlotsString = StringVar()
+		self.OptionsPlotsString.set(','.join(self.opts.plots))
+		self.OptionPlots = OptionMenu(self.OptionsFrame, self.OptionsPlotsString,'J','R',
+		                         command=self.checkOptions)
+		self.OptionPlots.grid(column=0,row=10)
 
 		lbls = [
 			{'name': 'Vcutoff', 'text': "Cuttoff for d2J/dV2:",
@@ -223,6 +228,7 @@ class ChooseFiles(Frame):
 		self.master.destroy()
 
 	def ParseClick(self):
+		self.checkOptions()
 		self.Parse()
 
 	def Parse(self):
@@ -243,7 +249,7 @@ class ChooseFiles(Frame):
 				logging.info("Generating plots...")
 				try:
 						import matplotlib.pyplot as plt
-						plotter.DoPlots(plt,'J')
+						plotter.DoPlots(plt,*self.opts.plots)
 						plt.show(block=False)
 				except ImportError as msg:
 						logging.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
@@ -257,6 +263,7 @@ class ChooseFiles(Frame):
 				self.logger.warn("No input files!")
 
 	def RemoveFileClick(self):
+		self.checkOptions()
 		selected = [self.FileListBox.get(x) for x in self.FileListBox.curselection()]
 		todel = []
 		filelist = []
@@ -274,6 +281,7 @@ class ChooseFiles(Frame):
 		
 			
 	def SpawnInputDialogClick(self):
+		self.checkOptions()
 		self.opts.in_files += filedialog.askopenfilename(title="Files to parse", multiple=True, \
 						initialdir=self.last_input_path,\
 						 filetypes=[('Data files','*_data.txt'),('Text files','*.txt'),('All files', '*')])
@@ -330,9 +338,11 @@ class ChooseFiles(Frame):
 			getattr(self,'Entry'+n[0]).delete(0,END)
 			getattr(self,'Entry'+n[0]).insert(0,getattr(self.opts,n[0].lower()))
 	
-		self.checkGminmaxEntry(None)
+		self.opts.plots = self.OptionsPlotsString.get().split(',')
+		self.checkGminmaxEntry(event)
 	
 	
+
 	def checkOutputFileName(self, event):
 		self.opts.outfile = self.OutputFileName.get()
 		self.UpdateFileListBoxFrameLabel()

@@ -330,7 +330,6 @@ class Plotter():
 		ax.axis([self.X.min(), self.X.max(), allY.min(),allY.max()])
 
 	def PlotR(self, ax):
-		xax = []
 		if self.opts.logr: 
 			ax.set_title("Semilog Plot of |R|")
 			ax.set_ylabel(r'log|R|')
@@ -339,13 +338,19 @@ class Plotter():
 			ax.set_ylabel(r'|R|')
 		ax.set_xlabel("Potenial (V)")
 		Y, Yerr = [],[]
-		for x in self.R:
-			if x == 'X':
-				continue
-			xax.append(x)
+		for x in self.R['X']:
 			Y.append(self.R[x]["hist"]["mean"])
 			Yerr.append(self.R[x]["hist"]["std"])
-		ax.errorbar(xax, Y,  yerr=Yerr, marker='o', lw=0.0, color='k')
+		ax.errorbar(self.R['X'], Y,  yerr=Yerr, marker='o', lw=0.0, color='k')
+
+	def PlotRFit(self,ax):
+		key = self.R['X'][-1]
+		ax.set_title(r'Histogram and fit at $'+str(key)+'$ V')
+		ax.set_xlabel(r'$log|R|$')
+		ax.set_ylabel('Counts')
+		ax.bar(self.R[key]['hist']['bin'], self.R[key]['hist']['freq'], width=0.05, color='r')
+		ax.plot(self.R[key]['hist']['bin'], self.R[key]['hist']['fit'], lw=2.0, color='b', label='Fit')
+
 
 	
 	def PlotDJDV(self,ax):
@@ -428,11 +433,12 @@ class Plotter():
 		ax2 = fig.add_axes([0.56, 0.55, 0.4, 0.4])
 		ax3 = fig.add_axes([0.06, 0.05, 0.4, 0.4])
 		ax4 = fig.add_axes([0.56, 0.05, 0.4, 0.4])
-		self.PlotFit(ax1)
 		if 'J' in data:
+			self.PlotFit(ax1)
 			self.PlotData('LogY',ax2,':',lw=0.25, color='c')
 			self.PlotHist(ax2)
 		elif 'R' in data:
+			self.PlotRFit(ax1)
 			self.PlotR(ax2)
 		self.PlotVtrans(ax4)
 		self.PlotG(ax3)
