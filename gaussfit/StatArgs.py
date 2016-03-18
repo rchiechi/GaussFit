@@ -53,7 +53,7 @@ parser.add_argument('-G','--GUI', action='store_true', default=False,
                 help="Launch the GUI.")
 parser.add_argument('-o','--outfile', metavar="OUTPUT FILE", default="",
                 help="Outputfile (taken from first input)")
-parser.add_argument('-D','--dir', metavar="OUTPUT DIR", dest='out_dir', default=os.getcwd(),
+parser.add_argument('-D','--dir', metavar="OUTPUT DIR", dest='out_dir', default=os.path.join(os.getcwd(),'parsed'),
                 help="Output directory (combined with -o).")
 parser.add_argument('-l','--loglevel', default='info', choices=('info','warn','error','debug'),
                 help="Set the logging level.")
@@ -123,9 +123,8 @@ Opts.Xcol -= 1
 Opts.Ycol -= 1
 
 if not os.path.exists(Opts.out_dir):
-	parser.print_help()
-	print(RED+"\n\t\t> > > Output directory "+arg+" does not exist! < < <"+RS)
-	sys.exit()
+	os.mkdir(Opts.out_dir)
+	print("Creating %s" % Opts.out_dir)
 
 logging.basicConfig(level=getattr(logging,Opts.loglevel.upper()),\
 		format=GREEN+os.path.basename(sys.argv[0]+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE)

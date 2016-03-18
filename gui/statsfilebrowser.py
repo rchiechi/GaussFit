@@ -274,8 +274,13 @@ class ChooseFiles(Frame):
 								 filetypes=[('Data files','*_data.txt'),('Text files','*.txt'),('All files', '*')])
 		setattr(self.opts, 'set'+ab, fs)
 		if len( getattr(self.opts, 'set'+ab)):
-			setattr(self,'last_input_path'+ab, os.path.split(self.opts.setA[0])[0])
+			setattr(self,'last_input_path'+ab, os.path.split(getattr(self.opts, 'set'+ab)[0])[0])
 			self.updateFileListBox(ab)
+		if not self.opts.outfile:
+			self.OutputFileName.delete(0,END)
+			self.OutputFileName.insert(0,\
+			   os.path.basename(getattr(self.opts, 'set'+ab)[-1]).lower().replace('.txt',''))
+			self.checkOutputFileName(None)
 
 	def SpawnInputDialogAClick(self):
 		self.SpawnInputDialogClick('A')
@@ -285,6 +290,13 @@ class ChooseFiles(Frame):
 	def updateFileListBox(self,ab):
 		ab = ab.upper()
 		getattr(self, 'filelist'+ab).set(" ".join([x.replace(" ","_") for x in getattr(self.opts, 'set'+ab)]))
+		self.Check_autonobs["state"] = NORMAL	
+		for ab in ('A','B'):
+			for f in getattr(self.opts, 'set'+ab):
+				if not os.path.exists(f.replace('_data.txt','')):
+					self.autonobs.set(0)
+					self.Check_autonobs["state"] = DISABLED
+		self.checkOptions()
 
 	def SpawnOutputDialogClick(self):
 		self.checkOptions()

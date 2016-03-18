@@ -288,7 +288,11 @@ class ChooseFiles(Frame):
 		if len(self.opts.in_files):
 			self.last_input_path = os.path.split(self.opts.in_files[0])[0]
 			self.updateFileListBox()
-
+			if not self.opts.outfile:
+				self.OutputFileName.delete(0,END)
+				self.OutputFileName.insert(0,\
+						os.path.basename(self.opts.in_files[-1]).lower().replace('.txt',''))
+				self.checkOutputFileName(None)
 
 	def updateFileListBox(self):
 		self.filelist.set(" ".join([x.replace(" ","_") for x in self.opts.in_files]))
@@ -340,7 +344,7 @@ class ChooseFiles(Frame):
 	
 		self.opts.plots = self.OptionsPlotsString.get().split(',')
 		self.checkGminmaxEntry(event)
-	
+		self.checkOutputFileName(event)	
 	
 
 	def checkOutputFileName(self, event):
