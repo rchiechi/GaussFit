@@ -328,6 +328,25 @@ class Plotter():
 		#if key == 'LogY':
 		#	ax.set_ylim(allY.min(),allY.max())
 		ax.axis([self.X.min(), self.X.max(), allY.min(),allY.max()])
+
+	def PlotR(self, ax):
+		xax = []
+		if self.opts.logr: 
+			ax.set_title("Semilog Plot of |R|")
+			ax.set_ylabel(r'log|R|')
+		else:
+			ax.set_title("Plot of |R|")
+			ax.set_ylabel(r'|R|')
+		ax.set_xlabel("Potenial (V)")
+		Y, Yerr = [],[]
+		for x in self.R:
+			if x == 'X':
+				continue
+			xax.append(x)
+			Y.append(self.R[x]["hist"]["mean"])
+			Yerr.append(self.R[x]["hist"]["std"])
+		ax.errorbar(xax, Y,  yerr=Yerr, marker='o', lw=0.0, color='k')
+
 	
 	def PlotDJDV(self,ax):
 		xax = list(self.DJDV.keys())
@@ -403,21 +422,25 @@ class Plotter():
 		ax.plot(self.XY[key]['hist']['bin'], self.XY[key]['hist']['fit'], lw=2.0, color='b', label='Fit')
 
 
-	def DoPlots(self, plt):
+	def DoPlots(self, plt, *data):
 		fig = plt.figure(figsize=(16,10))
 		ax1 = fig.add_axes([0.06, 0.55, 0.4, 0.4])
 		ax2 = fig.add_axes([0.56, 0.55, 0.4, 0.4])
 		ax3 = fig.add_axes([0.06, 0.05, 0.4, 0.4])
 		ax4 = fig.add_axes([0.56, 0.05, 0.4, 0.4])
-		#self.PlotData('Y', ax1, '-')
-		#self.PlotDJDV(ax1)
 		self.PlotFit(ax1)
-		self.PlotData('LogY',ax2,':',lw=0.25, color='c')
-		#self.PlotData('FN', ax3, 'x', ms=2)
-		self.PlotHist(ax2)
+		if 'J' in data:
+			self.PlotData('LogY',ax2,':',lw=0.25, color='c')
+			self.PlotHist(ax2)
+		elif 'R' in data:
+			self.PlotR(ax2)
 		self.PlotVtrans(ax4)
 		self.PlotG(ax3)
 		fig.savefig(os.path.join(self.opts.out_dir,self.opts.outfile+"_fig.png"), format="png")
+		#self.PlotData('FN', ax3, 'x', ms=2)
+		#self.PlotData('Y', ax1, '-')
+		#self.PlotDJDV(ax1)
+
 
 class StatPlotter:
 	

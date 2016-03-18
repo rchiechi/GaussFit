@@ -322,6 +322,7 @@ class Parse():
 		for x in r:
 			if x <= 0: continue
 			R[x]={'r':np.array(r[x]),'hist':self.dohistogram(np.array(r[x]),"R")}	
+		#TODO This breaks a lot of things...
 		R['X'] = np.array(sorted(R.keys()))
 		return R
 

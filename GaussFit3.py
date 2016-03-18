@@ -43,7 +43,7 @@ def Go(opts):
 			logging.info("Generating plots...")
 			try:
 					import matplotlib.pyplot as plt
-					plotter.DoPlots(plt)
+					plotter.DoPlots(plt,*opts.plots)
 					plt.show()
 			except ImportError as msg:
 					logging.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
