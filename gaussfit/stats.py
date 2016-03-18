@@ -52,17 +52,20 @@ except ImportError as msg:
 
 class ParserThread(threading.Thread):
 
-	def __init__(self,limiter,alive,lock,opts,files,Set,Pop):
+	def __init__(self,limiter,alive,lock,opts,files,Set,Pop,handler):
 		threading.Thread.__init__(self)
 		self.alive = alive
 		self.files = files
 		self.Set, self.Pop = Set,Pop
 		self.lock = lock
 		self.limiter = limiter
-		self.parser = Parse(opts,self.lock)
+		self.parser = Parse(opts,handler,lock)
+		self.logger = logging.getLogger('thread')
+		self.logger.setLevel(getattr(logging,opts.loglevel.upper()))
+		self.logger.addHandler(handler)
 	def run(self):
 		self.limiter.acquire()
-		logging.info("Starting thread...")
+		self.logger.info("Starting thread...")
 		try:
 			self.parser.ReadFiles([self.files])
 			for x in self.parser.X:
@@ -73,14 +76,14 @@ class ParserThread(threading.Thread):
 				with self.lock:
 					Stats.DoSet(self.parser, self.Set, x)
 		except FloatingPointError as msg:
-			logging.warning("Skipping %s because of %s." % (f, str(msg)))
+			self.logger.warning("Skipping %s because of %s." % (f, str(msg)))
 		finally:
 			self.limiter.release()
 		
 class Stats:
 
-	def __init__(self,opts):
-
+	def __init__(self,opts,handler=None):
+		
 		self.opts = opts
 		self.SetA = {}
 		self.SetB = {}
@@ -89,8 +92,17 @@ class Stats:
 		self.dataset = {}
 		self.fnstats = {}
 		self.extrainfo=''
-		logging.info("Gathering Statistics")
+		if not handler:
+			self.loghandler = logging.StreamHandler()
+			self.loghandler.setFormatter(logging.Formatter(\
+				fmt=GREEN+os.path.basename(sys.argv[0]+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
+		else:
+			self.loghandler = handler
 
+		self.logger = logging.getLogger('statparser')
+		self.logger.addHandler(self.loghandler)
+		self.logger.setLevel(getattr(logging,self.opts.loglevel.upper()))
+		self.logger.info("Gathering Statistics")
 			
 	def parse(self):
 		if not self.opts.autonobs:
@@ -101,7 +113,7 @@ class Stats:
 			self.SetB, self.PopB = self.__autonobs(self.opts, self.opts.setB)
 
 		if self.SetA.keys()  != self.SetB.keys():
-			logging.error("Are you trying to compare two datasets with different voltage steps?")
+			self.logger.error("Are you trying to compare two datasets with different voltage steps?")
 			print("Set A:")
 			print("|",end='')
 			for k in self.SetA.keys(): print(k, end='|')
@@ -122,41 +134,18 @@ class Stats:
 
 	def __getsetpop(self,opts,pop_files):
 		Set, Pop = {}, {}
-		maxfev = opts.maxfev
-		opts.maxfev=1000
-		parser = Parse(opts)
-		#parser.ReadFiles(pop_files)
-		#for x in parser.X:
-		#	if x == 0:
-		#		continue
-		#	Stats.DoPop(parser,Pop,x)
-		traces = 0
-		trace_error = 90
-		opts.maxfev=maxfev
-		if opts.threads > 1:
-			logging.info("Using %s threads." % opts.threads)
-			alive = threading.Event()
-			lock = threading.Lock()
-			limiter = threading.BoundedSemaphore(opts.threads)
-			alive.set()
-			children = []
-			for f in pop_files:
-				children.append(ParserThread(limiter,alive,lock,opts,f,Set,Pop))
-				children[-1].start()
-			for c in children:
-				c.join()
-			return Set,Pop
-		else:
-			for f in pop_files:
-				parser = Parse(opts)
-				try:
-					parser.ReadFiles([f])
-				except FloatingPointError as msg:
-					logging.warning("Skipping %s because of %s." % (f, str(msg)))
-					continue
-				for x in parser.X:
-					self.DoSet(parser,Set,x)
-		return Set, Pop	
+		self.logger.info("Using %s threads." % opts.threads)
+		alive = threading.Event()
+		lock = threading.Lock()
+		limiter = threading.BoundedSemaphore(opts.threads)
+		alive.set()
+		children = []
+		for f in pop_files:
+			children.append(ParserThread(limiter,alive,lock,opts,f,Set,Pop,self.loghandler))
+			children[-1].start()
+		for c in children:
+			c.join()
+		return Set,Pop
 
 	@classmethod
 	def DoSet(cls,parser,Set,x):
@@ -199,7 +188,7 @@ class Stats:
 							"%A, %B %d, %Y; %I:%M %p")
 					cTimes[f] = dt
 			except FileNotFoundError:
-				logging.debug("%s does not exist, not doing autonobs." % f.replace('_data.txt',''))
+				self.logger.debug("%s does not exist, not doing autonobs." % f.replace('_data.txt',''))
 				return Set, Pop	
 		diffdays = {}
 		diffmins = {}
@@ -244,7 +233,7 @@ class Stats:
 		elif len(diffmins.keys()) < 100:
 			days, minutes = True, False
 		else:
-			logging.error("Too few days apart and too many minutes!")
+			self.logger.error("Too few days apart and too many minutes!")
 			sys.exit()
 		if days:
 			for d in diffdays:
@@ -256,7 +245,7 @@ class Stats:
 						popfiles.append(f[1])
 				n = __maketmpfiles(popfiles)
 				tmpfiles.append(n)
-				print("Measurements done %s days apart: %s " % (d,n))
+				self.logger.info("Measurements done %s days apart: %s " % (d,n))
 				self.extrainfo += "Measurements done %s days apart: %s\n" % (d,n)	
 				for p in popfiles:
 					self.extrainfo += p+"\n"
@@ -270,7 +259,7 @@ class Stats:
 						popfiles.append(f[1])
 				n = __maketmpfiles(popfiles)
 				tmpfiles.append(n)
-				print("Measurements done %s minutes apart: %s " % (m*min_factor,n))
+				self.logger.info("Measurements done %s minutes apart: %s " % (m*min_factor,n))
 				self.extrainfo += "Measurements done %s minutes apart: %s\n" % (m*min_factor,n)
 				for p in popfiles:
 					self.extrainfo += p+"\n"
@@ -278,8 +267,8 @@ class Stats:
 
 	def Ttest(self, key):
 		
-		logging.info("Performing independent T-test on %s" % key)
-		logging.info("Gathering mean %s-values" % key)
+		self.logger.info("Performing independent T-test on %s" % key)
+		self.logger.info("Gathering mean %s-values" % key)
 		
 		dataset = ([],[],[],[],[],[],[])
 		
@@ -363,7 +352,7 @@ class Stats:
 			dataset[6].append(meanAlphaB)
 
 		if self.opts.write:
-			logging.info("Writing stats to %s" % self.opts.outfile+"_Ttest"+key+".txt")
+			self.logger.info("Writing stats to %s" % self.opts.outfile+"_Ttest"+key+".txt")
 			WriteStats(self.opts.out_dir, self.opts.outfile, dataset, \
 				"Ttest"+key, ["Voltage", "P-value (Gmean)", "T-stat (Gmean)", "P-value (J)","T-stat (J)", "AlphaA", "AlphaB"])
 		self.dataset[key] = dataset
@@ -371,18 +360,20 @@ class Stats:
 		p_vals = np.array(p_vals)
 		aA_vals = np.array(aA_vals)
 		aB_vals = np.array(aB_vals)
+		if self.opts.GUI:
+			GREEN,RED,RS='','',''
 		try:	
 			if p_vals.mean() < 0.001: c = GREEN 
 			else: c = RED
-			print("p-value Mean: %s%s%s" % (GREEN, p_vals.mean(), RS))
+			self.logger.info("p-value Mean: %s%s%s" % (GREEN, p_vals.mean(), RS))
 			if aA_vals[aA_vals > 0].mean() > 0.7: c = GREEN 
 			else: c = RED
-			print("α  SetA Mean: %s%s%s" % (c,aA_vals[aA_vals > 0].mean(),RS))
+			self.logger.info("α  SetA Mean: %s%s%s" % (c,aA_vals[aA_vals > 0].mean(),RS))
 			if aB_vals[aB_vals > 0].mean() > 0.7: c = GREEN 
 			else: c = RED
-			print("α  SetB Mean: %s%s%s" % (c,aB_vals[aB_vals > 0].mean(),RS))
+			self.logger.info("α  SetB Mean: %s%s%s" % (c,aB_vals[aB_vals > 0].mean(),RS))
 		except FloatingPointError:
-			logging.error("Error outputting mean stats.")
+			self.logger.error("Error outputting mean stats.")
 
 	def TtestFN(self):
 		x = list(self.SetA.keys())[-1]
@@ -391,13 +382,15 @@ class Stats:
 		t_neg, p_neg = ttest_ind(self.SetA[x]['FN']['neg']['mean'], \
 				self.SetB[x]['FN']['neg']['mean'], equal_var=False)
 			
+		if self.opts.GUI:
+			GREEN,RED,RS='','',''
 		if p_pos < 0.001: c = GREEN
 		else: c = RED
-		print("P-Value Vtrans(+): %s%s%s" % (c,str(p_pos),RS))
+		self.logger.info("P-Value Vtrans(+): %s%s%s" % (c,str(p_pos),RS))
 		
 		if p_neg < 0.001: c = GREEN
 		else: c = RED
-		print("P-Value Vtrans(–): %s%s%s" % (c,str(p_neg),RS))
+		self.logger.info("P-Value Vtrans(–): %s%s%s" % (c,str(p_neg),RS))
 		self.fnstats = {"p_pos":p_pos, "p_neg":p_neg, "t_pos":t_pos, "t_neg":t_neg}
 
 	def Sortsets(self, traces):
@@ -420,12 +413,12 @@ class Stats:
 			muvars = muI.var(axis=1,ddof=1)
 			Alpha =  K/(K-1.) * (1 - muvars.sum() / tscores.var(ddof=1))
 		except ZeroDivisionError:
-			logging.debug("Division by zero error computing Alpha!")
+			self.logger.debug("Division by zero error computing Alpha!")
 			Alpha = np.inf
 		except ValueError as msg:
-			logging.debug("%s while computing Cronbach's Alpha." % str(msg))
+			self.logger.debug("%s while computing Cronbach's Alpha." % str(msg))
 			Alpha = np.inf
 		except FloatingPointError as msg:
-			logging.debug("%s while computing Cronbach's Alpha." % str(msg))
+			self.logger.debug("%s while computing Cronbach's Alpha." % str(msg))
 			Alpha = np.inf
 		return Alpha

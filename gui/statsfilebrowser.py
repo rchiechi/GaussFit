@@ -89,10 +89,7 @@ class ChooseFiles(Frame):
 		self.LeftOptionsFrame.pack(side=LEFT)
 		self.LoggingFrame.pack(side=BOTTOM)
 		
-		if self.opts.threads == 1:
-			self.logger = logging.getLogger()
-		else:
-			self.logger = logging.getLogger('gui')
+		self.logger = logging.getLogger('gui')
 		self.logger.addHandler(LoggingToGUI(self.Logging))
 		self.logger.info("Logging...")
 
@@ -223,22 +220,21 @@ class ChooseFiles(Frame):
 				if c.is_alive():
 					self.ButtonParse.after('500',self.Parse)
 					return	
-			logging.info("Parse complete!")
+			self.logger.info("Parse complete!")
 			gothread = self.gothreads.pop()
 			self.ButtonParse['state']=NORMAL
 			if self.opts.plot:
 				plotter = StatPlotter(gothread.statparser)
-				logging.info("Generating plots...")
+				self.logger.info("Generating plots...")
 				try:
 						import matplotlib.pyplot as plt
 						plotter.DoPlots(plt)
 						plt.show(block=False)
 				except ImportError as msg:
-						logging.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
+						self.logger.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
 		else: 
 			if len(self.opts.setA) and len(self.opts.setB):
-				#self.Go(self.opts)
-				statparser = Stats(self.opts)
+				statparser = Stats(self.opts,handler=LoggingToGUI(self.Logging))
 				self.gothreads.append(ParseThread(statparser))
 				self.gothreads[-1].start()
 				self.ButtonParse.after('500',self.Parse)

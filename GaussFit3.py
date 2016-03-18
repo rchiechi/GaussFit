@@ -21,9 +21,7 @@ Description:
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-import logging
 from gaussfit.Output import Writer,Plotter
-#from gaussfit.Parseopts import Opts,ShowUsage 
 from gaussfit.Args import Opts
 from gaussfit.Parser import Parse
 
@@ -40,13 +38,13 @@ def Go(opts):
 	parser.PrintFN()
 	if opts.plot:
 			plotter = Plotter(parser)
-			logging.info("Generating plots...")
+			#logging.info("Generating plots...")
 			try:
 					import matplotlib.pyplot as plt
 					plotter.DoPlots(plt,*opts.plots)
 					plt.show()
 			except ImportError as msg:
-					logging.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
+					print("Cannot import matplotlib! %s", str(msg), exc_info=False)
 
 opts = Opts
 if opts.GUI:

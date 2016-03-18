@@ -23,10 +23,8 @@ Description:
 
 from gaussfit.Output import WriteStats,StatPlotter
 from gaussfit.StatArgs import Opts
-#from gaussfit.Parser import Parse
-#from gaussfit.Output import Writer
 
-import sys,os,logging,warnings,csv
+import sys,os,warnings,csv
 from gaussfit.colors import *
 from gaussfit.stats import Stats
 
@@ -40,17 +38,17 @@ def Go(opts):
 		statparser = Stats(opts)
 		statparser.parse()
 	else:
-		logging.error("No input files to parse!")
+		print("No input files to parse!")
 
 	if opts.plot:
 			plotter = StatPlotter(statparser)
-			logging.info("Generating plots...")
+			print("Generating plots...")
 			try:
 					import matplotlib.pyplot as plt
 					plotter.DoPlots(plt)
 					plt.show()
 			except ImportError as msg:
-					logging.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
+					print("Cannot import matplotlib! %s", str(msg), exc_info=False)
 
 
 opts = Opts

@@ -55,7 +55,7 @@ class Parse():
 	operations: Gaussian fits, F-N calculations, Rectification,
 	Vtrans, and dJ/DV.
 	'''
-	def __init__(self,opts,lock=None):
+	def __init__(self,opts,handler=None,lock=None):
 		self.opts = opts
 		self.parsed = {}
 		self.XY ={}
@@ -72,11 +72,19 @@ class Parse():
 			self.lock = lock
 		else:
 			self.lock = threading.Lock()
-
+		if not handler:
+			self.loghandler = logging.StreamHandler()
+			self.loghandler.setFormatter(logging.Formatter(\
+				fmt=GREEN+os.path.basename(sys.argv[0]+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
+		else:
+			self.loghandler = handler
+		self.logger = logging.getLogger('parser')
+		self.logger.addHandler(self.loghandler)
+		self.logger.setLevel(getattr(logging,self.opts.loglevel.upper()))
 
 	@classmethod
 	def doOutput(cls,writer):
-		logging.info("Writing files...")
+		self.logger.info("Writing files...")
 		writer.WriteParseInfo()
 		writer.WriteVtrans()
 		writer.WriteGNUplot('Vtransplot')
@@ -103,14 +111,14 @@ class Parse():
 			writer.WriteGNUplot('Gplot', ['parula.pal']) 
 		except IndexError:
 			print("Error outputting GMatrix")
-		logging.info("Done!")
+		self.logger.info("Done!")
 
 	def isfloat(self,f):
 		try:
 			float(f)
 			return True
 		except ValueError as msg:
-			logging.debug("%s: %s" %(f, str(msg)) )
+			self.logger.debug("%s: %s" %(f, str(msg)) )
 			return False
 	def tofloat(self, f):
 		try:
@@ -135,9 +143,9 @@ class Parse():
 		rawx, rawy = [],[]
 		for fn in fns:
 			if self.opts.GUI:
-				logging.info("Parsing %s", fn)
+				self.logger.info("Parsing %s", fn)
 			else:
-				logging.info("Parsing %s%s%s", TEAL,fn,YELLOW)
+				self.logger.info("Parsing %s%s%s%s", TEAL,fn,YELLOW,RS)
 			try:
 				rows = []
 				with open(fn, 'rt', newline='') as csvfile:
@@ -147,13 +155,13 @@ class Parse():
 							row = list(filter(None,row))
 							rows.append(row)
 							if False in [self.isfloat(n) for n in row]:
-								logging.debug("|%s is not all floats!" % "|".join(row))
+								self.logger.debug("|%s is not all floats!" % "|".join(row))
 								continue
 							#print('row %s Xcol %s Ycol %s' % (row, self.opts.Xcol, self.opts.Ycol))
 							rawx.append(row[self.opts.Xcol])
 							rawy.append(row[self.opts.Ycol])
 					else:
-						logging.debug("Grabbing all Y-columns")
+						self.logger.debug("Grabbing all Y-columns")
 						# To catch all Y-vals and keep X in order,
 						# we have to copy the whole file to memory
 						# and then loop over it one column at a time
@@ -172,13 +180,13 @@ class Parse():
 								rawy.append(row[n])
 								rows.append([rawx[-1], rawy[-1]])
 			except FileNotFoundError:
-				logging.error("%s not found.", fn)
+				self.logger.error("%s not found.", fn)
 				continue
 			except csv.Error:
-				logging.error("CSV Parsing error %s", fn)
+				self.logger.error("CSV Parsing error %s", fn)
 				continue
 			except IndexError:
-				logging.error("Error parsing %s", fn)
+				self.logger.error("Error parsing %s", fn)
 				continue
 
 			labels = []
@@ -189,30 +197,30 @@ class Parse():
 					if not self.isfloat(label):
 						labels.append(label)
 			if numcol < Ycol:
-				logging.critical("Ycol > total number of columns! (%d > %d)", Ycol, numcol)
-				logging.warn("%sNot importing:%s %s!", RED, YELLOW,fn)
+				self.logger.critical("Ycol > total number of columns! (%d > %d)", Ycol, numcol)
+				self.logger.warn("%sNot importing:%s %s!", RED, YELLOW,fn)
 				continue
-			logging.debug("Found "+str(numcol)+" columns in "+fn)
+			self.logger.debug("Found "+str(numcol)+" columns in "+fn)
 			if 0 < len(labels) >= Ycol:
-				logging.debug("Assuming first row is column labels")
-				logging.info('Y column is "%s"', labels[Ycol])
+				self.logger.debug("Assuming first row is column labels")
+				self.logger.info('Y column is "%s"', labels[Ycol])
 				del(rows[0])
 			else:
-				logging.debug("No labels found in first row.")
+				self.logger.debug("No labels found in first row.")
 			for row in rows:
 				if len(row) < numcol:
-					logging.warning("Mismatch in %s, expecting %d colums, got %d", labels[Ycol], numcol, len(row))
+					self.logger.warning("Mismatch in %s, expecting %d colums, got %d", labels[Ycol], numcol, len(row))
 					continue
 				x, y = self.tofloat(row[Xcol]), self.tofloat(row[Ycol])
 				if y == np.NAN:
-					logging.warn("Treating invalid Y %f as NAN", y)
+					self.logger.warn("Treating invalid Y %f as NAN", y)
 				if x == np.NAN:
-					logging.warn("Treating invalid X %f as NAN", x)
+					self.logger.warn("Treating invalid X %f as NAN", x)
 				try:
 					z = np.log( abs(y)/x**2 )
 				except:
 					z = np.NAN
-					if x != 0.0: logging.error("Couldn't comput FN for %f, %f", x, y, exc_info=True)
+					if x != 0.0: self.logger.error("Couldn't comput FN for %f, %f", x, y, exc_info=True)
 				self.parsed[line_idx]=(x,y,z)
 				if x in uniqueX.keys(): 
 					uniqueX[x][line_idx]=(y,z)
@@ -221,7 +229,7 @@ class Parse():
 				line_idx += 1
 
 		if not len(uniqueX):
-			logging.error("No files parsed.")
+			self.logger.error("No files parsed.")
 			sys.exit() # Otherwise we loop over an empty uniqueX forever
 		self.findTraces(rawx,rawy)
 		x = np.array(list(uniqueX.keys()))
@@ -230,7 +238,7 @@ class Parse():
 			# Gather each unique X (usually Voltage) value
 			# and pull the Y (usually current-density) values
 			# associated with it
-			logging.debug('Pulling Y where X=%0.2f', x)
+			self.logger.debug('Pulling Y where X=%0.2f', x)
 			y, fn = [], []
 			for i in sorted(uniqueX[x].keys()): 
 				y.append(uniqueX[x][i][0])
@@ -249,14 +257,14 @@ class Parse():
 				   "hist":self.dohistogram(logy,"J"), 
 				   "FN":np.array(fn) }
 		self.X = np.array(sorted(self.XY.keys()))
-		logging.info("Done parsing input data")
-		print("* * * * * * Computing dY/dX  * * * * * * * *")
+		self.logger.info("Done parsing input data")
+		self.logger.info("* * * * * * Computing dY/dX  * * * * * * * *")
 		self.DJDV, self.GHists, self.filtered = self.dodjdv() # This must come first for self.ohmic to be populated!
-		print("* * * * * * Computing Vtrans * * * * * * * *")
+		self.logger.info("* * * * * * Computing Vtrans * * * * * * * *")
 		self.FN["neg"], self.FN["pos"] = self.findmin()
-		print("* * * * * * Computing |R|  * * * * * * * * *")
+		self.logger.info("* * * * * * Computing |R|  * * * * * * * * *")
 		self.R = self.dorect()
-		print("* * * * * * * * * * * * * * * * * * *")
+		self.logger.info("* * * * * * * * * * * * * * * * * * *")
 
 	def findTraces(self,x,y):
 		XY = np.array([x,y],ndmin=2,dtype=float)
@@ -280,7 +288,7 @@ class Parse():
 				traces['trace'].append( tuple(trace) )
 				trace = []
 		#print( [x[1]-x[0] for x in traces['trace']] )
-		logging.info("Found %d unique traces", len(traces['trace']))
+		self.logger.info("Found %d unique traces", len(traces['trace']))
 		
 		col = 0
 		uniquex = {}
@@ -314,7 +322,7 @@ class Parse():
 			for x in xy:
 				if x <= 0: continue
 				if -1*x not in xy:
-					logging.warn("%f not found in trace while computing R", -1*x)
+					self.logger.warn("%f not found in trace while computing R", -1*x)
 					continue
 				if self.opts.logr:
 					r[x].append( np.log10(abs(xy[x]/xy[-1*x])) )
@@ -349,7 +357,7 @@ class Parse():
 				try:
 					y.append(uniquex[x][col])
 				except KeyError:
-					logging.warning("Skipping X=%s in column %s in dJ/dV. You probably have files containing different voltage steps!",x,col)
+					self.logger.warning("Skipping X=%s in column %s in dJ/dV. You probably have files containing different voltage steps!",x,col)
 					y.append(np.NaN)
 			#print("X: %s, y: %s" % (X,y))
 			spl = scipy.interpolate.UnivariateSpline( X, y, k=5, s=self.opts.smooth )
@@ -372,7 +380,7 @@ class Parse():
 						filtered.append( (x, spl(x), uniquex[x][col]) )
 					except KeyError:
 						filtered.append( (x, spl(x), np.NaN) )
-		logging.info("Non-tunneling traces: %s (out of %0d)" % 
+		self.logger.info("Non-tunneling traces: %s (out of %0d)" % 
 					( len(self.ohmic), len(self.traces['trace']) ) )
 		for x in splhists:
 			splhists[x]['hist'] = self.dohistogram(np.array(splhists[x]['spl']), label='DJDV')
@@ -426,7 +434,7 @@ class Parse():
 						filtered.append( (x, spl(x), self.XY[x]['Y'][i]) )
 			except IndexError:
 				break
-		logging.info("Non-tunneling traces: %s (out of %0d)" % 
+		self.logger.info("Non-tunneling traces: %s (out of %0d)" % 
 					( len(self.ohmic), len( self.XY[ list(self.XY.keys())[0] ]['Y'])*0.6 ) )
 		for x in splhists:
 			splhists[x]['hist'] = self.dohistogram(np.array(splhists[x]['spl']), label='DJDV')
@@ -460,7 +468,7 @@ class Parse():
 		tossed = 0
 		if self.opts.skipohmic:
 			# Vtrans has no physical meaning for curves with negative derivatives
-			logging.info("Skipping %s (out of %s) non-tunneling traces for Vtrans calculation." % 
+			self.logger.info("Skipping %s (out of %s) non-tunneling traces for Vtrans calculation." % 
 					( len(self.ohmic), len( self.XY[ list(self.XY.keys())[0]]['Y']) ) )
 		while True:
 			i += 1
@@ -485,10 +493,10 @@ class Parse():
 						y_pos.append(y)
 
 				if not len(neg.keys()) or not len(pos.keys()):
-					logging.warn("Skipping empty column in FN calculation.")
+					self.logger.warn("Skipping empty column in FN calculation.")
 					continue
 				if self.opts.nomin:
-					logging.debug("Using interpolation on FN")
+					self.logger.debug("Using interpolation on FN")
 					rootneg = self.getminroot(scipy.interpolate.UnivariateSpline( x_neg, y_neg, k=4, s=None ))
 					if np.isfinite(rootneg):
 						neg_min_x.append(rootneg)
@@ -496,14 +504,14 @@ class Parse():
 					if np.isfinite(rootpos):
 						pos_min_x.append(rootpos)
 					if np.NAN in (rootneg,rootpos):
-						logging.warn("No minimum found in FN derivative (-):%s, (+):%s" % (rootneg, rootpos) )
+						self.logger.warn("No minimum found in FN derivative (-):%s, (+):%s" % (rootneg, rootpos) )
 				else:
 					neg_min_x.append(neg[np.nanmin(list(neg.keys()))])
 					pos_min_x.append(pos[np.nanmin(list(pos.keys()))])
 			except IndexError:
 				break
 		
-		if tossed: logging.warn("Tossed %d compliance traces during FN calculation.", tossed)
+		if tossed: self.logger.warn("Tossed %d compliance traces during FN calculation.", tossed)
 		neg_min_x = np.array(neg_min_x)
 		pos_min_x = np.array(pos_min_x)
 		return self.dohistogram(neg_min_x, "Vtrans(-)"), self.dohistogram(pos_min_x, "Vtrans(+)")
@@ -535,12 +543,12 @@ class Parse():
 		j_compliance = np.nonzero(Y > self.opts.compliance) #BROKEN
 		r_compliance = np.nonzero(abs(Y) > self.opts.maxr)
 		if len(j_compliance[0]) and label == "J":
-			logging.warn("Tossing %d data points > %0.1f for %s histogram!", len(j_compliance[0]), self.opts.compliance, label)
+			self.logger.warn("Tossing %d data points > %0.1f for %s histogram!", len(j_compliance[0]), self.opts.compliance, label)
 			Y = Y[np.nonzero(Y <= self.opts.compliance)]
 		if len(r_compliance[0]) and label == "R":
-			logging.warn("Tossing %d data points > %0.1f for %s histogram!", len(r_compliance[0]), self.opts.maxr, label)
+			self.logger.warn("Tossing %d data points > %0.1f for %s histogram!", len(r_compliance[0]), self.opts.maxr, label)
 			Y = Y[np.nonzero(abs(Y) <= self.opts.maxr)]
-		logging.debug("%d points to consider.", len(Y))
+		self.logger.debug("%d points to consider.", len(Y))
 		if label == "J":
 			yrange = (Y.min()-1,Y.max()+1)
 		else:
@@ -553,7 +561,7 @@ class Parse():
 		try:
 			freq, bins = np.histogram(Y, range=yrange, bins=nbins, density=False)
 		except ValueError as msg:
-			logging.warning("Encountered this error while constructing histogram: %s", str(msg), exc_info=False)
+			self.logger.warning("Encountered this error while constructing histogram: %s", str(msg), exc_info=False)
 			bins=np.array([0.,0.,0.,0.])
 			freq=np.array([0.,0.,0.,0.])
 		
@@ -571,7 +579,7 @@ class Parse():
 		
 		# This will trigger if the mean happens to be zero
 		#if not Ys or not Ym:
-		#	logging.error("Failed to find G-mean and G-std!")
+		#	self.logger.error("Failed to find G-mean and G-std!")
 		#	print(Ys,Ym)
 		# Initital conditions for Gauss-fit
 		p0 = [1., Ym, Ys]
@@ -588,11 +596,11 @@ class Parse():
 				hist_fit = self.gauss(bin_centers, *coeff)
 		except RuntimeError as msg:
 			if self.opts.maxfev > 10:
-				logging.warning("|%s| Fit did not converge (%s)", label, str(msg), exc_info=False)
+				self.logger.warning("|%s| Fit did not converge (%s)", label, str(msg), exc_info=False)
 			coeff = p0
 			hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
 		except ValueError as msg:
-			logging.warning("|%s| Skipping data with ridiculous numbers in it (%s)", label, str(msg), exc_info=False )
+			self.logger.warning("|%s| Skipping data with ridiculous numbers in it (%s)", label, str(msg), exc_info=False )
 			coeff=p0
 			hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
 

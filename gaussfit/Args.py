@@ -118,11 +118,12 @@ if not os.path.exists(Opts.out_dir):
 	#sys.exit()
 
 # Set up terminal logging. Set LOG to a file for debugging.
-LOG = False
-if LOG:
-	logging.basicConfig(level= getattr(logging,Opts.loglevel.upper()),format = '%(asctime)s %(process)d %(levelname)s %(message)s', filename=LOG,filemode='a+')
-else:
-	logging.basicConfig(level= getattr(logging,Opts.loglevel.upper()),format = GREEN+os.path.basename(sys.argv[0]+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE)
+#LOG = False
+#if LOG:
+#	logging.basicConfig(level= getattr(logging,Opts.loglevel.upper()),format = '%(asctime)s %(process)d %(levelname)s %(message)s', filename=LOG,filemode='a+')
+#else:
+#	logging.basicConfig(level= getattr(logging,Opts.loglevel.upper()),format = GREEN+os.path.basename(sys.argv[0]+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE)
+#
 
 if not len(Opts.in_files) and not Opts.GUI:
 	parser.print_help()

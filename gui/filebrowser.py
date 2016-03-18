@@ -88,7 +88,7 @@ class ChooseFiles(Frame):
 		self.ColumnFrame.pack(side=LEFT)
 		self.LeftOptionsFrame.pack(side=LEFT)
 		self.LoggingFrame.pack(side=BOTTOM)
-		self.logger = logging.getLogger(None)
+		self.logger = logging.getLogger('parser.gui')
 		self.logger.addHandler(LoggingToGUI(self.Logging))
 		self.logger.info("Logging...")
 
@@ -255,7 +255,7 @@ class ChooseFiles(Frame):
 						logging.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
 		else: 
 			if len(self.opts.in_files):
-				parser = Parse(self.opts)
+				parser = Parse(self.opts,handler=LoggingToGUI(self.Logging))
 				self.gothreads.append(ParseThread(self.opts,parser))
 				self.gothreads[-1].start()
 				self.ButtonParse.after('500',self.Parse)

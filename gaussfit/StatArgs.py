@@ -126,8 +126,8 @@ if not os.path.exists(Opts.out_dir):
 	os.mkdir(Opts.out_dir)
 	print("Creating %s" % Opts.out_dir)
 
-logging.basicConfig(level=getattr(logging,Opts.loglevel.upper()),\
-		format=GREEN+os.path.basename(sys.argv[0]+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE)
+#logging.basicConfig(level=getattr(logging,Opts.loglevel.upper()),\
+#		format=GREEN+os.path.basename(sys.argv[0]+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE)
 
 if not len(Opts.setA) and not Opts.GUI:
 	parser.print_help()

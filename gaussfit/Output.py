@@ -517,6 +517,7 @@ class StatPlotter:
 		self.PlotJData('R',ax4,'.',lw=1.25, color='b')
 		fig.savefig(self.opts.outfile+"_statfig.png", format="png")
 
+
 def WriteStats(out_dir, outfile, dataset, bfn, labels=[]):
 	'''Output for a generic set of data expecting an n-dimensional array'''
 
