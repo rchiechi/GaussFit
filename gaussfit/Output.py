@@ -33,6 +33,9 @@ class Writer():
 	def __init__(self,parser):
 		self.parser = parser
 		self.opts = self.parser.opts
+		if not os.path.exists(parser.opts.out_dir):
+			print("Creating %s" % parser.opts.out_dir)
+			os.mkdir(parser.opts.out_dir)
 
 	def __getattr__(self, name):
 		try:

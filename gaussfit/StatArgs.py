@@ -122,9 +122,9 @@ if len(Opts.setA) and not Opts.outfile:
 Opts.Xcol -= 1
 Opts.Ycol -= 1
 
-if not os.path.exists(Opts.out_dir):
-	os.mkdir(Opts.out_dir)
-	print("Creating %s" % Opts.out_dir)
+#if not os.path.exists(Opts.out_dir):
+#	os.mkdir(Opts.out_dir)
+#	print("Creating %s" % Opts.out_dir)
 
 #logging.basicConfig(level=getattr(logging,Opts.loglevel.upper()),\
 #		format=GREEN+os.path.basename(sys.argv[0]+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE)

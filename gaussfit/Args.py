@@ -110,9 +110,9 @@ if len(Opts.in_files) and not Opts.outfile:
 Opts.Xcol -= 1
 Opts.Ycol -= 1
 			
-if not os.path.exists(Opts.out_dir):
-	os.mkdir(Opts.out_dir)
-	print("Creating %s" % Opts.out_dir)
+#if not os.path.exists(Opts.out_dir):
+#	os.mkdir(Opts.out_dir)
+#	print("Creating %s" % Opts.out_dir)
 	#parser.print_help()
 	#print(RED+"\n\t\t> > > Output directory "+arg+" does not exist! < < <"+RS)
 	#sys.exit()
