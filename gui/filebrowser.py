@@ -19,13 +19,14 @@ Description:
 		You should have received a copy of the GNU General Public License
 		along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
-import sys,os,platform,threading
+import sys,os,platform,threading,logging
 from gaussfit.Output import Writer,Plotter
 from gaussfit.Parser import Parse
 from tkinter import filedialog #some weird bug...
 from tkinter import *
 from tkinter.ttk import *
-import logging
+from tkinter.font import *
+from gui.colors import *
 from gui.tooltip import *
 
 
@@ -50,6 +51,9 @@ class ChooseFiles(Frame):
 			self.last_input_path = os.path.expanduser('~')
 		self.opts = opts
 		self.gothreads = []
+		
+		self.master.tk_setPalette(background=GREY,
+			activeBackground=GREY)
 		self.master.title("File Browser")
 		self.master.geometry('850x750+250-250')
 		self.pack(fill=BOTH)
@@ -60,38 +64,33 @@ class ChooseFiles(Frame):
 	def __createWidgets(self):
 			
 		self.ButtonFrame = Frame(self)
-		self.OptionsFrame = Frame(self)
-
-		self.ColumnFrame = Frame(self)
-		self.ColumnFrameLabel = Label(self.ColumnFrame, text="Columns to parse:" ).pack(side=TOP, ipadx=10)
-		self.LeftOptionsFrame = Frame(self.ColumnFrame)
-		
-		self.FileListBoxFrame = Frame(self)
-		self.FileListBoxFrameLabelVar = StringVar()
-		self.FileListBoxFrameLabel = Label(self.FileListBoxFrame, \
-											  textvariable=self.FileListBoxFrameLabelVar )
-		self.FileListBoxFrameLabel.grid(row=0, column=0)
-		self.UpdateFileListBoxFrameLabel()
-
+		self.LeftOptionsFrame = Frame(self)
 		self.LoggingFrame = Frame(self)
-		self.Logging = Text(self.LoggingFrame, height=20)
-		self.Logging.pack()
+		self.RightOptionsFrame = Frame(self)
+
+
+		self.FileListBoxFrame = Frame(self)
+	
+		yScroll = Scrollbar(self.LoggingFrame, orient=VERTICAL)
+		self.Logging = Text(self.LoggingFrame, height=20, width=0,  
+				bg=BLACK, fg=WHITE, yscrollcommand=yScroll.set)
+		yScroll['command'] = self.Logging.yview
+		self.Logging.pack(side=LEFT,fill=BOTH,expand=True)
+		yScroll.pack(side=RIGHT,fill=Y)
 
 		self.__createButtons()
-		self.__createOutputLabel()
+		self.__createFileListBox()
 		self.__createOptions()
-		self.__createColumnEntry()
 
-		self.ButtonFrame.pack(side=BOTTOM, fill=Y)
-		self.FileListBoxFrame.pack(side=TOP, fil=Y, expand=1)
-		self.OptionsFrame.pack(side=RIGHT)
-		self.ColumnFrame.pack(side=LEFT)
-		self.LeftOptionsFrame.pack(side=LEFT)
-		self.LoggingFrame.pack(side=BOTTOM)
+		self.ButtonFrame.pack(side=BOTTOM,fill=None)
+		self.FileListBoxFrame.pack(side=TOP, fil=BOTH, expand=True)
+		self.LeftOptionsFrame.pack(side=LEFT,fill=Y)
+		self.RightOptionsFrame.pack(side=RIGHT,fill=Y)
+		self.LoggingFrame.pack(side=BOTTOM, fill=BOTH)
 		self.logger = logging.getLogger('parser.gui')
 		self.logger.addHandler(LoggingToGUI(self.Logging))
+		self.logger.setLevel(getattr(logging,self.opts.loglevel.upper()))
 		self.logger.info("Logging...")
-
 
 		self.updateFileListBox()
 
@@ -113,8 +112,6 @@ class ChooseFiles(Frame):
 
 		
 	def __createOptions(self):
-##		Label( self.OptionsFrame,text="Select Options:").grid(column=1, row=0)
-
 		self.checks = [
 			  {'name':'plot','text':'Plot','row':1,'tooltip':"Show summary plots after parsing."},
 			  {'name':'write','text':'Write','row':2,'tooltip':"Write results to text files after parsing."},
@@ -127,7 +124,7 @@ class ChooseFiles(Frame):
 
 		for c in self.checks:
 			setattr(self,c['name'],IntVar())
-			check = Checkbutton(self.OptionsFrame, text=c['text'],
+			check = Checkbutton(self.RightOptionsFrame, text=c['text'],
 					variable=getattr(self,c['name']), command=self.checkOptions)
 			check.grid(column=0,row=c['row'],sticky=W)
 			createToolTip(check,c['tooltip'])
@@ -136,8 +133,9 @@ class ChooseFiles(Frame):
 				getattr(self,c['name']).set(1)
 
 
-		Label(self.OptionsFrame, text="Output file base name:").grid(column=0,row=3)
-		self.OutputFileName = Entry(self.OptionsFrame, width=16)
+		Label(self.RightOptionsFrame, text="Output file base name:").grid(column=0,row=3)
+		self.OutputFileName = Entry(self.RightOptionsFrame, width=30,
+				font=Font(family="Helvetica",size=10,slant='italic'))
 		for n in ('<Return>','<Leave>','<Enter>'):
 			self.OutputFileName.bind(n, self.checkOutputFileName)
 		self.OutputFileName.grid(column=0,row=4)
@@ -145,14 +143,16 @@ class ChooseFiles(Frame):
 		if self.opts.outfile:
 			self.OutputFileName.insert(0,self.opts.outfile)
 	
-		Label(self.OptionsFrame, text="What to plot:").grid(column=0,row=9)
+		Label(self.RightOptionsFrame, text="What to plot:").grid(column=0,row=9)
 		self.OptionsPlotsString = StringVar()
 		self.OptionsPlotsString.set(','.join(self.opts.plots))
-		self.OptionPlots = OptionMenu(self.OptionsFrame, self.OptionsPlotsString,'J','R',
+		self.OptionPlots = OptionMenu(self.RightOptionsFrame, self.OptionsPlotsString,'J','R',
 		                         command=self.checkOptions)
 		self.OptionPlots.grid(column=0,row=10)
 
 		lbls = [
+			{'name': 'Columns', 'text': "Columns to parse:",
+			 'tooltip': 'Columns from input data to parse as X/Y data.'},
 			{'name': 'Vcutoff', 'text': "Cuttoff for d2J/dV2:",
 			 'tooltip': "Check the values of d2J/dV2 between |vcutoff| and Vmin/Vmax for line-shape filtering. Set to -1 for Vmin/Vmax."},
 			{'name': 'Smooth', 'text': "Smoothing parameter:",
@@ -168,7 +168,8 @@ class ChooseFiles(Frame):
 		i = 0
 		for l in lbls:
 			Label(self.LeftOptionsFrame, text=l['text']).grid(column=0,row=i)
-			entry = Entry(self.LeftOptionsFrame, width=8)
+			entry = Entry(self.LeftOptionsFrame, width=8, 
+					validate='focus', validatecommand=self.checkOptions)
 			entry.bind("<Return>", self.checkOptions)
 			entry.bind("<Leave>", self.checkOptions)
 			entry.bind("<Enter>", self.checkOptions)
@@ -177,41 +178,31 @@ class ChooseFiles(Frame):
 			setattr(self, 'Entry'+l['name'], entry)
 			i+=2
 
-
 		self.checkOptions()
 
+	def __createFileListBox(self):
+		self.FileListBoxFrameLabelVar = StringVar()
+		self.FileListBoxFrameLabel = Label(self.FileListBoxFrame,\
+				textvariable=self.FileListBoxFrameLabelVar,\
+				font=Font(family="Helvetica",size=12,weight="bold"))
+		self.FileListBoxFrameLabel.pack(side=TOP,fill=X)
 
 
-	def __createOutputLabel(self):
 
-		self.yScroll = Scrollbar(self.FileListBoxFrame, orient=VERTICAL)
-		self.yScroll.grid(row=1, column=1, sticky=N+S)
-
-		self.xScroll = Scrollbar(self.FileListBoxFrame, orient=HORIZONTAL)
-		self.xScroll.grid(row=2, column=0, sticky=E+W)
-
- 
+		yScroll = Scrollbar(self.FileListBoxFrame,orient=VERTICAL)
+		yScroll.pack(side=RIGHT,fill=Y)
+		xScroll = Scrollbar(self.FileListBoxFrame, orient=HORIZONTAL)
+		xScroll.pack(side=BOTTOM,fill=X)
 		self.filelist = StringVar()
 		self.FileListBox = Listbox(self.FileListBoxFrame, listvariable=self.filelist, selectmode=EXTENDED, 
-						height = 20, width = 100, relief=RAISED, bd=1, 
-									  xscrollcommand=self.xScroll.set, 
-									  yscrollcommand=self.yScroll.set)
-		self.FileListBox.grid(row=1, column=0, sticky=N+S+E+W)
-		self.xScroll['command'] = self.FileListBox.xview
-		self.yScroll['command'] = self.FileListBox.yview
-
-
-
-
-	def __createColumnEntry(self):
-
-		self.EntryColumns = Entry(self.ColumnFrame, width=8)
-		self.EntryColumns.bind("<Return>", self.checkColumnEntry)
-		self.EntryColumns.bind("<Leave>", self.checkColumnEntry)
-		self.EntryColumns.bind("<Enter>", self.checkColumnEntry)
-		self.EntryColumns.pack()
-		self.checkColumnEntry(None)
-	
+						height = 20, width = 0, relief=RAISED, bd=1,
+							bg=WHITE,font=Font(family='Helvetica',size=12),
+							xscrollcommand=xScroll.set, 
+							yscrollcommand=yScroll.set)
+		xScroll['command'] = self.FileListBox.xview
+		yScroll['command'] = self.FileListBox.yview
+		self.FileListBox.pack(side=LEFT, fill=BOTH, expand=True)
+		self.UpdateFileListBoxFrameLabel()
 
 	def ToFront(self):
 		if platform.system() == "Darwin":
@@ -238,7 +229,7 @@ class ChooseFiles(Frame):
 				if c.is_alive():
 					self.ButtonParse.after('500',self.Parse)
 					return	
-			logging.info("Parse complete!")
+			self.logger.info("Parse complete!")
 			gothread = self.gothreads.pop()
 			self.ButtonParse['state']=NORMAL
 			if self.opts.write:	
@@ -246,13 +237,13 @@ class ChooseFiles(Frame):
 				Parse.doOutput(writer)
 			if self.opts.plot:
 				plotter = Plotter(gothread.parser)
-				logging.info("Generating plots...")
+				self.logger.info("Generating plots...")
 				try:
 						import matplotlib.pyplot as plt
 						plotter.DoPlots(plt,*self.opts.plots)
 						plt.show(block=False)
 				except ImportError as msg:
-						logging.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
+						self.logger.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
 		else: 
 			if len(self.opts.in_files):
 				parser = Parse(self.opts,handler=LoggingToGUI(self.Logging))
@@ -317,6 +308,23 @@ class ChooseFiles(Frame):
 		else:
 			self.Check_plot["state"]=NORMAL
 
+		for n in (('Smooth',1e-12),('Bins',50),('Heatmapbins',25)):
+			try:
+				var = int(getattr(self,'Entry'+n[0]).get())
+			except ValueError:
+				var = n[1]
+			if var > 0:
+				setattr(self.opts,n[0].lower(),var)
+			getattr(self,'Entry'+n[0]).delete(0,END)
+			getattr(self,'Entry'+n[0]).insert(0,getattr(self.opts,n[0].lower()))
+	
+		self.opts.plots = self.OptionsPlotsString.get().split(',')
+		self.checkGminmaxEntry(event)
+		self.checkOutputFileName(event)	
+		self.checkColumnEntry(event)
+		self.checkVcutoff(event)
+
+	def checkVcutoff(self,event):
 		try:
 			vcutoff = float(self.EntryVcutoff.get())
 			if vcutoff != -1:
@@ -331,21 +339,6 @@ class ChooseFiles(Frame):
 		else:
 			self.EntryVcutoff.insert(0,"Vmax")
 
-
-		for n in (('Smooth',1e-12),('Bins',50),('Heatmapbins',25)):
-			try:
-				var = int(getattr(self,'Entry'+n[0]).get())
-			except ValueError:
-				var = n[1]
-			if var > 0:
-				setattr(self.opts,n[0].lower(),var)
-			getattr(self,'Entry'+n[0]).delete(0,END)
-			getattr(self,'Entry'+n[0]).insert(0,getattr(self.opts,n[0].lower()))
-	
-		self.opts.plots = self.OptionsPlotsString.get().split(',')
-		self.checkGminmaxEntry(event)
-		self.checkOutputFileName(event)	
-	
 
 	def checkOutputFileName(self, event):
 		self.opts.outfile = self.OutputFileName.get()
@@ -378,6 +371,8 @@ class LoggingToGUI(logging.Handler):
 	def __init__(self, console):
 		logging.Handler.__init__(self)
 		self.setFormatter(logging.Formatter('%(levelname)s %(message)s'))
+		#self.setFormatter(logging.Formatter(GREEN+os.path.basename(sys.argv[0]+TEAL)+\
+		#		' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
 		self.console = console #Any text widget, you can use the class above or not
 
 	def emit(self, message): # Overwrites the default handler's emit method

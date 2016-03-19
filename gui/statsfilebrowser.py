@@ -19,14 +19,15 @@ Description:
 		You should have received a copy of the GNU General Public License
 		along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
-import sys,os,platform,threading
+import sys,os,platform,threading,logging
 from gaussfit.stats import Stats
 from gaussfit.Output import WriteStats,StatPlotter
 from tkinter import filedialog #some weird bug...
 from tkinter import *
 from tkinter.ttk import *
-import logging
+from tkinter.font import *
 from gui.tooltip import *
+from gui.colors import *
 
 class ParseThread(threading.Thread):
 	def __init__(self,statparser):
@@ -50,8 +51,10 @@ class ChooseFiles(Frame):
 		self.last_input_pathB = self.defaultdir
 		self.opts = opts
 		self.gothreads = []
+		self.master.tk_setPalette(background=GREY,
+				activeBackground=GREY)
 		self.master.title("File Browser")
-		self.master.geometry('1400x700+250-250')
+		self.master.geometry('1100x700+250-250')
 		self.pack(fill=BOTH)
 		self.__createWidgets()
 		self.ToFront()
@@ -59,35 +62,29 @@ class ChooseFiles(Frame):
 
 	def __createWidgets(self):
 			
-		self.ButtonFrame = Frame(self)
-
-		self.OptionsFrame = Frame(self)
-
-		self.ColumnFrame = Frame(self)
-		self.ColumnFrameLabel = Label(self.ColumnFrame, text="Columns to parse:" ).pack(side=TOP, ipadx=10)
-		self.LeftOptionsFrame = Frame(self.ColumnFrame)
-		
 		self.FileListBoxFrame = Frame(self)
-		self.FileListBoxFrameLabelVar = StringVar()
-		self.FileListBoxFrameLabel = Label(self.FileListBoxFrame, textvariable=self.FileListBoxFrameLabelVar )
-		self.FileListBoxFrameLabel.grid(row=0, column=0)
-		self.UpdateFileListBoxFrameLabel()
-
+		self.LeftOptionsFrame = Frame(self)
 		self.LoggingFrame = Frame(self)
-		self.Logging = Text(self.LoggingFrame, height=20)
-		self.Logging.pack()
+		self.RightOptionsFrame = Frame(self)
+		self.ButtonFrame = Frame(self)
+		
+		yScroll = Scrollbar(self.LoggingFrame, orient=VERTICAL)
+		self.Logging = Text(self.LoggingFrame, height=20, width=0, 
+				bg=BLACK, fg=WHITE, yscrollcommand=yScroll.set)
+		yScroll['command'] = self.Logging.yview
+		self.Logging.pack(side=LEFT,fill=BOTH,expand=True)
+		yScroll.pack(side=RIGHT,fill=Y)
+
 
 		self.__createButtons()
-		self.__createOutputLabel()
+		self.__createFileListBox()
 		self.__createOptions()
-		self.__createColumnEntry()
 
-		self.ButtonFrame.pack(side=BOTTOM, fill=Y)
-		self.FileListBoxFrame.pack(side=TOP, fil=Y, expand=1)
-		self.OptionsFrame.pack(side=RIGHT)
-		self.ColumnFrame.pack(side=LEFT)
-		self.LeftOptionsFrame.pack(side=LEFT)
-		self.LoggingFrame.pack(side=BOTTOM)
+		self.ButtonFrame.pack(side=BOTTOM)
+		self.FileListBoxFrame.pack(side=TOP, fil=BOTH, expand=1)
+		self.LeftOptionsFrame.pack(side=LEFT,fill=Y)
+		self.RightOptionsFrame.pack(side=RIGHT,fill=Y)
+		self.LoggingFrame.pack(side=BOTTOM, fill=BOTH, expand=1)
 		
 		self.logger = logging.getLogger('gui')
 		self.logger.addHandler(LoggingToGUI(self.Logging))
@@ -128,7 +125,7 @@ class ChooseFiles(Frame):
 
 		for c in self.checks:
 			setattr(self,c['name'],IntVar())
-			check = Checkbutton(self.OptionsFrame, text=c['text'],
+			check = Checkbutton(self.RightOptionsFrame, text=c['text'],
 					variable=getattr(self,c['name']), command=self.checkOptions)
 			check.grid(column=0,row=c['row'],sticky=W)
 			createToolTip(check,c['tooltip'])
@@ -137,8 +134,9 @@ class ChooseFiles(Frame):
 				getattr(self,c['name']).set(1)
 		
 
-		Label(self.OptionsFrame, text="Output file base name:").grid(column=0,row=3)
-		self.OutputFileName = Entry(self.OptionsFrame, width=16)
+		Label(self.RightOptionsFrame, text="Output file base name:").grid(column=0,row=3)
+		self.OutputFileName = Entry(self.RightOptionsFrame, width=30,
+				font=Font(family="Helvetica",size=10,slant='italic'))
 		for n in ('<Return>','<Leave>','<Enter>'):
 			self.OutputFileName.bind(n, self.checkOutputFileName)
 		self.OutputFileName.grid(column=0,row=4)
@@ -148,6 +146,8 @@ class ChooseFiles(Frame):
 		
 
 		lbls = [
+			{'name': 'Columns', 'text': "Columns to parse:",
+			  'tooltip': 'Columns from input data to parse as X/Y data.'},
 			{'name': 'Vcutoff', 'text': "Cuttoff for d2J/dV2:",
 			 'tooltip': "Check the values of d2J/dV2 between |vcutoff| and Vmin/Vmax for line-shape filtering. Set to -1 for Vmin/Vmax."},
 			{'name': 'Nobs', 'text': "N for p-test of J:",
@@ -159,7 +159,8 @@ class ChooseFiles(Frame):
 		i = 0
 		for l in lbls:
 			Label(self.LeftOptionsFrame, text=l['text']).grid(column=0,row=i)
-			entry = Entry(self.LeftOptionsFrame, width=8)
+			entry = Entry(self.LeftOptionsFrame, width=8,
+					validate='focus', validatecommand=self.checkOptions)
 			entry.bind("<Return>", self.checkOptions)
 			entry.bind("<Leave>", self.checkOptions)
 			entry.bind("<Enter>", self.checkOptions)
@@ -170,30 +171,32 @@ class ChooseFiles(Frame):
 
 		self.checkOptions()
 
-	def __createColumnEntry(self):
-		self.EntryColumns = Entry(self.ColumnFrame, width=8)
-		for t in ["<Return>","<Leave>","<Enter>"]:
-			self.EntryColumns.bind(t, self.checkColumnEntry)
-		self.EntryColumns.pack()
-		self.checkColumnEntry(None)
-
-	def __createOutputLabel(self):
+	def __createFileListBox(self):
+		self.FileListBoxFrameLabelVar = StringVar()
+		self.FileListBoxFrameLabel = Label(self.FileListBoxFrame,
+				textvariable=self.FileListBoxFrameLabelVar,
+				font=Font(family="Helvetica",size=12,weight="bold"))
+		self.FileListBoxFrameLabel.grid(row=0, column=0, columnspan=4)
+		self.UpdateFileListBoxFrameLabel()
+		
 		ab=('A','B')
-		for i in range(0,2):
-			setattr(self,'yScroll'+ab[i], Scrollbar(self.FileListBoxFrame, orient=VERTICAL))
-			getattr(self,'yScroll'+ab[i]).grid(row=1, column=1, sticky=N+S)
-
-			setattr(self,'xScroll'+ab[i], Scrollbar(self.FileListBoxFrame, orient=HORIZONTAL))
-			getattr(self,'xScroll'+ab[i]).grid(row=2, column=0, sticky=E+W)
-	 
+		col=(0,2)
+		for i in range(0,len(ab)):
+			yScroll = Scrollbar(self.FileListBoxFrame, orient=VERTICAL)
+			yScroll.grid(row=1, column=col[i]+1, sticky=N+S)
+			xScroll = Scrollbar(self.FileListBoxFrame, orient=HORIZONTAL)
+			xScroll.grid(row=2, column=col[i], sticky=E+W)
 			setattr(self, 'filelist'+ab[i], StringVar())
 			setattr(self, 'FileListBox'+ab[i], Listbox(self.FileListBoxFrame, listvariable=getattr(self,'filelist'+ab[i]), selectmode=EXTENDED, 
-							height = 20, width = 75, relief=RAISED, bd=1, 
-										  xscrollcommand=getattr(self,'xScroll'+ab[i]).set, 
-										  yscrollcommand=getattr(self,'yScroll'+ab[i]).set))
-			getattr(self, 'FileListBox'+ab[i]).grid(row=1, column=i, sticky=N+S+E+W)
-			getattr(self,'xScroll'+ab[i])['command'] = getattr(self,'FileListBox'+ab[i]).xview
-			getattr(self,'yScroll'+ab[i])['command'] = getattr(self,'FileListBox'+ab[i]).yview
+							height = 25, width = 0, relief=RAISED, bd=1,
+								bg=WHITE,font=Font(family="Helvetica",size=10,slant='italic'),
+								xscrollcommand=xScroll.set, 
+								yscrollcommand=yScroll.set))
+			getattr(self, 'FileListBox'+ab[i]).grid(row=1, column=col[i], sticky=N+S+E+W)
+			xScroll['command'] = getattr(self,'FileListBox'+ab[i]).xview
+			yScroll['command'] = getattr(self,'FileListBox'+ab[i]).yview
+			self.FileListBoxFrame.columnconfigure(col[i],weight=1)
+		self.FileListBoxFrame.rowconfigure(1,weight=1)
 
 	def ToFront(self):
 		if platform.system() == "Darwin":
@@ -314,6 +317,20 @@ class ChooseFiles(Frame):
 			self.Check_plot["state"]=DISABLED
 		else:
 			self.Check_plot["state"]=NORMAL
+
+		for n in ('Nobs', 'Threads'):
+			try:
+				var = int(getattr(self,'Entry'+n).get())
+			except ValueError:
+				var = -1
+			if var > 0:
+				setattr(self.opts,n.lower(),var)
+			getattr(self,'Entry'+n).delete(0,END)
+			getattr(self,'Entry'+n).insert(0,getattr(self.opts,n.lower()))
+		self.checkColumnEntry(event)	
+		self.checkVcutoff(event)
+
+	def checkVcutoff(self,event):
 		try:
 			vcutoff = float(self.EntryVcutoff.get())
 			if vcutoff != -1:
@@ -327,17 +344,6 @@ class ChooseFiles(Frame):
 		else:
 			self.EntryVcutoff.insert(0,"Vmax")
 
-		for n in 'Nobs', 'Threads':
-			try:
-				var = int(getattr(self,'Entry'+n).get())
-			except ValueError:
-				var = -1
-			if var > 0:
-				setattr(self.opts,n.lower(),var)
-			getattr(self,'Entry'+n).delete(0,END)
-			getattr(self,'Entry'+n).insert(0,getattr(self.opts,n.lower()))
-	
-		
 	def checkOutputFileName(self, event):
 		self.opts.outfile = self.OutputFileName.get()
 		self.UpdateFileListBoxFrameLabel()
