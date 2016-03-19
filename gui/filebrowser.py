@@ -135,7 +135,7 @@ class ChooseFiles(Frame):
 
 		Label(self.RightOptionsFrame, text="Output file base name:").grid(column=0,row=3)
 		self.OutputFileName = Entry(self.RightOptionsFrame, width=20,
-				font=Font(family="Helvetica",size=8,slant='italic'))
+				font=Font(size=8,slant='italic'))
 		for n in ('<Return>','<Leave>','<Enter>'):
 			self.OutputFileName.bind(n, self.checkOutputFileName)
 		self.OutputFileName.grid(column=0,row=4)
@@ -184,7 +184,7 @@ class ChooseFiles(Frame):
 		self.FileListBoxFrameLabelVar = StringVar()
 		self.FileListBoxFrameLabel = Label(self.FileListBoxFrame,\
 				textvariable=self.FileListBoxFrameLabelVar,\
-				font=Font(family="Helvetica",size=12,weight="bold"))
+				font=Font(size=12,weight="bold"))
 		self.FileListBoxFrameLabel.pack(side=TOP,fill=X)
 
 
@@ -197,7 +197,7 @@ class ChooseFiles(Frame):
 		self.FileListBox = Listbox(self.FileListBoxFrame, listvariable=self.filelist, selectmode=EXTENDED, 
 						height = 20, width = 0, relief=RAISED, bd=1,
 							bg=WHITE,
-                                                        #font=Font(family='Helvetica',size=10),
+                                                        #font=Font(size=10),
 							xscrollcommand=xScroll.set, 
 							yscrollcommand=yScroll.set)
 		xScroll['command'] = self.FileListBox.xview
