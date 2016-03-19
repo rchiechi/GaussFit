@@ -184,7 +184,7 @@ class ChooseFiles(Frame):
 		self.FileListBoxFrameLabelVar = StringVar()
 		self.FileListBoxFrameLabel = Label(self.FileListBoxFrame,\
 				textvariable=self.FileListBoxFrameLabelVar,\
-				font=Font(size=12,weight="bold"))
+				font=Font(weight="bold"))
 		self.FileListBoxFrameLabel.pack(side=TOP,fill=X)
 
 
