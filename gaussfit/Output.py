@@ -445,7 +445,8 @@ class Plotter():
 			self.PlotR(ax2)
 		self.PlotVtrans(ax4)
 		self.PlotG(ax3)
-		fig.savefig(os.path.join(self.opts.out_dir,self.opts.outfile+"_fig.png"), format="png")
+		if self.opts.write:
+			fig.savefig(os.path.join(self.opts.out_dir,self.opts.outfile+"_fig.png"), format="png")
 		#self.PlotData('FN', ax3, 'x', ms=2)
 		#self.PlotData('Y', ax1, '-')
 		#self.PlotDJDV(ax1)
@@ -518,7 +519,8 @@ class StatPlotter:
 		self.PlotGmeanData('R',ax2,'.',lw=1.25, color='b')
 		self.PlotJData('J',ax3,'.',lw=1.25, color='b')
 		self.PlotJData('R',ax4,'.',lw=1.25, color='b')
-		fig.savefig(self.opts.outfile+"_statfig.png", format="png")
+		if self.opts.write:
+			fig.savefig(self.opts.outfile+"_statfig.png", format="png")
 
 
 def WriteStats(out_dir, outfile, dataset, bfn, labels=[]):
