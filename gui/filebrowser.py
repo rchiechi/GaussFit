@@ -143,12 +143,12 @@ class ChooseFiles(Frame):
 		if self.opts.outfile:
 			self.OutputFileName.insert(0,self.opts.outfile)
 	
-		Label(self.RightOptionsFrame, text="What to plot:").grid(column=0,row=9)
+		Label(self.RightOptionsFrame, text="What to plot:").grid(column=0,row=9,sticky=W)
 		self.OptionsPlotsString = StringVar()
 		self.OptionsPlotsString.set(','.join(self.opts.plots))
 		self.OptionPlots = OptionMenu(self.RightOptionsFrame, self.OptionsPlotsString,'J','R',
 		                         command=self.checkOptions)
-		self.OptionPlots.grid(column=0,row=10)
+		self.OptionPlots.grid(column=0,row=10,sticky=W)
 
 		lbls = [
 			{'name': 'Columns', 'text': "Columns to parse:",
