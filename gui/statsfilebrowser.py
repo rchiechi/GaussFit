@@ -53,7 +53,7 @@ class ChooseFiles(Frame):
 		self.gothreads = []
 		self.master.tk_setPalette(background=GREY,
 				activeBackground=GREY)
-		self.master.title("File Browser")
+		self.master.title("RCCLab EGaIn Statistics")
 		self.master.geometry('1100x700+250-250')
 		self.pack(fill=BOTH)
 		self.__createWidgets()

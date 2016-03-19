@@ -54,7 +54,7 @@ class ChooseFiles(Frame):
 		
 		self.master.tk_setPalette(background=GREY,
 			activeBackground=GREY)
-		self.master.title("File Browser")
+		self.master.title("RCCLab EGaIn Data Parser")
 		self.master.geometry('850x750+250-250')
 		self.pack(fill=BOTH)
 		self.__createWidgets()
