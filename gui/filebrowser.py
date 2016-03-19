@@ -195,7 +195,7 @@ class ChooseFiles(Frame):
 		xScroll.pack(side=BOTTOM,fill=X)
 		self.filelist = StringVar()
 		self.FileListBox = Listbox(self.FileListBoxFrame, listvariable=self.filelist, selectmode=EXTENDED, 
-						height = 10, width = 0, relief=RAISED, bd=1,
+						height = 25, width = 0, relief=RAISED, bd=1,
 							bg=WHITE,font=Font(family='Helvetica',size=12),
 							xscrollcommand=xScroll.set, 
 							yscrollcommand=yScroll.set)
