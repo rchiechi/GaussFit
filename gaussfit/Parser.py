@@ -84,7 +84,7 @@ class Parse():
 
 	@classmethod
 	def doOutput(cls,writer):
-		self.logger.info("Writing files...")
+		writer.logger.info("Writing files...")
 		writer.WriteParseInfo()
 		writer.WriteVtrans()
 		writer.WriteGNUplot('Vtransplot')
@@ -111,7 +111,7 @@ class Parse():
 			writer.WriteGNUplot('Gplot', ['parula.pal']) 
 		except IndexError:
 			print("Error outputting GMatrix")
-		self.logger.info("Done!")
+		writer.logger.info("Done!")
 
 	def isfloat(self,f):
 		try:
