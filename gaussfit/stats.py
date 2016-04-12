@@ -122,6 +122,11 @@ class Stats:
 			for k in self.SetB.keys(): print(k, end='|')
 			print("\n")
 			sys.exit()
+		
+		if not self.SetA.keys() or not self.SetBkyes():
+			print("Didn't parse any input files?")
+			return
+		
 		self.Ttest('R')
 		self.Ttest('J')
 		self.TtestFN()

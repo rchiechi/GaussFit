@@ -151,6 +151,9 @@ class Parse():
 				with open(fn, 'rt', newline='') as csvfile:
 					if self.opts.Ycol > 0:
 						for row in csv.reader(csvfile, dialect='JV'):
+							# Skip emtpy rows
+							if not row:
+								continue
 							# Hack to get rid of emtpy columns
 							row = list(filter(None,row))
 							rows.append(row)
