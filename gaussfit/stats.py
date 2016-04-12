@@ -123,7 +123,7 @@ class Stats:
 			print("\n")
 			sys.exit()
 		
-		if not self.SetA.keys() or not self.SetBkeys():
+		if not self.SetA.keys() or not self.SetB.keys():
 			print("Didn't parse any input files?")
 			return
 		
