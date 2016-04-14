@@ -24,6 +24,8 @@ import sys,os,logging,warnings,csv,threading
 from gaussfit.colors import *
 
 try:
+	import pandas as pd
+	from pandas import Series, DataFrame
 	from scipy.optimize import curve_fit,OptimizeWarning
 	import scipy.interpolate 
 	from scipy.stats import gmean,norm
@@ -33,7 +35,7 @@ try:
 	warnings.filterwarnings('ignore','.*Covariance of the parameters.*',OptimizeWarning)
 
 except ImportError as msg:
-	print("\n\t\t%s> > > Error importing numpy/scipy! %s%s%s < < <%s" % (RED,RS,str(msg),RED,RS))
+	print("\n\t\t%s> > > Error importing numpy/pandas/scipy! %s%s%s < < <%s" % (RED,RS,str(msg),RED,RS))
 	sys.exit()
 
 warnings.filterwarnings('ignore','.*divide by zero.*',RuntimeWarning)
@@ -57,8 +59,8 @@ class Parse():
 	'''
 	def __init__(self,opts,handler=None,lock=None):
 		self.opts = opts
-		self.parsed = {}
-		self.XY ={}
+		self.df = DataFrame()
+		self.XY = {}
 		self.X = np.array([])
 		self.FN = {}
 		self.compliance_traces = []
@@ -136,108 +138,29 @@ class Parse():
 	def ReadFiles(self, fns):
 		''' Walk through input files and parse
 		them into attributes '''
-		Ycol = self.opts.Ycol
-		Xcol = self.opts.Xcol
-		line_idx = 0
+		if self.opts.Ycol > 0:
+			self.logger.info("Parsing two columns of data.")
+			self.df = pd.concat((pd.read_csv(f,sep=self.opts.delim,usecols=(self.opts.Xcol,self.opts.Ycol),names=('V','J'),header=0) for f in fns),ignore_index=True)
+		else:
+			self.logger.info("Parsing all columns of data.")
+			self.df = pd.concat((pd.read_csv(f,sep=self.opts.delim,header=None,skiprows=1) for f in fns),ignore_index=True)
+			X,Y = [],[]
+			for row in df.iterrows():
+				for y in row[1][1:]:
+					X.append(row[1][0])
+					Y.append(y)
+			self.df = DataFrame({'V':X,'J':Y})
+		self.df['FN'] = np.log(abs(self.df.J)/self.df.V**2)
 		uniqueX = {}
-		rawx, rawy = [],[]
-		for fn in fns:
-			if self.opts.GUI:
-				self.logger.info("Parsing %s", fn)
-			else:
-				self.logger.info("Parsing %s%s%s%s", TEAL,fn,YELLOW,RS)
-			try:
-				rows = []
-				with open(fn, 'rt', newline='') as csvfile:
-					if self.opts.Ycol > 0:
-						for row in csv.reader(csvfile, dialect='JV'):
-							# Skip emtpy rows
-							if not row:
-								continue
-							# Hack to get rid of emtpy columns
-							row = list(filter(None,row))
-							rows.append(row)
-							if False in [self.isfloat(n) for n in row]:
-								self.logger.debug("|%s is not all floats!" % "|".join(row))
-								continue
-							#print('row %s Xcol %s Ycol %s' % (row, self.opts.Xcol, self.opts.Ycol))
-							rawx.append(row[self.opts.Xcol])
-							rawy.append(row[self.opts.Ycol])
-					else:
-						self.logger.debug("Grabbing all Y-columns")
-						# To catch all Y-vals and keep X in order,
-						# we have to copy the whole file to memory
-						# and then loop over it one column at a time
-						rawrows = []
-						for row in csv.reader(csvfile, dialect='JV'):
-							# Hack to get rid of emtpy columns
-							row = list(filter(None,row))
-							rawrows.append(row)
-						for n in range(0, len(rawrows[0])):
-							if n == self.opts.Xcol:
-								continue
-							for row in rawrows:
-								if False in [self.isfloat(n) for n in row]:
-									continue # we have to skip rows that contain non-floats
-								rawx.append(row[self.opts.Xcol])
-								rawy.append(row[n])
-								rows.append([rawx[-1], rawy[-1]])
-			except FileNotFoundError:
-				self.logger.error("%s not found.", fn)
-				continue
-			except csv.Error:
-				self.logger.error("CSV Parsing error %s", fn)
-				continue
-			except IndexError:
-				self.logger.error("Error parsing %s", fn)
-				continue
-
-			labels = []
-			numcol = 0
-			for label in rows[0]:
-				if label:
-					numcol +=1 # Only count non-empty columns
-					if not self.isfloat(label):
-						labels.append(label)
-			if numcol < Ycol:
-				self.logger.critical("Ycol > total number of columns! (%d > %d)", Ycol, numcol)
-				self.logger.warn("%sNot importing:%s %s!", RED, YELLOW,fn)
-				continue
-			self.logger.debug("Found "+str(numcol)+" columns in "+fn)
-			if 0 < len(labels) >= Ycol:
-				self.logger.debug("Assuming first row is column labels")
-				self.logger.info('Y column is "%s"', labels[Ycol])
-				del(rows[0])
-			else:
-				self.logger.debug("No labels found in first row.")
-			for row in rows:
-				if len(row) < numcol:
-					self.logger.warning("Mismatch in %s, expecting %d colums, got %d", labels[Ycol], numcol, len(row))
-					continue
-				x, y = self.tofloat(row[Xcol]), self.tofloat(row[Ycol])
-				if y == np.NAN:
-					self.logger.warn("Treating invalid Y %f as NAN", y)
-				if x == np.NAN:
-					self.logger.warn("Treating invalid X %f as NAN", x)
-				try:
-					z = np.log( abs(y)/x**2 )
-				except:
-					z = np.NAN
-					if x != 0.0: self.logger.error("Couldn't comput FN for %f, %f", x, y, exc_info=True)
-				self.parsed[line_idx]=(x,y,z)
-				if x in uniqueX.keys(): 
-					uniqueX[x][line_idx]=(y,z)
-				else:
-					uniqueX[x]={line_idx:(y,z)}
-				line_idx += 1
-
+		for v in self.df.V.unique(): uniqueX[v]={}
+		for row in self.df.iterrows(): uniqueX[row[1].V][row[0]]=(row[1].J,row[1].FN)
 		if not len(uniqueX):
-			self.logger.error("No files parsed.")
+			self.logger.error("No files parsed!?")
 			sys.exit() # Otherwise we loop over an empty uniqueX forever
-		self.findTraces(rawx,rawy)
-		x = np.array(list(uniqueX.keys()))
+		self.findTraces()
+		x = self.df.V.unique()
 		lowy = uniqueX[np.nanmin(x[x>0])][ list(uniqueX[np.nanmin(x[x>0])].keys())[0]  ][0]/10 # typical for electrometer
-		for x in uniqueX:
+		for x in self.df.V.unique():
 			# Gather each unique X (usually Voltage) value
 			# and pull the Y (usually current-density) values
 			# associated with it
@@ -269,43 +192,42 @@ class Parse():
 		self.R = self.dorect()
 		self.logger.info("* * * * * * * * * * * * * * * * * * *")
 
-	def findTraces(self,x,y):
-		XY = np.array([x,y],ndmin=2,dtype=float)
-		FN = np.array([1/XY[0],np.log(abs(XY[1])/XY[0]**2)],ndmin=2,dtype=float)
-		xmin,xmax = XY[0].min(), XY[0].max()
-		n = 0
-		while xmin < XY[0][n] < xmax: n += 1
-		trace = [n]
-		traces = {'trace':[],'XY':XY, 'FN':FN}
-		uniquex = []
-		for i in range(n+1,len(XY[0])):
-			#if XY[0][i] not in uniquex:
-			#	uniquex.append(XY[0][i])
-			if xmin < XY[0][i] < xmax:
-				continue
-			elif len(trace) and trace[-1] in (i-1,i+1): #Values repeat at the ends
-				continue
-			else: 
-				trace.append(i)
-			if len(trace) == 2:
-				traces['trace'].append( tuple(trace) )
-				trace = []
-		#print( [x[1]-x[0] for x in traces['trace']] )
-		self.logger.info("Found %d unique traces", len(traces['trace']))
-		
-		col = 0
-		uniquex = {}
-		for trace in traces['trace']:
-			for i in range(trace[0],trace[1]+1):
-				x,y = XY[0][i], XY[1][i]
-				#print("%s, %s" % (x,y))
-				if x not in uniquex:
-					uniquex[x] = {}
-				else:
-					uniquex[x][col] = y
-			col += 1
-		traces['uniquex'] = uniquex
+	def findTraces(self):
+		#print(self.df.head())
+		#print(self.df.tail())
+		#print(self.df.columns)
+		#print(self.df.index)
+		#XY = np.array([self.df.V,self.df.Y],ndmin=2,dtype=float)
+		#FN = np.array([1/XY[0],np.log(abs(XY[1])/XY[0]**2)],ndmin=2,dtype=float)
+		#traces = {'trace':[],'XY':self.df.V, 'FN':self.df.FN}
+		traces = []
+		try:
+			ntraces = int(self.df.V.value_counts()[0]/3) # Three zeros in every trace!
+			for t in zip(*(iter(self.df[self.df.V == 0.00].V.index),) * 3):
+				#traces['trace'].append( (t[0],t[2]) )
+				traces.append( (t[0],t[2]) )
+		except ValueError:
+			self.logger.warn("Did not find three zeros in every trace!")
+			ntraces = int(self.df.V.value_counts()[1]/2) # Every other datapoint is doubled. 
+			for t in zip(*(iter(self.df[self.df.V == self.df.V.value_counts().index[0]].V.index),) * 2): 
+				traces['trace'].append( (t[0],t[1]) )
+				traces.append( (t[0],t[2]) )
+		self.logger.info("Found %s traces." % ntraces )
 		self.traces = traces
+		
+		#self.logger.info("Found %d unique traces", len(traces['trace']))
+		#col = 0
+		#uniquex = {}
+		#for trace in traces['trace']:
+		#	for i in range(trace[0],trace[1]+1):
+		#		x,y = self.df.V[i], self.df.J[i]
+		#		if x not in uniquex:
+		#			uniquex[x] = {}
+		#		else:
+		#			uniquex[x][col] = y
+		#	col += 1
+		#traces['uniquex'] = uniquex
+		#self.traces = traces['trace']
 
 	def dorect(self):
 		''' 
@@ -314,26 +236,47 @@ class Parse():
 		'''
 		R = {}
 		r = {}
-		for trace in self.traces['trace']:
-			xy = {}
-			#print("X-range: %d, %d" % (self.traces['XY'][0][trace[0]],self.traces['XY'][0][trace[1]]) )
-			for i in range(trace[0],trace[1]+1):
-				x = self.traces['XY'][0][i]
-				xy[x] = self.traces['XY'][1][i]
-				if x not in r:
-					r[x] = []
-			for x in xy:
-				if x <= 0: continue
-				if -1*x not in xy:
-					self.logger.warn("%f not found in trace while computing R", -1*x)
+		for trace in self.traces:
+			rows = {}
+			for row in self.df[trace[0]:trace[1]+1].iterrows():
+				if row[1].V in rows:
+					#self.logger.warn("Traces are out of sync, do not trust R values!")
+					#TODO Don't just average out hysterysis	
+					rows[row[1].V] = (rows[row[1].V]+row[1].J)/2
+				else:
+					rows[row[1].V] = row[1].J
+				if row[1].V not in r:
+					r[row[1].V] = []
+			for x in rows:
+				if x == 0.0:
+					r[x].append(1.)
 					continue
 				if self.opts.logr:
-					r[x].append( np.log10(abs(xy[x]/xy[-1*x])) )
+					r[x].append(np.log10(abs(rows[x]/rows[-1*x])))
 				else:
-					r[x].append(abs(xy[x]/xy[-1*x]))
+					r[x].append(abs(rows[x]/rows[-1*x]))
+		
+#		for trace in self.traces['trace']:
+#			xy = {}
+#			#print("X-range: %d, %d" % (self.traces['XY'][0][trace[0]],self.traces['XY'][0][trace[1]]) )
+#			for i in range(trace[0],trace[1]+1):
+#				x = self.traces['XY'][0][i]
+#				xy[x] = self.traces['XY'][1][i]
+#				if x not in r:
+#					r[x] = []
+#			for x in xy:
+#				if x <= 0: continue
+#				if -1*x not in xy:
+#					self.logger.warn("%f not found in trace while computing R", -1*x)
+#					continue
+#				if self.opts.logr:
+#					r[x].append( np.log10(abs(xy[x]/xy[-1*x])) )
+#				else:
+#					r[x].append(abs(xy[x]/xy[-1*x]))
 		for x in r:
 			if x <= 0: continue
-			R[x]={'r':np.array(r[x]),'hist':self.dohistogram(np.array(r[x]),"R")}	
+			R[x]={'r':np.array(r[x]),'hist':self.dohistogram(np.array(r[x]),"R")}
+			R[-1*x] = R[x]
 		R['X'] = np.array(sorted(R.keys()))
 		return R
 
@@ -349,42 +292,51 @@ class Parse():
 		spls = {}
 		splhists = {}
 		filtered = [('Potential', 'Fit', 'Y')]
-		for x in np.linspace(self.X.min(), self.X.max(), 200): 
+		for x in np.linspace(self.df.V.min(), self.df.V.max(), 200): 
 			spls[x] = []
 			splhists[x] = {'spl':[],'hist':{}}
-		uniquex = self.traces['uniquex']
-		X = sorted(uniquex.keys())
-		for col in uniquex[X[0]]:
-			y = []
-			for x in X:
-				try:
-					y.append(uniquex[x][col])
-				except KeyError:
-					self.logger.warning("Skipping X=%s in column %s in dJ/dV. You probably have files containing different voltage steps!",x,col)
-					y.append(np.NaN)
+		#uniquex = self.traces['uniquex']
+		#uniquex = self.df.V.unique()
+		#X = sorted(uniquex.keys())
+		#X = sorted(uniquex)
+		#for col in uniquex[X[0]]:
+		for col in range(0,len(self.traces)):
+			row = self.df[self.traces[col][0]:self.traces[col][1]+1]
+			#for row in self.df[trace[0]:trace[1]+1].iterrows():
+			#if row.V[1].V in rows:
+			#	self.logger.warn("Traces are out of sync, do not trust R values!")
+			#	rows[row.V[1].V] = row.V[1].J
+			#y = []
+			#for x in X:
+			#	try:
+			#		y.append(uniquex[x][col])
+			#	except KeyError:
+			#		self.logger.warning("Skipping X=%s in column %s in dJ/dV. You probably have files containing different voltage steps!",x,col)
+			#		y.append(np.NaN)
 			#print("X: %s, y: %s" % (X,y))
-			spl = scipy.interpolate.UnivariateSpline( X, y, k=5, s=self.opts.smooth )
+			
+			spl = scipy.interpolate.UnivariateSpline( row.V, row.J, k=5, s=self.opts.smooth )
 			for x in spls:
 				spld = scipy.misc.derivative(spl, x, dx=1e-6)
 				if np.isnan(spld):
 					continue
 				spls[x].append(spld)
 				splhists[x]['spl'].append(np.log10(abs(spld)))
-			dd =  scipy.interpolate.UnivariateSpline(X, y, k=5, s=None).derivative(2)
+			dd =  scipy.interpolate.UnivariateSpline(row.V, row.J, k=5, s=None).derivative(2)
 			d = dd(vfilterpos) #Compute d2J/dV2
 			d += -1*dd(vfilterneg) #Compute d2J/dV2
 			if len(d[d < 0]):
 				# record in the index where dY/dX is < 0 at vcutoff
 				self.ohmic.append(col)  
 			else:
-				for x in X:
+				for xy in row.iterrows():
 					# filtered is a list containing only "clean" traces			
 					try:
-						filtered.append( (x, spl(x), uniquex[x][col]) )
+						filtered.append( (xy[1].V, spl(xy[1].V), xy[1].J) )
 					except KeyError:
-						filtered.append( (x, spl(x), np.NaN) )
+						filtered.append( (xy[1].V, spl(xy[1].V), np.NaN) )
 		self.logger.info("Non-tunneling traces: %s (out of %0d)" % 
-					( len(self.ohmic), len(self.traces['trace']) ) )
+					( len(self.ohmic), len(self.traces) ) )
 		for x in splhists:
 			splhists[x]['hist'] = self.dohistogram(np.array(splhists[x]['spl']), label='DJDV')
 		return spls, splhists, filtered

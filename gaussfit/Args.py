@@ -133,10 +133,12 @@ if not len(Opts.in_files) and not Opts.GUI:
 
 if Opts.delim == 'tab':
 	delim='\t'
+	Opts.delim='\t'
 if Opts.delim == 'comma':
 	delim=','
+	Opts.delim=','
 if Opts.delim == 'space':
 	delim=' '
-
+	Opts.delim=' '
 # Setup CSV parser dialect
 csv.register_dialect('JV', delimiter=delim, quoting=csv.QUOTE_MINIMAL)

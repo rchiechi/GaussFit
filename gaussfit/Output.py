@@ -347,6 +347,7 @@ class Plotter():
 		ax.errorbar(self.R['X'], Y,  yerr=Yerr, marker='o', lw=0.0, color='k')
 
 	def PlotRFit(self,ax):
+		#print(self.R['X'])
 		key = self.R['X'][-1]
 		ax.set_title(r'Histogram and fit at $'+str(key)+'$ V')
 		ax.set_xlabel(r'$log|R|$')
