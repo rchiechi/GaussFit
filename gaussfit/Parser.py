@@ -191,7 +191,7 @@ class Parse():
 		self.logger.info("* * * * * * Computing |R|  * * * * * * * * *")
 		self.R = self.dorect()
 		self.logger.info("* * * * * * * * * * * * * * * * * * *")
-	
+		self.PrintFN()
 
 	def findTraces(self):
 		#print(self.df.head())
@@ -293,41 +293,27 @@ class Parse():
 		spls = {}
 		splhists = {}
 		filtered = [('Potential', 'Fit', 'Y')]
-		for x in np.linspace(self.df.V.min(), self.df.V.max(), 200): 
+		linx = np.linspace(self.df.V.min(), self.df.V.max(), 200)
+		for x in linx: 
 			spls[x] = []
 			splhists[x] = {'spl':[],'hist':{}}
-		#uniquex = self.traces['uniquex']
-		#uniquex = self.df.V.unique()
-		#X = sorted(uniquex.keys())
-		#X = sorted(uniquex)
-		#for col in uniquex[X[0]]:
+		if self.opts.vcutoff > 0:
+			vfilterneg,vfilterpos = linx[-1*self.opts.vcutoff < linx < 0],linux[0 < linx < self.opts.vcutoff]
+		else:
+			vfilterneg,vfilterpos = linx[linx < 0], linx[linx > 0]
 		for col in range(0,len(self.traces)):
-			#for row in self.df[trace[0]:trace[1]+1].iterrows():
-			#if row.V[1].V in rows:
-			#	self.logger.warn("Traces are out of sync, do not trust R values!")
-			#	rows[row.V[1].V] = row.V[1].J
-			#y = []
-			#for x in X:
-			#	try:
-			#		y.append(uniquex[x][col])
-			#	except KeyError:
-			#		self.logger.warning("Skipping X=%s in column %s in dJ/dV. You probably have files containing different voltage steps!",x,col)
-			#		y.append(np.NaN)
-			#print("X: %s, y: %s" % (X,y))
-
 			#TODO Yuck!
-			fbtrace = self.df[self.traces[col][0]:self.traces[col][1]+1]
-			avg = {}
-			for row in fbtrace.iterrows():
-				if row[1].V in avg:
-					avg[row[1].V].append(row[1].J)
-				else:
-					avg[row[1].V] = [row[1].J]
 			V,J = [],[]
+			avg = {}
+			fbtrace = self.df[self.traces[col][0]:self.traces[col][1]+1]
+			for row in fbtrace.iterrows():
+				if row[1].V in avg: avg[row[1].V].append(row[1].J)
+				else: avg[row[1].V] = [row[1].J]
 			for x in sorted(avg.keys()): 
 				V.append(x)
 				J.append(np.mean(avg[x]))
 			spl = scipy.interpolate.UnivariateSpline(V,J, k=5, s=self.opts.smooth )
+			#spldd = []
 			for x in sorted(spls.keys()):
 				d = spl.derivatives(x)
 				if np.isnan(d[1]):
@@ -335,10 +321,18 @@ class Parse():
 					continue
 				spls[x].append(d[1])
 				splhists[x]['spl'].append(np.log10(abs(d[1])))
+				#if x in vfilterpos:
+				#	spldd.append(d[2])
+				#elif x in vfilterneg:
+				#	spldd.append(-1*d[2])
+			#spldd = np.array(spldd)
 			dd =  scipy.interpolate.UnivariateSpline(V, J, k=5, s=None).derivative(2)
-			d = dd(vfilterpos) #Compute d2J/dV2
-			d += -1*dd(vfilterneg) #Compute d2J/dV2
-			if len(d[d < 0]):
+			spldd = dd(vfilterpos) #Compute d2J/dV2
+			spldd += -1*dd(vfilterneg) #Compute d2J/dV2
+			#print(d)
+			#print(spldd)
+			#if len(d[d < 0]):
+			if len(spldd[spldd<0]):
 				# record in the index where dY/dX is < 0 within vcutoff range
 				self.ohmic.append(col)  
 			else:
@@ -416,7 +410,10 @@ class Parse():
 					pos_min_x.append(rootpos)
 				if np.NAN in (rootneg,rootpos):
 					self.logger.warn("No minimum found in FN derivative (-):%s, (+):%s" % (rootneg, rootpos) )
-		
+			else:
+				neg_min_x.append( fbtrace.V[ fbtrace.FN[fbtrace.V < 0].idxmin() ] )
+				pos_min_x.append( fbtrace.V[ fbtrace.FN[fbtrace.V > 0].idxmin() ] )
+
 		if tossed: self.logger.warn("Tossed %d compliance traces during FN calculation.", tossed)
 		neg_min_x = np.array(neg_min_x)
 		pos_min_x = np.array(pos_min_x)
@@ -515,7 +512,7 @@ class Parse():
 		Print Vtrans values to the command line for convinience
 		'''
 		for key in ('pos', 'neg'):
-			print("|Vtrans %s| Gauss-mean: %0.4f Standard Deviation: %f" % (key, self.FN[key]['mean'], self.FN[key]['std']) )
-			print("|Vtrans %s| Geometric-mean: %0.4f Standard Deviation: %f" % (key, self.FN[key]['Gmean'], self.FN[key]['Gstd']) )
-		print("* * * * * * * * * * * * * * * * * * *")
+			self.logger.info("|Vtrans %s| Gauss-mean: %0.4f Standard Deviation: %f" % (key, self.FN[key]['mean'], self.FN[key]['std']) )
+			self.logger.info("|Vtrans %s| Geometric-mean: %0.4f Standard Deviation: %f" % (key, self.FN[key]['Gmean'], self.FN[key]['Gstd']) )
+		#print("* * * * * * * * * * * * * * * * * * *")
 
