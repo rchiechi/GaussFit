@@ -149,6 +149,13 @@ class ChooseFiles(Frame):
 		self.OptionPlots = OptionMenu(self.RightOptionsFrame, self.OptionsPlotsString,'J','R',
 		                         command=self.checkOptions)
 		self.OptionPlots.grid(column=0,row=10,sticky=W)
+	
+		Label(self.RightOptionsFrame, text="Derivative for heatmap:").grid(column=0,row=11,sticky=W)
+		self.OptionsHeatmapdString = StringVar()
+		self.OptionsHeatmapdString.set(self.opts.heatmapd)
+		self.OptionHeatmapd = OptionMenu(self.RightOptionsFrame, self.OptionsHeatmapdString,'0','1','2',
+		                         command=self.checkOptions)
+		self.OptionHeatmapd.grid(column=0,row=12,sticky=W)
 
 		lbls = [
 			{'name': 'Columns', 'text': "Columns to parse:",
@@ -320,6 +327,7 @@ class ChooseFiles(Frame):
 			getattr(self,'Entry'+n[0]).insert(0,getattr(self.opts,n[0].lower()))
 	
 		self.opts.plots = self.OptionsPlotsString.get().split(',')
+		self.opts.heatmapd = int(self.OptionsHeatmapdString.get())
 		self.checkGminmaxEntry(event)
 		self.checkOutputFileName(event)	
 		self.checkColumnEntry(event)

@@ -93,8 +93,11 @@ parser.add_argument('-L','--lorenzian', default=False, action='store_true',
 		help="Fit data to a Lorenzian instead of a Gaussian.")
 parser.add_argument('--maxfev', type=int, default=10000, 
 		help="Maximum interations for fitting histograms.")
-parser.add_argument('--plots', metavar='setA', type=str, nargs='*', default=['J'], 
+parser.add_argument('--plots', type=str, nargs='*', default=['J'], 
 		help="What to plot: J (default),R.")
+parser.add_argument('--heatmapd',  type=int, default=1, 
+		help="Derivative order of heatmap plot (0, 1, 2) default: 1.")
+
 
 
 Opts=parser.parse_args()

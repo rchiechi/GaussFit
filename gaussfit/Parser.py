@@ -313,19 +313,6 @@ class Parse():
 				V.append(x)
 				J.append(np.mean(avg[x]))
 			spl = scipy.interpolate.UnivariateSpline(V,J, k=5, s=self.opts.smooth )
-			#spldd = []
-			for x in sorted(spls.keys()):
-				d = spl.derivatives(x)
-				if np.isnan(d[1]):
-					self.logger.warn("Got NaN computing dJ/dV")
-					continue
-				spls[x].append(d[1])
-				splhists[x]['spl'].append(np.log10(abs(d[1])))
-				#if x in vfilterpos:
-				#	spldd.append(d[2])
-				#elif x in vfilterneg:
-				#	spldd.append(-1*d[2])
-			#spldd = np.array(spldd)
 			dd =  scipy.interpolate.UnivariateSpline(V, J, k=5, s=None).derivative(2)
 			spldd = dd(vfilterpos) #Compute d2J/dV2
 			spldd += -1*dd(vfilterneg) #Compute d2J/dV2
@@ -335,10 +322,27 @@ class Parse():
 			if len(spldd[spldd<0]):
 				# record in the index where dY/dX is < 0 within vcutoff range
 				self.ohmic.append(col)  
+				if self.opts.skipohmic:
+					continue
 			else:
 				for row in fbtrace.iterrows():
 					# filtered is a list containing only "clean" traces			
 					filtered.append( (row[1].V, spl(row[1].V), row[1].J) )
+			
+			#spldd = []
+			for x in sorted(spls.keys()):
+				d = spl.derivatives(x)
+				if np.isnan(d[self.opts.heatmapd]):
+					self.logger.warn("Got NaN computing dJ/dV")
+					continue
+				spls[x].append(d[self.opts.heatmapd])
+				splhists[x]['spl'].append(np.log10(abs(d[self.opts.heatmapd])))
+				#if x in vfilterpos:
+				#	spldd.append(d[2])
+				#elif x in vfilterneg:
+				#	spldd.append(-1*d[2])
+			#spldd = np.array(spldd)
+
 		self.logger.info("Non-tunneling traces: %s (out of %0d)" % 
 					( len(self.ohmic), len(self.traces) ) )
 		for x in splhists:
@@ -496,7 +500,7 @@ class Parse():
 				hist_fit = self.gauss(bin_centers, *coeff)
 		except RuntimeError as msg:
 			if self.opts.maxfev > 10:
-				self.logger.warning("|%s| Fit did not converge (%s)", label, str(msg), exc_info=False)
+				self.logger.warning("|%s| Fit did not converge", label, exc_info=False)
 			coeff = p0
 			hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
 		except ValueError as msg:

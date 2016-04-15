@@ -360,8 +360,8 @@ class Plotter():
 	def PlotDJDV(self,ax):
 		xax = list(self.DJDV.keys())
 		xax.sort()
-		ax.set_title("Derivative of Initial Data")
 		ax.set_xlabel("Potential (V)")
+		ax.set_title("Derivative of Initial Data")
 		ax.set_ylabel(r'$\mathregular{\frac{dJ}{dV}}$')
 		#ax.set_ylabel(r'Normalized $\mathregular{\frac{dJ}{dV}}$')
 		#ax.axis([np.array(xax).min(), np.array(xax).max(), pow(10,self.opts.mlow), pow(10,self.opts.mhi)])
@@ -380,7 +380,16 @@ class Plotter():
 		import matplotlib.pyplot as plt
 		ax.set_title("Conductance Plot")
 		ax.set_xlabel("Potential (V)")
-		ax.set_ylabel(r'$log|\mathregular{\frac{dJ}{dV}}|$')
+		if self.opts.heatmapd == 0:
+			ax.set_title("Heatmap of Initial Data")
+			ax.set_ylabel(r'$log|J A cm^{-2}|$')
+		elif self.opts.heatmapd == 1:
+			ax.set_title("Derivative of Initial Data")
+			ax.set_ylabel(r'$\mathregular{\frac{dJ}{dV}}$')
+		elif self.opts.heatmapd == 2:
+			ax.set_title("Second Derivative of Initial Data")
+			ax.set_ylabel(r'$\mathregular{\frac{d^2J}{dV^2}}$')
+		#ax.set_ylabel(r'$log|\mathregular{\frac{dJ}{dV}}|$')
 		x,y,z =[],[],[]
 		for v in self.GHists:
 			for i in range(0, len(self.GHists[v]['hist']['bin'])):
