@@ -115,26 +115,26 @@ class Parse():
 			print("Error outputting GMatrix")
 		writer.logger.info("Done!")
 
-	def isfloat(self,f):
-		try:
-			float(f)
-			return True
-		except ValueError as msg:
-			self.logger.debug("%s: %s" %(f, str(msg)) )
-			return False
-	def tofloat(self, f):
-		try:
-			f = float(f)
-		except ValueError:
-			f = np.NAN
-		return f
-	def cleanrow(self, inrow):
-		# Hack to get rid of emtpy columns
-		return inrow
-		outrow = []
-		for i in inrow:
-			outrow.append(list(filter(None,i)))
-		return outrow
+#	def isfloat(self,f):
+#		try:
+#			float(f)
+#			return True
+#		except ValueError as msg:
+#			self.logger.debug("%s: %s" %(f, str(msg)) )
+#			return False
+#	def tofloat(self, f):
+#		try:
+#			f = float(f)
+#		except ValueError:
+#			f = np.NAN
+#		return f
+#	def cleanrow(self, inrow):
+#		# Hack to get rid of emtpy columns
+#		return inrow
+#		outrow = []
+#		for i in inrow:
+#			outrow.append(list(filter(None,i)))
+#		return outrow
 	def ReadFiles(self, fns):
 		''' Walk through input files and parse
 		them into attributes '''
@@ -191,6 +191,7 @@ class Parse():
 		self.logger.info("* * * * * * Computing |R|  * * * * * * * * *")
 		self.R = self.dorect()
 		self.logger.info("* * * * * * * * * * * * * * * * * * *")
+	
 
 	def findTraces(self):
 		#print(self.df.head())
@@ -274,7 +275,7 @@ class Parse():
 #				else:
 #					r[x].append(abs(xy[x]/xy[-1*x]))
 		for x in r:
-			if x <= 0: continue
+			if x < 0: continue
 			R[x]={'r':np.array(r[x]),'hist':self.dohistogram(np.array(r[x]),"R")}
 			R[-1*x] = R[x]
 		R['X'] = np.array(sorted(R.keys()))
@@ -285,10 +286,10 @@ class Parse():
 		Fit a spline function to X/Y data and 
 		compute dY/dX and normalize 
 		'''
-		vfilterneg,vfilterpos = np.array( [self.X.min()]) , np.array( [self.X.max()] )
 		if self.opts.vcutoff > 0:
-			vfilterpos = self.X[self.X >= self.opts.vcutoff] 
-			vfilterneg = self.X[self.X <= -1*self.opts.vcutoff]
+			vfilterneg,vfilterpos = np.linspace(-1*self.opts.vcutoff,0,200), np.linspace(0,self.opts.vcutoff.max(),200)
+		else:
+			vfilterneg,vfilterpos = np.linspace(self.df.V.min(),0,200), np.linspace(0,self.df.V.max(),200)
 		spls = {}
 		splhists = {}
 		filtered = [('Potential', 'Fit', 'Y')]
@@ -301,7 +302,6 @@ class Parse():
 		#X = sorted(uniquex)
 		#for col in uniquex[X[0]]:
 		for col in range(0,len(self.traces)):
-			row = self.df[self.traces[col][0]:self.traces[col][1]+1]
 			#for row in self.df[trace[0]:trace[1]+1].iterrows():
 			#if row.V[1].V in rows:
 			#	self.logger.warn("Traces are out of sync, do not trust R values!")
@@ -314,87 +314,44 @@ class Parse():
 			#		self.logger.warning("Skipping X=%s in column %s in dJ/dV. You probably have files containing different voltage steps!",x,col)
 			#		y.append(np.NaN)
 			#print("X: %s, y: %s" % (X,y))
-			
-			spl = scipy.interpolate.UnivariateSpline( row.V, row.J, k=5, s=self.opts.smooth )
-			for x in spls:
-				spld = scipy.misc.derivative(spl, x, dx=1e-6)
-				if np.isnan(spld):
+
+			#TODO Yuck!
+			fbtrace = self.df[self.traces[col][0]:self.traces[col][1]+1]
+			avg = {}
+			for row in fbtrace.iterrows():
+				if row[1].V in avg:
+					avg[row[1].V].append(row[1].J)
+				else:
+					avg[row[1].V] = [row[1].J]
+			V,J = [],[]
+			for x in sorted(avg.keys()): 
+				V.append(x)
+				J.append(np.mean(avg[x]))
+			spl = scipy.interpolate.UnivariateSpline(V,J, k=5, s=self.opts.smooth )
+			for x in sorted(spls.keys()):
+				d = spl.derivatives(x)
+				if np.isnan(d[1]):
+					self.logger.warn("Got NaN computing dJ/dV")
 					continue
-				spls[x].append(spld)
-				splhists[x]['spl'].append(np.log10(abs(spld)))
-			dd =  scipy.interpolate.UnivariateSpline(row.V, row.J, k=5, s=None).derivative(2)
+				spls[x].append(d[1])
+				splhists[x]['spl'].append(np.log10(abs(d[1])))
+			dd =  scipy.interpolate.UnivariateSpline(V, J, k=5, s=None).derivative(2)
 			d = dd(vfilterpos) #Compute d2J/dV2
 			d += -1*dd(vfilterneg) #Compute d2J/dV2
 			if len(d[d < 0]):
-				# record in the index where dY/dX is < 0 at vcutoff
+				# record in the index where dY/dX is < 0 within vcutoff range
 				self.ohmic.append(col)  
 			else:
-				for xy in row.iterrows():
+				for row in fbtrace.iterrows():
 					# filtered is a list containing only "clean" traces			
-					try:
-						filtered.append( (xy[1].V, spl(xy[1].V), xy[1].J) )
-					except KeyError:
-						filtered.append( (xy[1].V, spl(xy[1].V), np.NaN) )
+					filtered.append( (row[1].V, spl(row[1].V), row[1].J) )
 		self.logger.info("Non-tunneling traces: %s (out of %0d)" % 
 					( len(self.ohmic), len(self.traces) ) )
 		for x in splhists:
 			splhists[x]['hist'] = self.dohistogram(np.array(splhists[x]['spl']), label='DJDV')
+		
 		return spls, splhists, filtered
-		'''
-		i = -1
-		while True:
-			i += 1
-			try:
-				y,yf = [],[]
-				for x in self.X: y.append(self.XY[x]['Y'][i])
-				# k (smoothing)  must be 4 for 
-				# the derivative to be cubic (k=3)
-				
-				#spl = UnivariateSpline( self.X, y, k=3, s=self.opts.smooth ).derivative()
-				
-				spl = scipy.interpolate.UnivariateSpline( self.X, y, k=3, s=self.opts.smooth )
-				
-				#spl = scipy.interpolate.interp1d( self.X, y, kind='nearest', bounds_error=False, fill_value=1e-16 )
-				
-				#print(pspl.get_residual())
-				
-				#with open('test_spline.txt','wt') as fh:
-				#	for x in self.X:
-				#		fh.write(str(x)+"\t"+str(spl(x))+"\n")
-				#spl = spl.derivative()
-				
-				maxY = 0
-				for x in spls:
-					if abs(spl(x)) > maxY:
-						#maxY = abs(spl(x))
-						maxY = 1
-				for x in spls:
-					#spls[x].append(spl(x)/maxY)
-					#splhists[x]['spl'].append(np.log10(abs(spl(x))))
-					spld = scipy.misc.derivative(spl, x, dx=1e-6)
-					spls[x].append(spld/maxY)
-					splhists[x]['spl'].append(np.log10(abs(spld)))
-				
-				#X = np.linspace(self.X.min(), self.X.max(), 100)
-				
-				dd =  scipy.interpolate.UnivariateSpline(self.X, y, k=3, s=None).derivative(2)
-				d = dd(vfilterpos) #Compute d2J/dV2
-				d += -1*dd(vfilterneg) #Compute d2J/dV2
-				if len(d[d < 0]): # Hackish because any() wasn't working
-					# record in the index where dY/dX is < 0 at vcutoff
-					self.ohmic.append(i)  
-				else:
-					for x in self.X:
-						# filtered is a list containing only "clean" traces			
-						filtered.append( (x, spl(x), self.XY[x]['Y'][i]) )
-			except IndexError:
-				break
-		self.logger.info("Non-tunneling traces: %s (out of %0d)" % 
-					( len(self.ohmic), len( self.XY[ list(self.XY.keys())[0] ]['Y'])*0.6 ) )
-		for x in splhists:
-			splhists[x]['hist'] = self.dohistogram(np.array(splhists[x]['spl']), label='DJDV')
-		return spls, splhists, filtered
-		'''
+	
 	def getminroot(self, spl):
 		'''
 		Return the root of the first derivative of a spline function
@@ -412,7 +369,7 @@ class Parse():
 
 	def findmin(self):
 		'''
-		Find the toughs of ln(Y/X^2) vs. 1/X plots
+		Find the troughs of ln(Y/X^2) vs. 1/X plots
 		i.e., Vtrans, by either interpolating the data with
 		a spline function and finding X where dY/dX = 0
 		that gives the most negative value of Y (opts.smooth)
@@ -424,47 +381,41 @@ class Parse():
 		if self.opts.skipohmic:
 			# Vtrans has no physical meaning for curves with negative derivatives
 			self.logger.info("Skipping %s (out of %s) non-tunneling traces for Vtrans calculation." % 
-					( len(self.ohmic), len( self.XY[ list(self.XY.keys())[0]]['Y']) ) )
-		while True:
-			i += 1
-			if i in self.ohmic and self.opts.skipohmic:
+					( len(self.ohmic), (len(self.traces))))
+			#len( self.XY[ list(self.XY.keys())[0]]['Y']) ) )
+		for col in range(0,len(self.traces)):
+			if self.opts.skipohmic and col in self.ohmic:
 				continue
-			try:
-				pos,neg = {},{}
-				x_neg, y_neg, x_pos, y_pos = [],[],[],[]
-				for x in self.X:
-					# Without smoothing, we have to toss shorts or we get nonsense values
-					if abs(self.XY[x]['Y'][i]).max() >= self.opts.compliance and not self.opts.nomin:
-						tossed += 1
-						continue
-					y = self.XY[x]['FN'][i]
-					if x < 0: 
-						neg[y] = x
-						x_neg.append(x)
-						y_neg.append(y)
-					if x > 0: 
-						pos[y] = x
-						x_pos.append(x)
-						y_pos.append(y)
-
-				if not len(neg.keys()) or not len(pos.keys()):
-					self.logger.warn("Skipping empty column in FN calculation.")
+			fbtrace = self.df[self.traces[col][0]:self.traces[col][1]+1]
+			avg = {}
+			for row in fbtrace.iterrows():
+				# Without smoothing, we have to toss shorts or we get nonsense values
+				if abs(row[1].J).max() >= self.opts.compliance and not self.opts.nomin:
+					tossed += 1
 					continue
-				if self.opts.nomin:
-					self.logger.debug("Using interpolation on FN")
-					rootneg = self.getminroot(scipy.interpolate.UnivariateSpline( x_neg, y_neg, k=4, s=None ))
-					if np.isfinite(rootneg):
-						neg_min_x.append(rootneg)
-					rootpos = self.getminroot(scipy.interpolate.UnivariateSpline( x_pos, y_pos, k=4, s=None ))
-					if np.isfinite(rootpos):
-						pos_min_x.append(rootpos)
-					if np.NAN in (rootneg,rootpos):
-						self.logger.warn("No minimum found in FN derivative (-):%s, (+):%s" % (rootneg, rootpos) )
+				if row[1].V in avg:
+					avg[row[1].V].append(row[1].FN)
 				else:
-					neg_min_x.append(neg[np.nanmin(list(neg.keys()))])
-					pos_min_x.append(pos[np.nanmin(list(pos.keys()))])
-			except IndexError:
-				break
+					avg[row[1].V] = [row[1].FN]
+			Vpos,FNpos = [],[]
+			Vneg,FNneg = [],[]
+			for x in sorted(avg.keys()):
+				if x > 0:
+					Vpos.append(x)
+					FNpos.append(np.mean(avg[x]))
+				elif x < 0:
+					Vneg.append(x)
+					FNneg.append(np.mean(avg[x]))
+			if self.opts.nomin:
+				self.logger.debug("Using interpolation on FN")
+				rootpos = self.getminroot(scipy.interpolate.UnivariateSpline(Vpos,FNpos, k=4, s=None))
+				rootneg = self.getminroot(scipy.interpolate.UnivariateSpline(Vneg,FNneg, k=4, s=None))
+				if np.isfinite(rootneg):
+					neg_min_x.append(rootneg)
+				if np.isfinite(rootpos):
+					pos_min_x.append(rootpos)
+				if np.NAN in (rootneg,rootpos):
+					self.logger.warn("No minimum found in FN derivative (-):%s, (+):%s" % (rootneg, rootpos) )
 		
 		if tossed: self.logger.warn("Tossed %d compliance traces during FN calculation.", tossed)
 		neg_min_x = np.array(neg_min_x)
@@ -519,26 +470,23 @@ class Parse():
 			self.logger.warning("Encountered this error while constructing histogram: %s", str(msg), exc_info=False)
 			bins=np.array([0.,0.,0.,0.])
 			freq=np.array([0.,0.,0.,0.])
-		
-		# Compute the geometric mean and give it the
-		# correct sign
-		if len(Y[Y<0]):
-			Ym = -1*gmean(abs(Y))
-		else:
-			Ym = gmean(abs(Y))
-		
-		#Ym = Y.mean() #Arithmatic mean
-		
-		# Somehow this produces negative sigmas
-		Ys = abs(Y.std())
-		
+		Ym,Ys = 0.0,0.0
+		if len(Y):	
+			# Compute the geometric mean and give it the
+			# correct sign
+			if len(Y[Y<0]):
+				Ym = -1*gmean(abs(Y))
+			else:
+				Ym = gmean(abs(Y))
+			
+			# Somehow this produces negative sigmas
+			Ys = abs(Y.std())
 		# This will trigger if the mean happens to be zero
 		#if not Ys or not Ym:
 		#	self.logger.error("Failed to find G-mean and G-std!")
 		#	print(Ys,Ym)
 		# Initital conditions for Gauss-fit
 		p0 = [1., Ym, Ys]
-		
 		bin_centers = (bins[:-1] + bins[1:])/2
 		try:
 			with self.lock:

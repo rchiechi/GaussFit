@@ -75,8 +75,8 @@ parser.add_argument('-c','--compliance', default=np.inf, type=float,
 		help="Set compliance limit for gaussian fits.")
 parser.add_argument('-M','--minfn', action='store_false', dest='nomin', default=True, 
 		help="Compute Vtrans from the min(Y) instead of the derivitve of the cubic spline.")
-parser.add_argument('-s','--skip',  action='store_true', dest='skipohmic', default=False, 
-		help="Skip plots with negative d2J/dV2 values at vcutoff for Vtrans calcuation and conductance plot.")
+parser.add_argument('-s','--skip',  action='store_false', dest='skipohmic', default=True, 
+		help="Do NOT skip plots with negative d2J/dV2 values at vcutoff for Vtrans calcuation and conductance plot.")
 parser.add_argument('-S','--smooth', type=float, default=0, 
 		help="Cutoff for residuals when smoothing splines for dJ/dV 0 to disable. 1e-4 for artifacts, 1e-12 for smooth plots.")
 parser.add_argument('-v','--vcutoff', type=float, default=-1, 
