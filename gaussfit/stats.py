@@ -22,26 +22,20 @@ Description:
 
 
 from gaussfit.Output import Writer,WriteStats
-#from gaussfit.StatArgs import Opts
 from gaussfit.Parser import Parse
-#from gaussfit.Output import Writer
 
 import sys,os,logging,warnings,csv,datetime,threading,time,math,tempfile
 from gaussfit.colors import *
 
 try:
-	#from scipy.optimize import curve_fit,OptimizeWarning
-	#import scipy.interpolate 
 	from scipy.stats import gmean,kstest,ttest_ind,ttest_rel,ttest_1samp
-	#import scipy.misc 
 	import numpy as np
 	np.seterr(invalid='raise')
-	# SciPy throws a useless warning for noisy J/V traces
-	#warnings.filterwarnings('ignore','.*Covariance of the parameters.*',OptimizeWarning)
 
 except ImportError as msg:
 	print("\n\t\t%s> > > Error importing numpy/scipy! %s%s%s < < <%s" % (RED,RS,str(msg),RED,RS))
 	sys.exit()
+
 #warnings.filterwarnings('error','.*Mean of empty slice.*', RuntimeWarning)
 #warnings.filterwarnings('error','.*Degrees of freedom <= 0 for slice.*', RuntimeWarning)
 #warnings.filterwarnings('ignore','.*divide by zero.*',RuntimeWarning)
@@ -83,7 +77,6 @@ class ParserThread(threading.Thread):
 class Stats:
 
 	def __init__(self,opts,handler=None):
-		
 		self.opts = opts
 		self.SetA = {}
 		self.SetB = {}
@@ -366,17 +359,19 @@ class Stats:
 		aA_vals = np.array(aA_vals)
 		aB_vals = np.array(aB_vals)
 		if self.opts.GUI:
-			GREEN,RED,RS='','',''
+			green,red,rs = '','',''
+		else:
+			green,red,rs = GREEN,RED,RS
 		try:	
-			if p_vals.mean() < 0.001: c = GREEN 
-			else: c = RED
-			self.logger.info("p-value Mean: %s%s%s" % (GREEN, p_vals.mean(), RS))
-			if aA_vals[aA_vals > 0].mean() > 0.7: c = GREEN 
-			else: c = RED
-			self.logger.info("α  SetA Mean: %s%s%s" % (c,aA_vals[aA_vals > 0].mean(),RS))
-			if aB_vals[aB_vals > 0].mean() > 0.7: c = GREEN 
-			else: c = RED
-			self.logger.info("α  SetB Mean: %s%s%s" % (c,aB_vals[aB_vals > 0].mean(),RS))
+			if p_vals.mean() < 0.001: c = green
+			else: c = red
+			self.logger.info("p-value Mean: %s%s%s" % (green, p_vals.mean(), rs))
+			if aA_vals[aA_vals > 0].mean() > 0.7: c = green
+			else: c = red
+			self.logger.info("α  SetA Mean: %s%s%s" % (c,aA_vals[aA_vals > 0].mean(),rs))
+			if aB_vals[aB_vals > 0].mean() > 0.7: c = green
+			else: c = red
+			self.logger.info("α  SetB Mean: %s%s%s" % (c,aB_vals[aB_vals > 0].mean(),rs))
 		except FloatingPointError:
 			self.logger.error("Error outputting mean stats.")
 
@@ -386,16 +381,18 @@ class Stats:
 				self.SetB[x]['FN']['pos']['mean'], equal_var=False)	
 		t_neg, p_neg = ttest_ind(self.SetA[x]['FN']['neg']['mean'], \
 				self.SetB[x]['FN']['neg']['mean'], equal_var=False)
-			
+		#TODO Can't we figure this out at import?
 		if self.opts.GUI:
-			GREEN,RED,RS='','',''
-		if p_pos < 0.001: c = GREEN
-		else: c = RED
-		self.logger.info("P-Value Vtrans(+): %s%s%s" % (c,str(p_pos),RS))
+			green,red,rs = '','',''
+		else:
+			green,red,rs = GREEN,RED,RS
+		if p_pos < 0.001: c = green
+		else: c = red
+		self.logger.info("P-Value Vtrans(+): %s%s%s" % (c,str(p_pos),rs))
 		
-		if p_neg < 0.001: c = GREEN
-		else: c = RED
-		self.logger.info("P-Value Vtrans(–): %s%s%s" % (c,str(p_neg),RS))
+		if p_neg < 0.001: c = green
+		else: c = red
+		self.logger.info("P-Value Vtrans(–): %s%s%s" % (c,str(p_neg),rs))
 		self.fnstats = {"p_pos":p_pos, "p_neg":p_neg, "t_pos":t_pos, "t_neg":t_neg}
 
 	def Sortsets(self, traces):
