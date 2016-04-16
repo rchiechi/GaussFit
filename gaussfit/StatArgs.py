@@ -103,7 +103,8 @@ parser.add_argument('-T','--threads', type=int,default=8,
 		help="Use n threads for parsing for marginal speed boost.")
 parser.add_argument('--autonobs', default=False, action='store_true', 
 		help="Try to find reasonable values of N automatically.")
-
+parser.add_argument('--heatmapd',  type=int, default=1,
+		     help="Derivative order of heatmap plot (0, 1, 2) default: 1.")
 
 
 
@@ -136,9 +137,12 @@ if not len(Opts.setA) and not Opts.GUI:
 
 if Opts.delim == 'tab':
 	delim='\t'
+	Opts.delim='\t'
 if Opts.delim == 'comma':
 	delim=','
+	Opts.delim=','
 if Opts.delim == 'space':
 	delim=' '
+	Opts.delim=' '
 # Setup CSV parser dialect
 csv.register_dialect('JV', delimiter=delim, quoting=csv.QUOTE_MINIMAL)
