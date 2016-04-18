@@ -145,7 +145,7 @@ class Parse():
 			self.logger.info("Parsing all columns of data.")
 			self.df = pd.concat((pd.read_csv(f,sep=self.opts.delim,header=None,skiprows=1) for f in fns),ignore_index=True)
 			X,Y = [],[]
-			for row in df.iterrows():
+			for row in self.df.iterrows():
 				for y in row[1][1:]:
 					X.append(row[1][0])
 					Y.append(y)
@@ -203,17 +203,21 @@ class Parse():
 		#traces = {'trace':[],'XY':self.df.V, 'FN':self.df.FN}
 		traces = []
 		try:
+			#TODO Fix this
+			if self.df.V.value_counts()[0] != 0.0:
+				raise ValueError
 			ntraces = int(self.df.V.value_counts()[0]/3) # Three zeros in every trace!
 			for t in zip(*(iter(self.df[self.df.V == 0.00].V.index),) * 3):
 				#traces['trace'].append( (t[0],t[2]) )
 				traces.append( (t[0],t[2]) )
 		except ValueError:
 			self.logger.warn("Did not find three zeros in every trace!")
-			ntraces = int(self.df.V.value_counts()[1]/2) # Every other datapoint is doubled. 
-			for t in zip(*(iter(self.df[self.df.V == self.df.V.value_counts().index[0]].V.index),) * 2): 
-				traces['trace'].append( (t[0],t[1]) )
-				traces.append( (t[0],t[2]) )
-		self.logger.info("Found %s traces." % ntraces )
+			ntraces = int(abs(self.df.V).value_counts()[0]/2) # Every other datapoint is doubled. 
+			#print(self.df[self.df.V == self.df.V.value_counts().index[0]].V.index)
+			for t in zip(*(iter(self.df[self.df.V == abs(self.df.V).value_counts().index[0]].V.index),) * 2): 
+				#traces['trace'].append( (t[0],t[1]) )
+				traces.append( (t[0],t[1]) )
+		self.logger.info("Found %s traces (%s)." % (ntraces,len(traces)) )
 		self.traces = traces
 		
 		#self.logger.info("Found %d unique traces", len(traces['trace']))
@@ -249,6 +253,10 @@ class Parse():
 				if row[1].V not in r:
 					r[row[1].V] = []
 			for x in rows:
+				#TODO AFM data break this!
+				if x not in rows or -1*x not in rows:
+					self.logger.warn("Rectification data missing voltages.")
+					continue
 				if x == 0.0:
 					r[x].append(1.)
 					continue
@@ -331,7 +339,11 @@ class Parse():
 			
 			#spldd = []
 			for x in sorted(spls.keys()):
-				d = spl.derivatives(x)
+				try:
+					d = spl.derivatives(x)
+				except ValueError as msg:
+					self.logger.error('Error computing derivative: %s' % str(msg))
+					continue
 				if np.isnan(d[self.opts.heatmapd]):
 					self.logger.warn("Got NaN computing dJ/dV")
 					continue
