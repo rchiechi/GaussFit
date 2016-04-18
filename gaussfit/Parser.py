@@ -204,7 +204,7 @@ class Parse():
 		traces = []
 		try:
 			#TODO Fix this
-			if self.df.V.value_counts()[0] != 0.0:
+			if self.df.V.value_counts().index[0] != 0.0:
 				raise ValueError
 			ntraces = int(self.df.V.value_counts()[0]/3) # Three zeros in every trace!
 			for t in zip(*(iter(self.df[self.df.V == 0.00].V.index),) * 3):
@@ -212,11 +212,14 @@ class Parse():
 				traces.append( (t[0],t[2]) )
 		except ValueError:
 			self.logger.warn("Did not find three zeros in every trace!")
-			ntraces = int(abs(self.df.V).value_counts()[0]/2) # Every other datapoint is doubled. 
+			ntraces = int(self.df.V.value_counts()[0]/2) # Every other datapoint is doubled. 
 			#print(self.df[self.df.V == self.df.V.value_counts().index[0]].V.index)
-			for t in zip(*(iter(self.df[self.df.V == abs(self.df.V).value_counts().index[0]].V.index),) * 2): 
+			for t in zip(*(iter(self.df[self.df.V == self.df.V.value_counts().index[0]].V.index),) * 2): 
 				#traces['trace'].append( (t[0],t[1]) )
 				traces.append( (t[0],t[1]) )
+		if ntraces != len(traces):
+			logging.warn("Problem counting traces.")
+
 		self.logger.info("Found %s traces (%s)." % (ntraces,len(traces)) )
 		self.traces = traces
 		
@@ -320,10 +323,16 @@ class Parse():
 			for x in sorted(avg.keys()): 
 				V.append(x)
 				J.append(np.mean(avg[x]))
-			spl = scipy.interpolate.UnivariateSpline(V,J, k=5, s=self.opts.smooth )
-			dd =  scipy.interpolate.UnivariateSpline(V, J, k=5, s=None).derivative(2)
+			
+			try:
+				spl = scipy.interpolate.UnivariateSpline(V,J, k=5, s=self.opts.smooth )
+				dd =  scipy.interpolate.UnivariateSpline(V, J, k=5, s=None).derivative(2)
+			except Exception as msg:
+				logging.warn('Error in derivative calulation: %s' % str(msg))
+
 			spldd = dd(vfilterpos) #Compute d2J/dV2
 			spldd += -1*dd(vfilterneg) #Compute d2J/dV2
+			
 			#print(d)
 			#print(spldd)
 			#if len(d[d < 0]):
