@@ -215,6 +215,7 @@ class Parse():
 		if self.df.V.value_counts().index[0] == 0.0:
 			try:
 				ntraces = int(self.df.V.value_counts()[0]/3) # Three zeros in every trace!
+				self.logger.info("This looks like an EGaIn dataset.")
 				for t in zip(*(iter(self.df[self.df.V == 0.00].V.index),) * 3):
 					traces.append( (t[0],t[2]) )
 			except ValueError:
@@ -245,8 +246,8 @@ class Parse():
 						#print(self.df[trace[0]:trace[1]+1])
 						trace = [row[0]]
 			ntraces = len(traces)
-		if not __checktraces(traces):
-			self.logger.error("Problem with traces: FN and derivative probably will not work correctly!")
+			if not __checktraces(traces):
+				self.logger.error("Problem with traces: FN and derivative probably will not work correctly!")
 		self.logger.info("Found %s traces (%s)." % (ntraces,len(traces)) )
 		self.traces = traces
 
@@ -280,24 +281,6 @@ class Parse():
 					r[x].append(np.log10(abs(rows[x]/rows[-1*x])))
 				else:
 					r[x].append(abs(rows[x]/rows[-1*x]))
-		
-#		for trace in self.traces['trace']:
-#			xy = {}
-#			#print("X-range: %d, %d" % (self.traces['XY'][0][trace[0]],self.traces['XY'][0][trace[1]]) )
-#			for i in range(trace[0],trace[1]+1):
-#				x = self.traces['XY'][0][i]
-#				xy[x] = self.traces['XY'][1][i]
-#				if x not in r:
-#					r[x] = []
-#			for x in xy:
-#				if x <= 0: continue
-#				if -1*x not in xy:
-#					self.logger.warn("%f not found in trace while computing R", -1*x)
-#					continue
-#				if self.opts.logr:
-#					r[x].append( np.log10(abs(xy[x]/xy[-1*x])) )
-#				else:
-#					r[x].append(abs(xy[x]/xy[-1*x]))
 		for x in r:
 			if x < 0: continue
 			R[x]={'r':np.array(r[x]),'hist':self.dohistogram(np.array(r[x]),"R")}
