@@ -328,6 +328,8 @@ class Plotter():
 				ax.plot(xax,[self.XY[x][key][i] for x in self.X], sym, **kw)
 			except IndexError:
 				break
+			except ValueError:
+				break
 		#if key == 'LogY':
 		#	ax.set_ylim(allY.min(),allY.max())
 		ax.axis([self.X.min(), self.X.max(), allY.min(),allY.max()])

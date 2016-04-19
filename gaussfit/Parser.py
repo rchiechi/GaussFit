@@ -84,6 +84,9 @@ class Parse():
 		self.logger.addHandler(self.loghandler)
 		self.logger.setLevel(getattr(logging,self.opts.loglevel.upper()))
 
+		if self.opts.nomin:
+			self.logger.debug("Using interpolation on FN")
+
 	@classmethod
 	def doOutput(cls,writer):
 		writer.logger.info("Writing files...")
@@ -194,48 +197,58 @@ class Parse():
 		self.PrintFN()
 
 	def findTraces(self):
-		#print(self.df.head())
-		#print(self.df.tail())
-		#print(self.df.columns)
-		#print(self.df.index)
-		#XY = np.array([self.df.V,self.df.Y],ndmin=2,dtype=float)
-		#FN = np.array([1/XY[0],np.log(abs(XY[1])/XY[0]**2)],ndmin=2,dtype=float)
-		#traces = {'trace':[],'XY':self.df.V, 'FN':self.df.FN}
+	
+		def __checktraces(traces):
+			self.logger.debug("Checking V starting from slice %s:%s" % (traces[0][0],traces[0][1]) )
+			#V = self.df.V[traces[0][0]]
+			lt = len(self.df.V[ traces[0][0]:traces[0][1] ])
+			for trace in traces:
+				if lt != len(self.df.V[trace[0]:trace[1]]):
+					self.logger.warn("Unequal voltage steps in dataset!")
+					return False
+				self.logger.debug("Trace: %s -> %s" % (self.df.V[trace[0]],self.df.V[trace[-1]]) )
+			self.logger.info("Traces look good.")
+			return True
+		
 		traces = []
-		try:
-			#TODO Fix this
-			if self.df.V.value_counts().index[0] != 0.0:
-				raise ValueError
-			ntraces = int(self.df.V.value_counts()[0]/3) # Three zeros in every trace!
-			for t in zip(*(iter(self.df[self.df.V == 0.00].V.index),) * 3):
-				#traces['trace'].append( (t[0],t[2]) )
-				traces.append( (t[0],t[2]) )
-		except ValueError:
-			self.logger.warn("Did not find three zeros in every trace!")
-			ntraces = int(self.df.V.value_counts()[0]/2) # Every other datapoint is doubled. 
-			#print(self.df[self.df.V == self.df.V.value_counts().index[0]].V.index)
-			for t in zip(*(iter(self.df[self.df.V == self.df.V.value_counts().index[0]].V.index),) * 2): 
-				#traces['trace'].append( (t[0],t[1]) )
-				traces.append( (t[0],t[1]) )
-		if ntraces != len(traces):
-			logging.warn("Problem counting traces.")
+		ntraces = 0
+		if self.df.V.value_counts().index[0] == 0.0:
+			try:
+				ntraces = int(self.df.V.value_counts()[0]/3) # Three zeros in every trace!
+				for t in zip(*(iter(self.df[self.df.V == 0.00].V.index),) * 3):
+					traces.append( (t[0],t[2]) )
+			except ValueError:
+				self.logger.warn("Did not find three-zero (EGaIn) traces!")
+		if not ntraces:
+			self.logger.warn("This does not look like an EGaIn dataset.")
+			try:
+				#ntraces = int(self.df.V.value_counts()[0]/2) # Two end-pointss in every trace!
+				ntraces = int(self.df.V.value_counts()[self.df.V[0]]/2) # Two end-pointss in every trace!
+				for t in zip(*(iter(self.df[self.df.V == self.df.V[0]].V.index),) * 2):
+					traces.append( (t[0],t[1]) )
+				#for t in zip(*(iter(self.df[self.df.V == self.df.V.value_counts().index[0]].V.index),) * 2):
+				#	traces.append( (t[0],t[1]) )
+			except ValueError:
+				self.logger.warn("Did not find three-zero (EGaIn) traces!")
 
+		if not ntraces or not __checktraces(traces):
+			self.logger.warn("Recomputing traces based on repeat values")
+			traces = []
+			Vinit = self.df.V[0]
+			trace = [0]
+			for row in self.df[trace[0]:].iterrows():
+				if row[1].V == Vinit:
+					if len(trace) == 1:
+						trace.append(row[0])
+					elif len(trace) == 2:
+						traces.append(trace)
+						#print(self.df[trace[0]:trace[1]+1])
+						trace = [row[0]]
+			ntraces = len(traces)
+		if not __checktraces(traces):
+			self.logger.error("Problem with traces: FN and derivative probably will not work correctly!")
 		self.logger.info("Found %s traces (%s)." % (ntraces,len(traces)) )
 		self.traces = traces
-		
-		#self.logger.info("Found %d unique traces", len(traces['trace']))
-		#col = 0
-		#uniquex = {}
-		#for trace in traces['trace']:
-		#	for i in range(trace[0],trace[1]+1):
-		#		x,y = self.df.V[i], self.df.J[i]
-		#		if x not in uniquex:
-		#			uniquex[x] = {}
-		#		else:
-		#			uniquex[x][col] = y
-		#	col += 1
-		#traces['uniquex'] = uniquex
-		#self.traces = traces['trace']
 
 	def dorect(self):
 		''' 
@@ -323,52 +336,44 @@ class Parse():
 			for x in sorted(avg.keys()): 
 				V.append(x)
 				J.append(np.mean(avg[x]))
-			
 			try:
 				spl = scipy.interpolate.UnivariateSpline(V,J, k=5, s=self.opts.smooth )
 				dd =  scipy.interpolate.UnivariateSpline(V, J, k=5, s=None).derivative(2)
 			except Exception as msg:
-				logging.warn('Error in derivative calulation: %s' % str(msg))
+				continue
+				self.logger.error('Error in derivative calulation: %s' % str(msg))
 
 			spldd = dd(vfilterpos) #Compute d2J/dV2
 			spldd += -1*dd(vfilterneg) #Compute d2J/dV2
-			
-			#print(d)
-			#print(spldd)
-			#if len(d[d < 0]):
 			if len(spldd[spldd<0]):
-				# record in the index where dY/dX is < 0 within vcutoff range
-				self.ohmic.append(col)  
-				if self.opts.skipohmic:
-					continue
+					# record in the index where dY/dX is < 0 within vcutoff range
+					self.ohmic.append(col)  
+					if self.opts.skipohmic:
+						continue
 			else:
 				for row in fbtrace.iterrows():
 					# filtered is a list containing only "clean" traces			
 					filtered.append( (row[1].V, spl(row[1].V), row[1].J) )
-			
-			#spldd = []
+			err = None
 			for x in sorted(spls.keys()):
 				try:
 					d = spl.derivatives(x)
 				except ValueError as msg:
-					self.logger.error('Error computing derivative: %s' % str(msg))
+					err = str(msg)
+					#self.logger.error('Error computing derivative: %s' % str(msg))
 					continue
 				if np.isnan(d[self.opts.heatmapd]):
 					self.logger.warn("Got NaN computing dJ/dV")
 					continue
 				spls[x].append(d[self.opts.heatmapd])
 				splhists[x]['spl'].append(np.log10(abs(d[self.opts.heatmapd])))
-				#if x in vfilterpos:
-				#	spldd.append(d[2])
-				#elif x in vfilterneg:
-				#	spldd.append(-1*d[2])
-			#spldd = np.array(spldd)
+			if err:
+				self.logger.error("Error while computing derivative: %s" % str(err))
 
 		self.logger.info("Non-tunneling traces: %s (out of %0d)" % 
 					( len(self.ohmic), len(self.traces) ) )
 		for x in splhists:
 			splhists[x]['hist'] = self.dohistogram(np.array(splhists[x]['spl']), label='DJDV')
-		
 		return spls, splhists, filtered
 	
 	def getminroot(self, spl):
@@ -425,17 +430,19 @@ class Parse():
 				elif x < 0:
 					Vneg.append(x)
 					FNneg.append(np.mean(avg[x]))
-			if self.opts.nomin:
-				self.logger.debug("Using interpolation on FN")
-				rootpos = self.getminroot(scipy.interpolate.UnivariateSpline(Vpos,FNpos, k=4, s=None))
-				rootneg = self.getminroot(scipy.interpolate.UnivariateSpline(Vneg,FNneg, k=4, s=None))
+			if self.opts.nomin and len(Vpos) and len(FNpos):
+				try:
+					rootpos = self.getminroot(scipy.interpolate.UnivariateSpline(Vpos,FNpos, k=4, s=None))
+					rootneg = self.getminroot(scipy.interpolate.UnivariateSpline(Vneg,FNneg, k=4, s=None))
+				except Exception:
+					continue
 				if np.isfinite(rootneg):
 					neg_min_x.append(rootneg)
 				if np.isfinite(rootpos):
 					pos_min_x.append(rootpos)
 				if np.NAN in (rootneg,rootpos):
 					self.logger.warn("No minimum found in FN derivative (-):%s, (+):%s" % (rootneg, rootpos) )
-			else:
+			elif len(Vpos) and len(FNpos):
 				neg_min_x.append( fbtrace.V[ fbtrace.FN[fbtrace.V < 0].idxmin() ] )
 				pos_min_x.append( fbtrace.V[ fbtrace.FN[fbtrace.V > 0].idxmin() ] )
 
@@ -476,7 +483,8 @@ class Parse():
 		if len(r_compliance[0]) and label == "R":
 			self.logger.warn("Tossing %d data points > %0.1f for %s histogram!", len(r_compliance[0]), self.opts.maxr, label)
 			Y = Y[np.nonzero(abs(Y) <= self.opts.maxr)]
-		self.logger.debug("%d points to consider.", len(Y))
+		if len(Y) < 10:
+			self.logger.debug("< 10 points! %d points to consider.", len(Y))
 		if label == "J":
 			yrange = (Y.min()-1,Y.max()+1)
 		else:

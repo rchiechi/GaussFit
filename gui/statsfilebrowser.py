@@ -118,7 +118,7 @@ class ChooseFiles(Frame):
 			  {'name':'write','text':'Write','row':2,'tooltip':"Write results to text files after parsing."},
 			  {'name':'skipohmic','text':'Skip bad dJ/dV','row':5,'tooltip':'Skip plots with d2J/dV2 < 0 between Vcutoff and Vmin/Vmax.'},
 			  {'name':'nomin','text':'Use dJ/dV for Vtrans','row':6,'tooltip':'Use dJ/dV plots to find the minimum of F-N plots when computing Vtrans.'},
-			  {'name':'logr','text':'Use |R|','row':7,'tooltip':'Use log |R| instead of |R| when computing histograms.'},
+			  {'name':'logr','text':'Use log|R|','row':7,'tooltip':'Use log |R| instead of |R| when computing histograms.'},
 			  {'name':'lorenzian','text':'Lorenzian','row':8,'tooltip':'Fit a Lorenzian instead of a Gaussian.'},
 			  {'name':'autonobs','text':'Auto N','row':9,'tooltip':'Determine N (degrees of freedom) from metadata (if provided with the _data.txt files).'},
 			  ]
