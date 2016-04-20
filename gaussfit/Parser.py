@@ -450,6 +450,7 @@ class Parse():
 		if len(Y) < 10:
 			self.logger.debug("< 10 points! %d points to consider.", len(Y))
 		if label == "J":
+			yrange = (Y.min()-1, Y.max()+1)
 			self.logger.debug("Y-range: %s, %s" % yrange)
 		else:
 			yrange = None
