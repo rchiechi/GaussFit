@@ -121,6 +121,7 @@ class ChooseFiles(Frame):
 			  {'name':'logr','text':'Use log|R|','row':7,'tooltip':'Use log |R| instead of |R| when computing histograms.'},
 			  {'name':'lorenzian','text':'Lorenzian','row':8,'tooltip':'Fit a Lorenzian instead of a Gaussian.'},
 			  {'name':'autonobs','text':'Auto N','row':9,'tooltip':'Determine N (degrees of freedom) from metadata (if provided with the _data.txt files).'},
+			  {'name':'tracebyfile','text':'AFM Data','row':10,'tooltip':'Each file contains one (foward/backward) trace.'}
 			  ]
 
 		for c in self.checks:
