@@ -115,12 +115,12 @@ class ChooseFiles(Frame):
 		self.checks = [
 			  {'name':'plot','text':'Plot','row':1,'tooltip':"Show summary plots after parsing."},
 			  {'name':'write','text':'Write','row':2,'tooltip':"Write results to text files after parsing."},
-			  {'name':'skipohmic','text':'Skip bad dJ/dV','row':5,'tooltip':'Skip plots with d2J/dV2 < 0 between Vcutoff and Vmin/Vmax.'},
-			  {'name':'nomin','text':'Use dJ/dV for Vtrans','row':6,'tooltip':'Use dJ/dV plots to find the minimum of F-N plots when computing Vtrans.'},
-			  {'name':'logr','text':'Use log|R|','row':7,'tooltip':'Use log |R| instead of |R| when computing histograms.'},
-			  {'name':'lorenzian','text':'Lorenzian','row':8,'tooltip':'Fit a Lorenzian instead of a Gaussian.'}
+			  {'name':'skipohmic','text':'Skip bad dJ/dV','row':3,'tooltip':'Skip plots with d2J/dV2 < 0 between Vcutoff and Vmin/Vmax.'},
+			  {'name':'nomin','text':'Use dJ/dV for Vtrans','row':4,'tooltip':'Use dJ/dV plots to find the minimum of F-N plots when computing Vtrans.'},
+			  {'name':'logr','text':'Use log|R|','row':5,'tooltip':'Use log |R| instead of |R| when computing histograms.'},
+			  {'name':'lorenzian','text':'Lorenzian','row':6,'tooltip':'Fit a Lorenzian instead of a Gaussian.'},
+			  {'name':'tracebyfile','text':'AFM Data','row':7,'tooltip':'Each file contains one (foward/backward) trace.'}
 			  ]
-
 
 		for c in self.checks:
 			setattr(self,c['name'],IntVar())
@@ -131,31 +131,32 @@ class ChooseFiles(Frame):
 			setattr(self,'Check_'+c['name'],check)
 			if getattr(self.opts,c['name']):
 				getattr(self,c['name']).set(1)
+		
+		rowidx = len(self.checks)+1
 
-
-		Label(self.RightOptionsFrame, text="Output file base name:").grid(column=0,row=3)
+		Label(self.RightOptionsFrame, text="Output file base name:").grid(column=0,row=rowidx)
 		self.OutputFileName = Entry(self.RightOptionsFrame, width=20,
 				font=Font(size=8,slant='italic'))
 		for n in ('<Return>','<Leave>','<Enter>'):
 			self.OutputFileName.bind(n, self.checkOutputFileName)
-		self.OutputFileName.grid(column=0,row=4)
+		self.OutputFileName.grid(column=0,row=rowidx+1)
 		
 		if self.opts.outfile:
 			self.OutputFileName.insert(0,self.opts.outfile)
 	
-		Label(self.RightOptionsFrame, text="What to plot:").grid(column=0,row=9,sticky=W)
+		Label(self.RightOptionsFrame, text="What to plot:").grid(column=0,row=rowidx+2,sticky=W)
 		self.OptionsPlotsString = StringVar()
 		self.OptionsPlotsString.set(','.join(self.opts.plots))
 		self.OptionPlots = OptionMenu(self.RightOptionsFrame, self.OptionsPlotsString,'J','R',
 		                         command=self.checkOptions)
-		self.OptionPlots.grid(column=0,row=10,sticky=W)
+		self.OptionPlots.grid(column=0,row=rowidx+3,sticky=W)
 	
-		Label(self.RightOptionsFrame, text="Derivative for heatmap:").grid(column=0,row=11,sticky=W)
+		Label(self.RightOptionsFrame, text="Derivative for heatmap:").grid(column=0,row=rowidx+4,sticky=W)
 		self.OptionsHeatmapdString = StringVar()
 		self.OptionsHeatmapdString.set(self.opts.heatmapd)
 		self.OptionHeatmapd = OptionMenu(self.RightOptionsFrame, self.OptionsHeatmapdString,'0','1','2',
 		                         command=self.checkOptions)
-		self.OptionHeatmapd.grid(column=0,row=12,sticky=W)
+		self.OptionHeatmapd.grid(column=0,row=rowidx+5,sticky=W)
 
 		lbls = [
 			{'name': 'Columns', 'text': "Columns to parse:",

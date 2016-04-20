@@ -97,6 +97,8 @@ parser.add_argument('--plots', type=str, nargs='*', default=['J'],
 		help="What to plot: J (default),R.")
 parser.add_argument('--heatmapd',  type=int, default=1, 
 		help="Derivative order of heatmap plot (0, 1, 2) default: 1.")
+parser.add_argument('--tracebyfile', default=False, action='store_true', 
+		help="Each input file contains one trace.")
 
 
 

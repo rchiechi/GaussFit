@@ -105,6 +105,8 @@ parser.add_argument('--autonobs', default=False, action='store_true',
 		help="Try to find reasonable values of N automatically.")
 parser.add_argument('--heatmapd',  type=int, default=1,
 		     help="Derivative order of heatmap plot (0, 1, 2) default: 1.")
+parser.add_argument('--tracebyfile', default=False, action='store_true', 
+		help="Each input file contains one trace.")
 
 
 

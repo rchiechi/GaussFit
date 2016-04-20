@@ -118,87 +118,58 @@ class Parse():
 			print("Error outputting GMatrix")
 		writer.logger.info("Done!")
 
-#	def isfloat(self,f):
-#		try:
-#			float(f)
-#			return True
-#		except ValueError as msg:
-#			self.logger.debug("%s: %s" %(f, str(msg)) )
-#			return False
-#	def tofloat(self, f):
-#		try:
-#			f = float(f)
-#		except ValueError:
-#			f = np.NAN
-#		return f
-#	def cleanrow(self, inrow):
-#		# Hack to get rid of emtpy columns
-#		return inrow
-#		outrow = []
-#		for i in inrow:
-#			outrow.append(list(filter(None,i)))
-#		return outrow
 	def ReadFiles(self, fns):
 		''' Walk through input files and parse
 		them into attributes '''
 		if self.opts.Ycol > 0:
 			self.logger.info("Parsing two columns of data.")
-			self.df = pd.concat((pd.read_csv(f,sep=self.opts.delim,usecols=(self.opts.Xcol,self.opts.Ycol),names=('V','J'),header=0) for f in fns),ignore_index=True)
+			frames = {}
+			for f in fns:
+				frames[f]=pd.read_csv(f,sep=self.opts.delim,usecols=(self.opts.Xcol,self.opts.Ycol),names=('V','J'),header=0)
+			self.df = pd.concat(frames)
 		else:
+			#TODO This needs to be multiindex
 			self.logger.info("Parsing all columns of data.")
-			self.df = pd.concat((pd.read_csv(f,sep=self.opts.delim,header=None,skiprows=1) for f in fns),ignore_index=True)
+			self.df = pd.concat((pd.read_csv(f,sep=self.opts.delim,
+				header=None,skiprows=1) for f in fns),ignore_index=True)
 			X,Y = [],[]
 			for row in self.df.iterrows():
 				for y in row[1][1:]:
 					X.append(row[1][0])
 					Y.append(y)
 			self.df = DataFrame({'V':X,'J':Y})
-		self.df['FN'] = np.log(abs(self.df.J)/self.df.V**2)
-		uniqueX = {}
-		for v in self.df.V.unique(): uniqueX[v]={}
-		for row in self.df.iterrows(): uniqueX[row[1].V][row[0]]=(row[1].J,row[1].FN)
-		if not len(uniqueX):
-			self.logger.error("No files parsed!?")
-			sys.exit() # Otherwise we loop over an empty uniqueX forever
-		self.findTraces()
-		x = self.df.V.unique()
-		lowy = uniqueX[np.nanmin(x[x>0])][ list(uniqueX[np.nanmin(x[x>0])].keys())[0]  ][0]/10 # typical for electrometer
-		for x in self.df.V.unique():
-			# Gather each unique X (usually Voltage) value
+		try:
+			self.df['FN'] = np.log(abs(self.df.J)/self.df.V**2)
+			self.df['logJ'] = np.log10(abs(self.df.J))
+		except ZeroDivisionError:
+			self.logger.warn("Error computing FN (check your input data).")
+
+		for x, group in self.df.groupby('V'):
+			# Gather each unique V value
 			# and pull the Y (usually current-density) values
 			# associated with it
 			self.logger.debug('Pulling Y where X=%0.2f', x)
-			y, fn = [], []
-			for i in sorted(uniqueX[x].keys()): 
-				y.append(uniqueX[x][i][0])
-				fn.append(uniqueX[x][i][1])
-			y = np.array(y)
-			ynz = [] # Make a special Y-array with no zeros for dealing with fits
-			for _y in y:
-				if np.isnan(_y) or _y == 0: 
-					ynz.append(lowy)
-					#print("%s --> %s" %(_y,lowy))
-				else: 
-					ynz.append(_y)
-			logy =  np.nan_to_num(np.log10(abs(np.array(ynz))))
-			self.XY[x] = { "Y":y, 
-				   "LogY":logy, 
-				   "hist":self.dohistogram(logy,"J"), 
-				   "FN":np.array(fn) }
+			self.XY[x] = { "Y":group['J'], 
+				   "LogY":group['logJ'], 
+				   "hist":self.dohistogram(group['logJ'],"J"), 
+				   "FN": group['FN']}
 		self.X = np.array(sorted(self.XY.keys()))
 		self.logger.info("Done parsing input data")
+		self.logger.info("* * * * * * Finding traces   * * * * * * * *")
+		self.findTraces()
 		self.logger.info("* * * * * * Computing dY/dX  * * * * * * * *")
 		self.DJDV, self.GHists, self.filtered = self.dodjdv() # This must come first for self.ohmic to be populated!
 		self.logger.info("* * * * * * Computing Vtrans * * * * * * * *")
 		self.FN["neg"], self.FN["pos"] = self.findmin()
 		self.logger.info("* * * * * * Computing |R|  * * * * * * * * *")
 		self.R = self.dorect()
-		self.logger.info("* * * * * * * * * * * * * * * * * * *")
+		self.logger.info("* * * * * * * * * * * * * * * * * * * * * * ")
 		self.PrintFN()
 
 	def findTraces(self):
-	
 		def __checktraces(traces):
+			if self.opts.tracebyfile:
+				return True
 			self.logger.debug("Checking V starting from slice %s:%s" % (traces[0][0],traces[0][1]) )
 			#V = self.df.V[traces[0][0]]
 			lt = len(self.df.V[ traces[0][0]:traces[0][1] ])
@@ -212,7 +183,15 @@ class Parse():
 		
 		traces = []
 		ntraces = 0
-		if self.df.V.value_counts().index[0] == 0.0:
+
+		if self.opts.tracebyfile:
+			self.logger.info("Assuming each file contains one (foward/backward) trace.")
+			for r in self.df.index.levels[0]:
+				traces.append( ((r,self.df.loc[r].index[0]),(r,self.df.loc[r].index[-1])) )
+			ntraces = len(traces)
+
+		if not ntraces and self.df.V.value_counts().index[0] == 0.0:
+			#NOTE t is now a tuple with both indices 0 = filename, 1 = index
 			try:
 				ntraces = int(self.df.V.value_counts()[0]/3) # Three zeros in every trace!
 				self.logger.info("This looks like an EGaIn dataset.")
@@ -223,12 +202,9 @@ class Parse():
 		if not ntraces:
 			self.logger.warn("This does not look like an EGaIn dataset.")
 			try:
-				#ntraces = int(self.df.V.value_counts()[0]/2) # Two end-pointss in every trace!
 				ntraces = int(self.df.V.value_counts()[self.df.V[0]]/2) # Two end-pointss in every trace!
 				for t in zip(*(iter(self.df[self.df.V == self.df.V[0]].V.index),) * 2):
 					traces.append( (t[0],t[1]) )
-				#for t in zip(*(iter(self.df[self.df.V == self.df.V.value_counts().index[0]].V.index),) * 2):
-				#	traces.append( (t[0],t[1]) )
 			except ValueError:
 				self.logger.warn("Did not find three-zero (EGaIn) traces!")
 
@@ -260,7 +236,7 @@ class Parse():
 		r = {}
 		for trace in self.traces:
 			rows = {}
-			for row in self.df[trace[0]:trace[1]+1].iterrows():
+			for row in self.df[trace[0]:trace[1]].iterrows():
 				if row[1].V in rows:
 					#self.logger.warn("Traces are out of sync, do not trust R values!")
 					#TODO Don't just average out hysterysis	
@@ -312,7 +288,12 @@ class Parse():
 			#TODO Yuck!
 			V,J = [],[]
 			avg = {}
-			fbtrace = self.df[self.traces[col][0]:self.traces[col][1]+1]
+			#print(self.traces[col])
+			#print(self.traces[col][1][1]+1)
+			#s,e = self.traces[col][0],(self.traces[col][1][0],self.traces[col][1][1]+1)
+			#fbtrace = self.df[self.traces[col][0]:self.traces[col][1][0],self.traces[col][1][1]+1]
+			#fbtrace = self.df[s:e]
+			fbtrace = self.df[self.traces[col][0]:self.traces[col][1]]
 			for row in fbtrace.iterrows():
 				if row[1].V in avg: avg[row[1].V].append(row[1].J)
 				else: avg[row[1].V] = [row[1].J]
@@ -393,7 +374,7 @@ class Parse():
 		for col in range(0,len(self.traces)):
 			if self.opts.skipohmic and col in self.ohmic:
 				continue
-			fbtrace = self.df[self.traces[col][0]:self.traces[col][1]+1]
+			fbtrace = self.df[self.traces[col][0]:self.traces[col][1]]
 			avg = {}
 			for row in fbtrace.iterrows():
 				# Without smoothing, we have to toss shorts or we get nonsense values
@@ -469,7 +450,7 @@ class Parse():
 		if len(Y) < 10:
 			self.logger.debug("< 10 points! %d points to consider.", len(Y))
 		if label == "J":
-			yrange = (Y.min()-1,Y.max()+1)
+			self.logger.debug("Y-range: %s, %s" % yrange)
 		else:
 			yrange = None
 		if label=='DJDV':
