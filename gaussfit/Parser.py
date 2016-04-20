@@ -138,13 +138,19 @@ class Parse():
 					X.append(row[1][0])
 					Y.append(y)
 			self.df = DataFrame({'V':X,'J':Y})
+
+		if (self.df.V.dtype,self.df.J.dtype) != ('float64','float64'):
+			self.logger.error("Parsed data does not appear to contain numerical data!")
+			return
 		try:
 			self.df['FN'] = np.log(abs(self.df.J)/self.df.V**2)
-			self.df['logJ'] = np.log10(abs(self.df.J))
-			self.logger.info('%s values of log|J| above compliance (%s)' % 
-					(len(self.df['logJ'][self.df['logJ']>self.opts.compliance]),self.opts.compliance))
 		except ZeroDivisionError:
 			self.logger.warn("Error computing FN (check your input data).")
+			self.df['FN'] = np.array([x*0 for x in range(0, len(self.df['V']))])
+		self.df['logJ'] = np.log10(abs(self.df.J))
+		self.logger.info('%s values of log|J| above compliance (%s)' % 
+				(len(self.df['logJ'][self.df['logJ']>self.opts.compliance]),self.opts.compliance))
+
 
 		for x, group in self.df.groupby('V'):
 			# Gather each unique V value
@@ -454,7 +460,7 @@ class Parse():
 		if label=='DJDV': nbins = self.opts.heatmapbins
 		else: nbins = self.opts.bins
 		if len(Y) < 10:
-			self.logger.warn("Histogram with only %d points .", len(Y))
+			self.logger.warn("Histogram with only %d points.", len(Y))
 		try:
 			freq, bins = np.histogram(Y, range=yrange, bins=nbins, density=False)
 		except ValueError as msg:
