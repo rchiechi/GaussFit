@@ -141,6 +141,8 @@ class Parse():
 		try:
 			self.df['FN'] = np.log(abs(self.df.J)/self.df.V**2)
 			self.df['logJ'] = np.log10(abs(self.df.J))
+			self.logger.info('%s values of log|J| above compliance (%s)' % 
+					(len(self.df['logJ'][self.df['logJ']>self.opts.compliance]),self.opts.compliance))
 		except ZeroDivisionError:
 			self.logger.warn("Error computing FN (check your input data).")
 
@@ -234,6 +236,7 @@ class Parse():
 		'''
 		R = {}
 		r = {}
+		clipped = 0
 		for trace in self.traces:
 			rows = {}
 			for row in self.df[trace[0]:trace[1]].iterrows():
@@ -257,11 +260,17 @@ class Parse():
 					r[x].append(np.log10(abs(rows[x]/rows[-1*x])))
 				else:
 					r[x].append(abs(rows[x]/rows[-1*x]))
+				if r[x][-1] > self.opts.maxr:
+					clipped += 1
 		for x in r:
 			if x < 0: continue
 			R[x]={'r':np.array(r[x]),'hist':self.dohistogram(np.array(r[x]),"R")}
 			R[-1*x] = R[x]
 		R['X'] = np.array(sorted(R.keys()))
+		if clipped:
+			if self.opts.logr: rstr = 'log|R|'
+			else: rstr = '|R|'
+			self.logger.info("%s values of %s exceed maxR (%s)" % (clipped, rstr, self.opts.maxr))
 		return R
 
 	def dodjdv(self):
@@ -288,11 +297,6 @@ class Parse():
 			#TODO Yuck!
 			V,J = [],[]
 			avg = {}
-			#print(self.traces[col])
-			#print(self.traces[col][1][1]+1)
-			#s,e = self.traces[col][0],(self.traces[col][1][0],self.traces[col][1][1]+1)
-			#fbtrace = self.df[self.traces[col][0]:self.traces[col][1][0],self.traces[col][1][1]+1]
-			#fbtrace = self.df[s:e]
 			fbtrace = self.df[self.traces[col][0]:self.traces[col][1]]
 			for row in fbtrace.iterrows():
 				if row[1].V in avg: avg[row[1].V].append(row[1].J)
@@ -439,26 +443,18 @@ class Parse():
 		but outliers sometimes confuse the fitting
 		routine, which defeats the purpose of machine-fitting
 		'''
-		j_compliance = np.nonzero(Y > self.opts.compliance) #BROKEN
-		r_compliance = np.nonzero(abs(Y) > self.opts.maxr)
-		if len(j_compliance[0]) and label == "J":
-			self.logger.warn("Tossing %d data points > %0.1f for %s histogram!", len(j_compliance[0]), self.opts.compliance, label)
-			Y = Y[np.nonzero(Y <= self.opts.compliance)]
-		if len(r_compliance[0]) and label == "R":
-			self.logger.warn("Tossing %d data points > %0.1f for %s histogram!", len(r_compliance[0]), self.opts.maxr, label)
-			Y = Y[np.nonzero(abs(Y) <= self.opts.maxr)]
-		if len(Y) < 10:
-			self.logger.debug("< 10 points! %d points to consider.", len(Y))
+		
 		if label == "J":
-			yrange = (Y.min()-1, Y.max()+1)
-			self.logger.debug("Y-range: %s, %s" % yrange)
+			Y = Y[Y <= self.opts.compliance]
+			#yrange = (Y.min()-1, Y.max()+1)
+			yrange = None
 		else:
 			yrange = None
-		if label=='DJDV':
-			nbins = self.opts.heatmapbins
-		else:
-			nbins = self.opts.bins
-		
+		if label == "R": Y = Y[Y <= self.opts.maxr]
+		if label=='DJDV': nbins = self.opts.heatmapbins
+		else: nbins = self.opts.bins
+		if len(Y) < 10:
+			self.logger.warn("Histogram with only %d points .", len(Y))
 		try:
 			freq, bins = np.histogram(Y, range=yrange, bins=nbins, density=False)
 		except ValueError as msg:
@@ -469,38 +465,30 @@ class Parse():
 		if len(Y):	
 			# Compute the geometric mean and give it the
 			# correct sign
-			if len(Y[Y<0]):
-				Ym = -1*gmean(abs(Y))
-			else:
-				Ym = gmean(abs(Y))
-			
+			if len(Y[Y<0]): Ym = -1*gmean(abs(Y))
+			else: Ym = gmean(abs(Y))
 			# Somehow this produces negative sigmas
 			Ys = abs(Y.std())
-		# This will trigger if the mean happens to be zero
-		#if not Ys or not Ym:
-		#	self.logger.error("Failed to find G-mean and G-std!")
-		#	print(Ys,Ym)
-		# Initital conditions for Gauss-fit
+
 		p0 = [1., Ym, Ys]
 		bin_centers = (bins[:-1] + bins[1:])/2
+		coeff = p0
+		hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
 		try:
 			with self.lock:
 				if self.opts.lorenzian:
 					coeff, covar = curve_fit(self.lorenz, bin_centers, freq, p0=p0, maxfev=self.opts.maxfev)
-					#hist_fit = self.lorenz(bin_centers, *coeff)
+					hist_fit = self.lorenz(bin_centers, *coeff)
 				else:
 					coeff, covar = curve_fit(self.gauss, bin_centers, freq, p0=p0, maxfev=self.opts.maxfev)
-					#hist_fit = self.gauss(bin_centers, *coeff)
-				hist_fit = self.gauss(bin_centers, *coeff)
+					hist_fit = self.gauss(bin_centers, *coeff)
 		except RuntimeError as msg:
-			if self.opts.maxfev > 10:
+			if self.opts.maxfev > 100:
 				self.logger.warning("|%s| Fit did not converge", label, exc_info=False)
-			coeff = p0
-			hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
 		except ValueError as msg:
 			self.logger.warning("|%s| Skipping data with ridiculous numbers in it (%s)", label, str(msg), exc_info=False )
-			coeff=p0
-			hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
+			#coeff=p0
+			#hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
 
 		return {"bin":bin_centers, "freq":freq, "mean":coeff[1], "std":coeff[2], \
 				"var":coeff[2], "bins":bins, "fit":hist_fit, "Gmean":Ym, "Gstd":Ys}

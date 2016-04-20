@@ -70,7 +70,7 @@ parser.add_argument('-Y','--Ycol', type=int, default=3,
 parser.add_argument('-b','--bins', default=50, type=int,
                 help='Number of bins for histograms (except heatmap).')
 parser.add_argument('-m','--maxr', type=float, default=2, 
-		help="Maximum allowable value of log|R| or (R if -L).")
+		help="Maximum allowable value of log|R| or (R if -R).")
 parser.add_argument('-c','--compliance', default=np.inf, type=float, 
 		help="Set compliance limit for gaussian fits.")
 parser.add_argument('-M','--minfn', action='store_false', dest='nomin', default=True, 
