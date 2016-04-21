@@ -268,7 +268,21 @@ class Parse():
         self.logger.info("Found %s traces (%s)." % (ntraces,len(traces)) )
         self.traces = traces
         self.loghandler.flush() 
-
+        avg = {'V':[]}
+        for x,group in self.df.groupby('V'):
+            avg['V'].append(x)
+            for col in range(0,len(self.traces)):
+                j = group['J'][self.traces[col][0]:self.traces[col][1]]
+                fn = group['FN'][self.traces[col][0]:self.traces[col][1]]
+                if 'J_%s' % col in avg:
+                    avg['J_%s' % col].append(np.mean(j))
+                else:
+                    avg['J_%s' % col] = [np.mean(j)]
+                if 'FN_%s' % col in avg:
+                    avg['FN_%s' % col].append(np.mean(fn))
+                else:
+                    avg['FN_%s' % col] = [np.mean(fn)]
+        avg = pd.DataFrame(avg)
 
     def dodjdv(self):
         '''
