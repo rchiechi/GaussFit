@@ -297,6 +297,7 @@ class Parse():
         for col in range(0,len(self.traces)):
             fbtrace = self.df[self.traces[col][0]:self.traces[col][1]].sort_values('V')
             avg = {'V':[],'J':[]}
+            #TODO Move groupby out of for loop and take slices of groups instead
             for x,group in fbtrace.groupby('V'):
                 avg['V'].append(x)
                 #avg['J'].append(self.signedgmean(group['J']))
