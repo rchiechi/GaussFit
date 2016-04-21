@@ -32,11 +32,11 @@ def Go(opts):
 	'''
 	parser = Parse(opts)
 	parser.ReadFiles(opts.in_files)
-	if opts.write:	
+	if opts.write and not parser.error:	
 			writer = Writer(parser)
 			Parse.doOutput(writer)
 	parser.PrintFN()
-	if opts.plot:
+	if opts.plot and not parser.error:
 			plotter = Plotter(parser)
 			#logging.info("Generating plots...")
 			try:

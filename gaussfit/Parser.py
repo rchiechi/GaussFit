@@ -58,6 +58,7 @@ class Parse():
     Vtrans, and dJ/DV.
     '''
     def __init__(self,opts,handler=None,lock=None):
+        self.error = False
         self.opts = opts
         self.df = DataFrame()
         self.XY = {}
@@ -151,6 +152,7 @@ class Parse():
     def __parse(self):
         if (self.df.V.dtype,self.df.J.dtype) != ('float64','float64'):
             self.logger.error("Parsed data does not appear to contain numerical data!")
+            self.error = True
             return
         try:
             self.df['FN'] = np.log(abs(self.df.J)/self.df.V**2)
@@ -160,7 +162,6 @@ class Parse():
         self.df['logJ'] = np.log10(abs(self.df.J))
         self.logger.info('%s values of log|J| above compliance (%s)' % 
                 (len(self.df['logJ'][self.df['logJ']>self.opts.compliance]),self.opts.compliance))
-
 
         for x, group in self.df.groupby('V'):
             # Gather each unique V value
@@ -513,8 +514,9 @@ class Parse():
         '''
         Print Vtrans values to the command line for convinience
         '''
+        if self.error:
+            return
         for key in ('pos', 'neg'):
             self.logger.info("|Vtrans %s| Gauss-mean: %0.4f Standard Deviation: %f" % (key, self.FN[key]['mean'], self.FN[key]['std']) )
             self.logger.info("|Vtrans %s| Geometric-mean: %0.4f Standard Deviation: %f" % (key, self.FN[key]['Gmean'], self.FN[key]['Gstd']) )
         #print("* * * * * * * * * * * * * * * * * * *")
-
