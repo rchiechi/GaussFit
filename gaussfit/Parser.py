@@ -341,6 +341,8 @@ class Parse():
         self.loghandler.flush()
         for x in splhists:
             splhists[x]['hist'] = self.dohistogram(np.array(splhists[x]['spl']), label='DJDV')
+        self.logger.info("dJdV complete.")
+        self.loghandler.flush()
         self.DJDV, self.GHists, self.filtered = spls, splhists, filtered
 
     def dorect(self):
@@ -385,6 +387,8 @@ class Parse():
             if self.opts.logr: rstr = 'log|R|'
             else: rstr = '|R|'
             self.logger.info("%s values of %s exceed maxR (%s)" % (clipped, rstr, self.opts.maxr))
+        self.logger.info("R complete.")
+        self.loghandler.flush()
         self.R = R
     
     def getminroot(self, spl):
@@ -417,14 +421,11 @@ class Parse():
             # Vtrans has no physical meaning for curves with negative derivatives
             self.logger.info("Skipping %s (out of %s) non-tunneling traces for Vtrans calculation." % 
                     ( len(self.ohmic), (len(self.traces))))
-            #len( self.XY[ list(self.XY.keys())[0]]['Y']) ) )
         for col in range(0,len(self.traces)):
             if self.opts.skipohmic and col in self.ohmic:
                 continue
-            fbtrace = self.df[self.traces[col][0]:self.traces[col][1]]
+            fbtrace = self.df[self.traces[col][0]:self.traces[col][1]].sort_values('V')
             avg = {'Vpos':[],'FNpos':[],'Vneg':[],'FNneg':[]}
-            #Vpos,FNpos = [],[]
-            #Vneg,FNneg = [],[]
             for x,group in fbtrace.groupby('V'):
                 # Without smoothing, we have to toss shorts or we get nonsense values
                 if not self.opts.nomin:
@@ -439,7 +440,6 @@ class Parse():
                 elif x < 0:
                     avg['Vneg'].append(x)
                     avg['FNneg'].append(fn)
-            
             avg = pd.DataFrame(avg)
             if self.opts.nomin:
                 try:
