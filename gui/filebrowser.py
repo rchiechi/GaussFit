@@ -22,6 +22,7 @@ Description:
 import sys,os,platform,threading,logging
 from gaussfit.Output import Writer,Plotter
 from gaussfit.Parser import Parse
+from gaussfit.logger import GUIHandler
 from tkinter import filedialog #some weird bug...
 from tkinter import *
 from tkinter.ttk import *
@@ -88,7 +89,7 @@ class ChooseFiles(Frame):
         self.RightOptionsFrame.pack(side=RIGHT,fill=Y)
         self.LoggingFrame.pack(side=BOTTOM, fill=BOTH)
         self.logger = logging.getLogger('parser.gui')
-        self.logger.addHandler(LoggingToGUI(self.Logging))
+        self.logger.addHandler(GUIHandler(self.Logging))
         self.logger.setLevel(getattr(logging,self.opts.loglevel.upper()))
         self.logger.info("Logging...")
 

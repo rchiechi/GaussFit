@@ -22,6 +22,7 @@ Description:
 
 import sys,os,logging,warnings,csv,threading
 from gaussfit.colors import *
+from gaussfit.logger import DelayedHandler
 
 try:
     import pandas as pd
@@ -76,7 +77,8 @@ class Parse():
         else:
             self.lock = threading.Lock()
         if not handler:
-            self.loghandler = logging.StreamHandler()
+            #self.loghandler = logging.StreamHandler()
+            self.loghandler = DelayedHandler()
             self.loghandler.setFormatter(logging.Formatter(\
                 fmt=GREEN+os.path.basename(sys.argv[0]+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
         else:
@@ -126,10 +128,13 @@ class Parse():
             fns = [fns]
         if self.opts.Ycol > 0:
             self.logger.info("Parsing two columns of data.")
+            self.logger.debug('Parsing %s' % ', '.join(fns))
             frames = {}
             for f in fns:
-                self.logger.debug('Parsing %s' % f)
-                frames[f]=pd.read_csv(f,sep=self.opts.delim,usecols=(self.opts.Xcol,self.opts.Ycol),names=('V','J'),header=0)
+                try:
+                    frames[f]=pd.read_csv(f,sep=self.opts.delim,usecols=(self.opts.Xcol,self.opts.Ycol),names=('V','J'),header=0)
+                except OSError as msg:
+                    self.logger.warn("Skipping %s because %s" % (f,str(msg)))
             self.df = pd.concat(frames)
         else:
             #TODO This needs to be multiindex
@@ -163,27 +168,35 @@ class Parse():
         self.logger.info('%s values of log|J| above compliance (%s)' % 
                 (len(self.df['logJ'][self.df['logJ']>self.opts.compliance]),self.opts.compliance))
 
+        self.loghandler.setDelay()
+        
         for x, group in self.df.groupby('V'):
-            # Gather each unique V value
-            # and pull the Y (usually current-density) values
-            # associated with it
-            self.logger.debug('Pulling Y where X=%0.2f', x)
             self.XY[x] = { "Y":group['J'], 
                    "LogY":group['logJ'], 
                    "hist":self.dohistogram(group['logJ'],"J"), 
                    "FN": group['FN']}
-        self.X = np.array(sorted(self.XY.keys()))
+        
+        self.X = sorted(self.XY.keys())
+        self.logger.debug("X = %s" % str(self.X) ) 
+        self.X = np.array(self.X)
+        
         self.logger.info("Done parsing input data")
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
+        self.loghandler.flush()
         self.findTraces()
         self.logger.info("* * * * * * Computing dY/dX  * * * * * * * *")
+        self.loghandler.flush()
         self.DJDV, self.GHists, self.filtered = self.dodjdv() # This must come first for self.ohmic to be populated!
         self.logger.info("* * * * * * Computing Vtrans * * * * * * * *")
+        self.loghandler.flush()
         self.FN["neg"], self.FN["pos"] = self.findmin()
         self.logger.info("* * * * * * Computing |R|  * * * * * * * * *")
+        self.loghandler.flush()
         self.R = self.dorect()
         self.logger.info("* * * * * * * * * * * * * * * * * * * * * * ")
+        self.loghandler.flush()
         self.PrintFN()
+        self.loghandler.unsetDelay()
 
     def findTraces(self):
         def __checktraces(traces):
@@ -199,7 +212,7 @@ class Parse():
                 self.logger.debug("Trace: %s -> %s" % (self.df.V[trace[0]],self.df.V[trace[-1]]) )
             self.logger.info("Traces look good.")
             return True
-        
+        self.loghandler.flush() 
         traces = []
         ntraces = 0
 
@@ -245,6 +258,83 @@ class Parse():
                 self.logger.error("Problem with traces: FN and derivative probably will not work correctly!")
         self.logger.info("Found %s traces (%s)." % (ntraces,len(traces)) )
         self.traces = traces
+        self.loghandler.flush() 
+
+
+    def dodjdv(self):
+        '''
+        Fit a spline function to X/Y data and 
+        compute dY/dX and normalize 
+        '''
+        if self.opts.vcutoff > 0:
+            vfilterneg,vfilterpos = np.linspace(-1*self.opts.vcutoff,0,200), np.linspace(0,self.opts.vcutoff.max(),200)
+        else:
+            vfilterneg,vfilterpos = np.linspace(self.df.V.min(),0,200), np.linspace(0,self.df.V.max(),200)
+        spls = {}
+        splhists = {}
+        filtered = [('Potential', 'Fit', 'Y')]
+        linx = np.linspace(self.df.V.min(), self.df.V.max(), 200)
+        for x in linx: 
+            spls[x] = []
+            splhists[x] = {'spl':[],'hist':{}}
+        if self.opts.vcutoff > 0:
+            vfilterneg,vfilterpos = linx[-1*self.opts.vcutoff < linx < 0],linux[0 < linx < self.opts.vcutoff]
+        else:
+            vfilterneg,vfilterpos = linx[linx < 0], linx[linx > 0]
+        for col in range(0,len(self.traces)):
+            V,J = [],[]
+            avg = {}
+            fbtrace = self.df[self.traces[col][0]:self.traces[col][1]]
+            #for row in fbtrace.iterrows():
+            #    if row[1].V in avg: avg[row[1].V].append(row[1].J)
+            #    else: 
+            #        avg[row[1].V] = [row[1].J]
+            for x,group in fbtrace.groupby('V'):
+                avg[x] = np.mean(group['J'])
+
+            for x in sorted(avg.keys()): 
+                V.append(x)
+                J.append(avg[x])
+            try:
+                spl = scipy.interpolate.UnivariateSpline(V,J, k=5, s=self.opts.smooth )
+                dd =  scipy.interpolate.UnivariateSpline(V, J, k=5, s=None).derivative(2)
+            except Exception as msg:
+                continue
+                self.logger.error('Error in derivative calulation: %s' % str(msg))
+
+            spldd = dd(vfilterpos) #Compute d2J/dV2
+            spldd += -1*dd(vfilterneg) #Compute d2J/dV2
+            if len(spldd[spldd<0]):
+                    # record in the index where dY/dX is < 0 within vcutoff range
+                    self.ohmic.append(col)  
+                    if self.opts.skipohmic:
+                        continue
+            else:
+                for row in fbtrace.iterrows():
+                    # filtered is a list containing only "clean" traces         
+                    filtered.append( (row[1].V, spl(row[1].V), row[1].J) )
+            err = None
+            for x in sorted(spls.keys()):
+                try:
+                    d = spl.derivatives(x)
+                except ValueError as msg:
+                    err = str(msg)
+                    #self.logger.error('Error computing derivative: %s' % str(msg))
+                    continue
+                if np.isnan(d[self.opts.heatmapd]):
+                    self.logger.warn("Got NaN computing dJ/dV")
+                    continue
+                spls[x].append(d[self.opts.heatmapd])
+                splhists[x]['spl'].append(np.log10(abs(d[self.opts.heatmapd])))
+            if err:
+                self.logger.error("Error while computing derivative: %s" % str(err))
+
+        self.logger.info("Non-tunneling traces: %s (out of %0d)" % 
+                    ( len(self.ohmic), len(self.traces) ) )
+        self.loghandler.flush()
+        for x in splhists:
+            splhists[x]['hist'] = self.dohistogram(np.array(splhists[x]['spl']), label='DJDV')
+        return spls, splhists, filtered
 
     def dorect(self):
         ''' 
@@ -289,77 +379,6 @@ class Parse():
             else: rstr = '|R|'
             self.logger.info("%s values of %s exceed maxR (%s)" % (clipped, rstr, self.opts.maxr))
         return R
-
-    def dodjdv(self):
-        '''
-        Fit a spline function to X/Y data and 
-        compute dY/dX and normalize 
-        '''
-        if self.opts.vcutoff > 0:
-            vfilterneg,vfilterpos = np.linspace(-1*self.opts.vcutoff,0,200), np.linspace(0,self.opts.vcutoff.max(),200)
-        else:
-            vfilterneg,vfilterpos = np.linspace(self.df.V.min(),0,200), np.linspace(0,self.df.V.max(),200)
-        spls = {}
-        splhists = {}
-        filtered = [('Potential', 'Fit', 'Y')]
-        linx = np.linspace(self.df.V.min(), self.df.V.max(), 200)
-        for x in linx: 
-            spls[x] = []
-            splhists[x] = {'spl':[],'hist':{}}
-        if self.opts.vcutoff > 0:
-            vfilterneg,vfilterpos = linx[-1*self.opts.vcutoff < linx < 0],linux[0 < linx < self.opts.vcutoff]
-        else:
-            vfilterneg,vfilterpos = linx[linx < 0], linx[linx > 0]
-        for col in range(0,len(self.traces)):
-            #TODO Yuck!
-            V,J = [],[]
-            avg = {}
-            fbtrace = self.df[self.traces[col][0]:self.traces[col][1]]
-            for row in fbtrace.iterrows():
-                if row[1].V in avg: avg[row[1].V].append(row[1].J)
-                else: avg[row[1].V] = [row[1].J]
-            for x in sorted(avg.keys()): 
-                V.append(x)
-                J.append(np.mean(avg[x]))
-            try:
-                spl = scipy.interpolate.UnivariateSpline(V,J, k=5, s=self.opts.smooth )
-                dd =  scipy.interpolate.UnivariateSpline(V, J, k=5, s=None).derivative(2)
-            except Exception as msg:
-                continue
-                self.logger.error('Error in derivative calulation: %s' % str(msg))
-
-            spldd = dd(vfilterpos) #Compute d2J/dV2
-            spldd += -1*dd(vfilterneg) #Compute d2J/dV2
-            if len(spldd[spldd<0]):
-                    # record in the index where dY/dX is < 0 within vcutoff range
-                    self.ohmic.append(col)  
-                    if self.opts.skipohmic:
-                        continue
-            else:
-                for row in fbtrace.iterrows():
-                    # filtered is a list containing only "clean" traces         
-                    filtered.append( (row[1].V, spl(row[1].V), row[1].J) )
-            err = None
-            for x in sorted(spls.keys()):
-                try:
-                    d = spl.derivatives(x)
-                except ValueError as msg:
-                    err = str(msg)
-                    #self.logger.error('Error computing derivative: %s' % str(msg))
-                    continue
-                if np.isnan(d[self.opts.heatmapd]):
-                    self.logger.warn("Got NaN computing dJ/dV")
-                    continue
-                spls[x].append(d[self.opts.heatmapd])
-                splhists[x]['spl'].append(np.log10(abs(d[self.opts.heatmapd])))
-            if err:
-                self.logger.error("Error while computing derivative: %s" % str(err))
-
-        self.logger.info("Non-tunneling traces: %s (out of %0d)" % 
-                    ( len(self.ohmic), len(self.traces) ) )
-        for x in splhists:
-            splhists[x]['hist'] = self.dohistogram(np.array(splhists[x]['spl']), label='DJDV')
-        return spls, splhists, filtered
     
     def getminroot(self, spl):
         '''
@@ -396,30 +415,29 @@ class Parse():
             if self.opts.skipohmic and col in self.ohmic:
                 continue
             fbtrace = self.df[self.traces[col][0]:self.traces[col][1]]
-            avg = {}
-            for row in fbtrace.iterrows():
+            avg = {'Vpos':[],'FNpos':[],'Vneg':[],'FNneg':[]}
+            #Vpos,FNpos = [],[]
+            #Vneg,FNneg = [],[]
+            for x,group in fbtrace.groupby('V'):
                 # Without smoothing, we have to toss shorts or we get nonsense values
-                if abs(row[1].J).max() >= self.opts.compliance and not self.opts.nomin:
-                    tossed += 1
-                    continue
-                if row[1].V in avg:
-                    avg[row[1].V].append(row[1].FN)
+                if not self.opts.nomin:
+                    fn = self.signedgmean(group['FN'][group['FN'] <= self.opts.compliance])
                 else:
-                    avg[row[1].V] = [row[1].FN]
-            Vpos,FNpos = [],[]
-            Vneg,FNneg = [],[]
-            for x in sorted(avg.keys()):
+                    fn = self.signedgmean(group['FN'])
                 if x > 0:
-                    Vpos.append(x)
-                    FNpos.append(np.mean(avg[x]))
+                    avg['Vpos'].append(x)
+                    avg['FNpos'].append(fn)
                 elif x < 0:
-                    Vneg.append(x)
-                    FNneg.append(np.mean(avg[x]))
-            if self.opts.nomin and len(Vpos) and len(FNpos):
+                    avg['Vneg'].append(x)
+                    avg['FNneg'].append(fn)
+            
+            avg = pd.DataFrame(avg)
+            if self.opts.nomin:
                 try:
-                    rootpos = self.getminroot(scipy.interpolate.UnivariateSpline(Vpos,FNpos, k=4, s=None))
-                    rootneg = self.getminroot(scipy.interpolate.UnivariateSpline(Vneg,FNneg, k=4, s=None))
-                except Exception:
+                    rootpos = self.getminroot(scipy.interpolate.UnivariateSpline(avg.Vpos,avg.FNpos, k=4, s=None))
+                    rootneg = self.getminroot(scipy.interpolate.UnivariateSpline(avg.Vneg,avg.FNneg, k=4, s=None))
+                except Exception as msg:
+                    self.logger.warn("Skipped FN calculation: %s" % str(msg))
                     continue
                 if np.isfinite(rootneg):
                     neg_min_x.append(rootneg)
@@ -435,6 +453,16 @@ class Parse():
         neg_min_x = np.array(neg_min_x)
         pos_min_x = np.array(pos_min_x)
         return self.dohistogram(neg_min_x, "Vtrans(-)"), self.dohistogram(pos_min_x, "Vtrans(+)")
+
+    def signedgmean(self,Y):
+        '''
+        Return a geometric average with the
+        same sign as the input data assuming
+        all values have the same sign
+        '''
+        if len(Y[Y<0]): Ym = -1*gmean(abs(Y))
+        else: Ym = gmean(abs(Y))
+        return Ym
 
     def gauss(self, x, *p):
         '''
@@ -478,14 +506,12 @@ class Parse():
             self.logger.warning("Encountered this error while constructing histogram: %s", str(msg), exc_info=False)
             bins=np.array([0.,0.,0.,0.])
             freq=np.array([0.,0.,0.,0.])
-        Ym,Ys = 0.0,0.0
+        
         if len(Y):  
-            # Compute the geometric mean and give it the
-            # correct sign
-            if len(Y[Y<0]): Ym = -1*gmean(abs(Y))
-            else: Ym = gmean(abs(Y))
-            # Somehow this produces negative sigmas
+            Ym = self.signedgmean(Y)
             Ys = abs(Y.std())
+        else:
+            Ym,Ys = 0.0,0.0
 
         p0 = [1., Ym, Ys]
         bin_centers = (bins[:-1] + bins[1:])/2
