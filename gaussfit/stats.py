@@ -24,7 +24,7 @@ Description:
 from gaussfit.Output import Writer,WriteStats
 from gaussfit.Parser import Parse
 
-import sys,os,logging,warnings,csv,datetime,threading,time,math,tempfile
+import sys,os,logging,warnings,csv,datetime,threading,time,math
 from gaussfit.colors import *
 
 try:
@@ -207,23 +207,23 @@ class Stats:
                 elif (s,f) not in diffmins[dm] and (f,s) not in diffmins[dm]:
                     diffmins[dm].append((f,s))
             
-        def __maketmpfiles(popfiles):
-                outfile = tempfile.NamedTemporaryFile(mode='w+t',delete=False)
-                header = False
-                for f in popfiles:
-                    with open(f, 'rt', newline='') as csvfile:
-                        writer = csv.writer(outfile,dialect='JV')
-                        for row in csv.reader(csvfile,dialect='JV'):
-                            try:
-                                float(row[0])
-                            except ValueError:
-                                if not header:
-                                    header = True
-                                    writer.writerow(row)
-                                continue
-                            writer.writerow(row)
-                #tmpfiles[outfile.name]=outfile
-                return outfile.name
+#        def __maketmpfiles(popfiles):
+#                outfile = tempfile.NamedTemporaryFile(mode='w+t',delete=False)
+#                header = False
+#                for f in popfiles:
+#                    with open(f, 'rt', newline='') as csvfile:
+#                        writer = csv.writer(outfile,dialect='JV')
+#                        for row in csv.reader(csvfile,dialect='JV'):
+#                            try:
+#                                float(row[0])
+#                            except ValueError:
+#                                if not header:
+#                                    header = True
+#                                    writer.writerow(row)
+#                                continue
+#                            writer.writerow(row)
+#                #tmpfiles[outfile.name]=outfile
+#                return outfile.name
         
         tmpfiles = []
         if len(diffdays.keys()) < 3:
