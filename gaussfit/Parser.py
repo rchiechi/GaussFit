@@ -283,7 +283,7 @@ class Parse():
                 else:
                     avg['FN_%s' % col] = [np.mean(fn)]
         avg = pd.DataFrame(avg)
-
+        print(avg)    
     def dodjdv(self):
         '''
         Fit a spline function to X/Y data and 
