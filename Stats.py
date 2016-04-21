@@ -22,7 +22,7 @@ Description:
 
 
 from gaussfit.Output import WriteStats,StatPlotter
-from gaussfit.StatArgs import Opts
+from gaussfit.Args import Opts
 
 import sys,os,warnings,csv
 from gaussfit.colors import *

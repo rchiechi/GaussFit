@@ -48,7 +48,12 @@ desc='''
 parser = argparse.ArgumentParser(description=desc,formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 parser.add_argument('in_files', metavar='Files-to-parse', type=str, nargs='*', default=[], 
-		help='Datafiles to parse.')
+		help='Datafiles to parse (GaussFit mode).')
+parser.add_argument('-A','--setA', metavar='setA', type=str, nargs='*', default=[], 
+		help='Datafiles to parse for set A (Stats mode).')
+parser.add_argument('-B','--setB',  metavar='setB', type=str, nargs='*', default=[], 
+		help='Datafiles to parse for set B (Stats mode).')
+
 parser.add_argument('-G','--GUI', action='store_true', default=False,
                 help="Launch the GUI.")
 parser.add_argument('-o','--outfile', metavar="OUTPUT FILE", default="",
@@ -85,18 +90,24 @@ parser.add_argument('-a','--lower', metavar='LOWER', dest='mlow', type=float, de
 		help="Lower cutoff value for conductance heat map plot.")
 parser.add_argument('-z','--upper', metavar='UPPER', dest='mhi', type=float, default=0, 
 		help="Upper cutoff value for conductance heat map plot.")
-parser.add_argument('-B','--heatmapbins', default=25, type=int, 
+parser.add_argument('--heatmapbins', default=25, type=int, 
 		help="Number of bins for the conductance heatmap plot.")
 parser.add_argument('-R','--logr', default=True, action='store_false', 
 		help="Compute |R| instead of log|R| for histograms of rectification.")
 parser.add_argument('-L','--lorenzian', default=False, action='store_true', 
 		help="Fit data to a Lorenzian instead of a Gaussian.")
+parser.add_argument('-N','--nobs', type=int, default=0, 
+		help="Number of observations for statistical tests on J (but not Gmean!).")
 parser.add_argument('--maxfev', type=int, default=10000, 
 		help="Maximum interations for fitting histograms.")
 parser.add_argument('--plots', type=str, nargs='*', default=['J'], 
-		help="What to plot: J (default),R.")
-parser.add_argument('--heatmapd',  type=int, default=1, 
-		help="Derivative order of heatmap plot (0, 1, 2) default: 1.")
+		help="What to plot: J,R.")
+parser.add_argument('-T','--threads', type=int,default=8, 
+		help="Use n threads for parsing for marginal speed boost.")
+parser.add_argument('--autonobs', default=False, action='store_true', 
+		help="Try to find reasonable values of N automatically.")
+parser.add_argument('--heatmapd',  type=int, default=1,
+		     help="Derivative order of heatmap plot (0, 1, 2) default: 1.")
 parser.add_argument('--tracebyfile', default=False, action='store_true', 
 		help="Each input file contains one trace.")
 
@@ -130,7 +141,7 @@ Opts.Ycol -= 1
 #	logging.basicConfig(level= getattr(logging,Opts.loglevel.upper()),format = GREEN+os.path.basename(sys.argv[0]+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE)
 #
 
-if not len(Opts.in_files) and not Opts.GUI:
+if not len(Opts.in_files) and not Opts.GUI and 0 in (len(Opts.setA),len(Opts.setB)):
 	parser.print_help()
 	print(RED+"\n\t\t> > > No input files! < < < "+RS)
 	sys.exit()

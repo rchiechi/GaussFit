@@ -6,7 +6,7 @@ Description:
         molecular tunneling junctions. It is specifically designed
         with EGaIn in mind, but may be applicable to other systems.
 
-    This program is free software: you can redistribute it and/or modify
+    This program is free software: you can colors.REDistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
@@ -25,7 +25,6 @@ from gaussfit.Output import Writer,WriteStats
 from gaussfit.Parser import Parse
 
 import sys,os,logging,warnings,csv,datetime,threading,time,math
-from gaussfit.colors import *
 
 try:
     from scipy.stats import gmean,kstest,ttest_ind,ttest_rel,ttest_1samp
@@ -40,8 +39,8 @@ except ImportError as msg:
 #warnings.filterwarnings('error','.*Degrees of freedom <= 0 for slice.*', RuntimeWarning)
 #warnings.filterwarnings('ignore','.*divide by zero.*',RuntimeWarning)
 #warnings.filterwarnings('ignore','.*',UserWarning)
-#warnings.filterwarnings('ignore','.*invalid value encountered in log.*',RuntimeWarning)
-#warnings.filterwarnings('ignore','.*invalid value encountered in true_divide.*',RuntimeWarning)
+#warnings.filterwarnings('ignore','.*invalid value encountecolors.RED in log.*',RuntimeWarning)
+#warnings.filterwarnings('ignore','.*invalid value encountecolors.RED in true_divide.*',RuntimeWarning)
 #warnings.filterwarnings('ignore','.*impossible result.*',UserWarning)
 
 class ParserThread(threading.Thread):
@@ -78,6 +77,12 @@ class Stats:
 
     def __init__(self,opts,handler=None):
         self.opts = opts
+        if self.opts.GUI:
+            import gaussfit.nocolors as colors
+        else:
+            import gaussfit.colors as colors
+        for c in colors.__all__:
+            setattr(self,c,getattr(colors,c))
         self.SetA = {}
         self.SetB = {}
         self.PopA = {}
@@ -88,14 +93,20 @@ class Stats:
         if not handler:
             self.loghandler = logging.StreamHandler()
             self.loghandler.setFormatter(logging.Formatter(\
-                fmt=GREEN+os.path.basename(sys.argv[0]+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
+                fmt=self.GREEN+os.path.basename(sys.argv[0]+self.TEAL)+
+                ' %(levelname)s '+self.YELLOW+'%(message)s'+self.WHITE))
         else:
             self.loghandler = handler
-
+      
         self.logger = logging.getLogger('statparser')
         self.logger.addHandler(self.loghandler)
         self.logger.setLevel(getattr(logging,self.opts.loglevel.upper()))
         self.logger.info("Gathering Statistics")
+  
+        if self.opts.maxfev > 100:
+            self.logger.debug("Resetting maxfev to 100.")
+            self.opts.maxfev = 100
+
             
     def parse(self):
         if not self.opts.autonobs:
@@ -206,25 +217,6 @@ class Stats:
                     diffmins[dm] = [(f,s)]
                 elif (s,f) not in diffmins[dm] and (f,s) not in diffmins[dm]:
                     diffmins[dm].append((f,s))
-            
-#        def __maketmpfiles(popfiles):
-#                outfile = tempfile.NamedTemporaryFile(mode='w+t',delete=False)
-#                header = False
-#                for f in popfiles:
-#                    with open(f, 'rt', newline='') as csvfile:
-#                        writer = csv.writer(outfile,dialect='JV')
-#                        for row in csv.reader(csvfile,dialect='JV'):
-#                            try:
-#                                float(row[0])
-#                            except ValueError:
-#                                if not header:
-#                                    header = True
-#                                    writer.writerow(row)
-#                                continue
-#                            writer.writerow(row)
-#                #tmpfiles[outfile.name]=outfile
-#                return outfile.name
-        
         tmpfiles = []
         if len(diffdays.keys()) < 3:
             days, minutes = False, True
@@ -242,8 +234,6 @@ class Stats:
                         popfiles.append(f[0])
                     if f[1] not in popfiles:
                         popfiles.append(f[1])
-                #n = __maketmpfiles(popfiles)
-                #tmpfiles.append(n)
                 tmpfiles.append(tuple(popfiles))
                 self.logger.info("Measurements done %s days apart: %s " % (d,", ".join(popfiles)))
                 self.extrainfo += "Measurements done %s days apart: %s\n" % (d,", ".join(popfiles)) 
@@ -257,14 +247,11 @@ class Stats:
                         popfiles.append(f[0])
                     if f[1] not in popfiles:
                         popfiles.append(f[1])
-                #n = __maketmpfiles(popfiles)
-                #tmpfiles.append(n)
                 tmpfiles.append(tuple(popfiles))
                 self.logger.info("Measurements done %s minutes apart: %s " % (m*min_factor,", ".join(popfiles)))
                 self.extrainfo += "Measurements done %s minutes apart: %s\n" % (m*min_factor,", ".join(popfiles))
                 for p in popfiles:
                     self.extrainfo += p+"\n"
-        #return self.__getsetpop(opts,tmpfiles)
         return self.__getsetpop(opts,tmpfiles)
 
     def Ttest(self, key):
@@ -284,11 +271,6 @@ class Stats:
             t,p= ttest_ind(self.SetA[x][key]['mean'], self.SetB[x][key]['mean'], equal_var=False)
             p_vals.append(p)
 
-            #if p < 0.001: c = GREEN
-            #else: c = RED
-            #print("P-value at %s%s V%s: %s%s%s" % (TEAL,str(x),RS,c,str(p),RS) )
-            #print(self.SetA[x][key]['Y'])
-            
             ssetsA = self.Sortsets(self.SetA[x][key]['Y'])
             ssetsB = self.Sortsets(self.SetB[x][key]['Y'])
             AlphaA = []
@@ -362,20 +344,16 @@ class Stats:
         p_vals = np.array(p_vals)
         aA_vals = np.array(aA_vals)
         aB_vals = np.array(aB_vals)
-        if self.opts.GUI:
-            green,red,rs = '','',''
-        else:
-            green,red,rs = GREEN,RED,RS
         try:    
-            if p_vals.mean() < 0.001: c = green
-            else: c = red
-            self.logger.info("p-value Mean: %s%s%s" % (green, p_vals.mean(), rs))
-            if aA_vals[aA_vals > 0].mean() > 0.7: c = green
-            else: c = red
-            self.logger.info("α  SetA Mean: %s%s%s" % (c,aA_vals[aA_vals > 0].mean(),rs))
-            if aB_vals[aB_vals > 0].mean() > 0.7: c = green
-            else: c = red
-            self.logger.info("α  SetB Mean: %s%s%s" % (c,aB_vals[aB_vals > 0].mean(),rs))
+            if p_vals.mean() < 0.001: c = self.GREEN
+            else: c = self.RED
+            self.logger.info("p-value Mean: %s%s%s" % (self.GREEN, p_vals.mean(), self.RS))
+            if aA_vals[aA_vals > 0].mean() > 0.7: c = self.GREEN
+            else: c = self.RED
+            self.logger.info("α  SetA Mean: %s%s%s" % (c,aA_vals[aA_vals > 0].mean(),self.RS))
+            if aB_vals[aB_vals > 0].mean() > 0.7: c = self.GREEN
+            else: c = self.RED
+            self.logger.info("α  SetB Mean: %s%s%s" % (c,aB_vals[aB_vals > 0].mean(),self.RS))
         except FloatingPointError:
             self.logger.error("Error outputting mean stats.")
 
@@ -385,18 +363,13 @@ class Stats:
                 self.SetB[x]['FN']['pos']['mean'], equal_var=False) 
         t_neg, p_neg = ttest_ind(self.SetA[x]['FN']['neg']['mean'], \
                 self.SetB[x]['FN']['neg']['mean'], equal_var=False)
-        #TODO Can't we figure this out at import?
-        if self.opts.GUI:
-            green,red,rs = '','',''
-        else:
-            green,red,rs = GREEN,RED,RS
-        if p_pos < 0.001: c = green
-        else: c = red
-        self.logger.info("P-Value Vtrans(+): %s%s%s" % (c,str(p_pos),rs))
+        if p_pos < 0.001: c = self.GREEN
+        else: c = self.RED
+        self.logger.info("P-Value Vtrans(+): %s%s%s" % (c,str(p_pos),self.RS))
         
-        if p_neg < 0.001: c = green
-        else: c = red
-        self.logger.info("P-Value Vtrans(–): %s%s%s" % (c,str(p_neg),rs))
+        if p_neg < 0.001: c = self.GREEN
+        else: c = self.RED
+        self.logger.info("P-Value Vtrans(–): %s%s%s" % (c,str(p_neg),self.RS))
         self.fnstats = {"p_pos":p_pos, "p_neg":p_neg, "t_pos":t_pos, "t_neg":t_neg}
 
     def Sortsets(self, traces):
