@@ -89,10 +89,11 @@ class ChooseFiles(Frame):
         self.RightOptionsFrame.pack(side=RIGHT,fill=Y)
         self.LoggingFrame.pack(side=BOTTOM, fill=BOTH)
         self.logger = logging.getLogger('parser.gui')
-        self.logger.addHandler(GUIHandler(self.Logging))
+        self.handler = GUIHandler(self.Logging)
+        self.logger.addHandler(self.handler)
         self.logger.setLevel(getattr(logging,self.opts.loglevel.upper()))
         self.logger.info("Logging...")
-
+        self.handler.flush()
         self.updateFileListBox()
 
     def __createButtons(self):
@@ -256,13 +257,13 @@ class ChooseFiles(Frame):
                         self.logger.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
         else: 
             if len(self.opts.in_files):
-                parser = Parse(self.opts,handler=LoggingToGUI(self.Logging))
+                parser = Parse(self.opts,handler=self.handler)
                 self.gothreads.append(ParseThread(self.opts,parser))
                 self.gothreads[-1].start()
                 self.ButtonParse.after('500',self.Parse)
             else:
                 self.logger.warn("No input files!")
-
+        self.handler.flush()
     def RemoveFileClick(self):
         self.checkOptions()
         selected = [self.FileListBox.get(x) for x in self.FileListBox.curselection()]
@@ -372,25 +373,5 @@ class ChooseFiles(Frame):
             pass
         self.EntryGminmax.delete(0, END)
         self.EntryGminmax.insert(0, ",".join( (str(self.opts.mlow), str(self.opts.mhi)) ))
-
-
-#############
-
-
-class LoggingToGUI(logging.Handler):
-    """ Used to redirect logging output to the widget passed in parameters """
-    def __init__(self, console):
-        logging.Handler.__init__(self)
-        self.setFormatter(logging.Formatter('%(levelname)s %(message)s'))
-        #self.setFormatter(logging.Formatter(GREEN+os.path.basename(sys.argv[0]+TEAL)+\
-        #       ' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
-        self.console = console #Any text widget, you can use the class above or not
-
-    def emit(self, message): # Overwrites the default handler's emit method
-        formattedMessage = self.format(message)  #You can change the format here
-        self.console["state"] = NORMAL
-        self.console.insert(END, formattedMessage+"\n") #Inserting the logger message in the widget
-        self.console["state"] = DISABLED
-        self.console.see(END)
 
 

@@ -23,10 +23,10 @@ Description:
 import sys,os,logging,warnings,csv,threading
 from gaussfit.colors import *
 from gaussfit.logger import DelayedHandler
+import concurrent.futures 
 
 try:
     import pandas as pd
-    from pandas import Series, DataFrame
     from scipy.optimize import curve_fit,OptimizeWarning
     import scipy.interpolate 
     from scipy.stats import gmean,norm
@@ -50,6 +50,7 @@ warnings.filterwarnings('ignore','.*Mean of empty slice.*', RuntimeWarning)
 
 
 
+
 class Parse():
     '''
     This is the main parsing class that takes input data
@@ -61,7 +62,7 @@ class Parse():
     def __init__(self,opts,handler=None,lock=None):
         self.error = False
         self.opts = opts
-        self.df = DataFrame()
+        self.df = pd.DataFrame()
         self.XY = {}
         self.X = np.array([])
         self.FN = {}
@@ -146,7 +147,7 @@ class Parse():
                 for y in row[1][1:]:
                     X.append(row[1][0])
                     Y.append(y)
-            self.df = DataFrame({'V':X,'J':Y})
+            self.df = pd.DataFrame({'V':X,'J':Y})
         self.__parse()
 
     def ReadPandas(self,df):
@@ -186,13 +187,21 @@ class Parse():
         self.findTraces()
         self.logger.info("* * * * * * Computing dY/dX  * * * * * * * *")
         self.loghandler.flush()
-        self.DJDV, self.GHists, self.filtered = self.dodjdv() # This must come first for self.ohmic to be populated!
+        t1 = threading.Thread(target=self.dodjdv) # This must come first for self.ohmic to be populated!
+        t1.start()
+        if self.opts.skipohmic:
+            t1.join()
         self.logger.info("* * * * * * Computing Vtrans * * * * * * * *")
         self.loghandler.flush()
-        self.FN["neg"], self.FN["pos"] = self.findmin()
+        t2 = threading.Thread(target=self.findmin)
+        t2.start()
         self.logger.info("* * * * * * Computing |R|  * * * * * * * * *")
         self.loghandler.flush()
-        self.R = self.dorect()
+        t3 = threading.Thread(target=self.dorect)
+        t3.start()
+        t1.join()
+        t2.join()
+        t3.join()
         self.logger.info("* * * * * * * * * * * * * * * * * * * * * * ")
         self.loghandler.flush()
         self.PrintFN()
@@ -266,41 +275,39 @@ class Parse():
         Fit a spline function to X/Y data and 
         compute dY/dX and normalize 
         '''
+        
+        linx = np.linspace(self.df.V.min(), self.df.V.max(), 200)
+        
         if self.opts.vcutoff > 0:
             vfilterneg,vfilterpos = np.linspace(-1*self.opts.vcutoff,0,200), np.linspace(0,self.opts.vcutoff.max(),200)
         else:
             vfilterneg,vfilterpos = np.linspace(self.df.V.min(),0,200), np.linspace(0,self.df.V.max(),200)
-        spls = {}
-        splhists = {}
-        filtered = [('Potential', 'Fit', 'Y')]
-        linx = np.linspace(self.df.V.min(), self.df.V.max(), 200)
-        for x in linx: 
-            spls[x] = []
-            splhists[x] = {'spl':[],'hist':{}}
         if self.opts.vcutoff > 0:
             vfilterneg,vfilterpos = linx[-1*self.opts.vcutoff < linx < 0],linux[0 < linx < self.opts.vcutoff]
         else:
             vfilterneg,vfilterpos = linx[linx < 0], linx[linx > 0]
-        for col in range(0,len(self.traces)):
-            V,J = [],[]
-            avg = {}
-            fbtrace = self.df[self.traces[col][0]:self.traces[col][1]]
-            #for row in fbtrace.iterrows():
-            #    if row[1].V in avg: avg[row[1].V].append(row[1].J)
-            #    else: 
-            #        avg[row[1].V] = [row[1].J]
-            for x,group in fbtrace.groupby('V'):
-                avg[x] = np.mean(group['J'])
 
-            for x in sorted(avg.keys()): 
-                V.append(x)
-                J.append(avg[x])
+        spls = {}
+        splhists = {}
+        filtered = [('Potential', 'Fit', 'Y')]
+        for x in linx: 
+            spls[x] = []
+            splhists[x] = {'spl':[],'hist':{}}
+
+        for col in range(0,len(self.traces)):
+            fbtrace = self.df[self.traces[col][0]:self.traces[col][1]].sort_values('V')
+            avg = {'V':[],'J':[]}
+            for x,group in fbtrace.groupby('V'):
+                avg['V'].append(x)
+                #avg['J'].append(self.signedgmean(group['J']))
+                avg['J'].append(np.mean(group['J']))
+            avg = pd.DataFrame(avg)
             try:
-                spl = scipy.interpolate.UnivariateSpline(V,J, k=5, s=self.opts.smooth )
-                dd =  scipy.interpolate.UnivariateSpline(V, J, k=5, s=None).derivative(2)
+                spl = scipy.interpolate.UnivariateSpline(avg.V,avg.J, k=5, s=self.opts.smooth )
+                dd =  scipy.interpolate.UnivariateSpline(avg.V, avg.J, k=5, s=None).derivative(2)
             except Exception as msg:
-                continue
                 self.logger.error('Error in derivative calulation: %s' % str(msg))
+                continue
 
             spldd = dd(vfilterpos) #Compute d2J/dV2
             spldd += -1*dd(vfilterneg) #Compute d2J/dV2
@@ -334,7 +341,7 @@ class Parse():
         self.loghandler.flush()
         for x in splhists:
             splhists[x]['hist'] = self.dohistogram(np.array(splhists[x]['spl']), label='DJDV')
-        return spls, splhists, filtered
+        self.DJDV, self.GHists, self.filtered = spls, splhists, filtered
 
     def dorect(self):
         ''' 
@@ -378,7 +385,7 @@ class Parse():
             if self.opts.logr: rstr = 'log|R|'
             else: rstr = '|R|'
             self.logger.info("%s values of %s exceed maxR (%s)" % (clipped, rstr, self.opts.maxr))
-        return R
+        self.R = R
     
     def getminroot(self, spl):
         '''
@@ -421,9 +428,11 @@ class Parse():
             for x,group in fbtrace.groupby('V'):
                 # Without smoothing, we have to toss shorts or we get nonsense values
                 if not self.opts.nomin:
-                    fn = self.signedgmean(group['FN'][group['FN'] <= self.opts.compliance])
+                    fn = np.mean(group['FN'][group['FN'] <= self.opts.compliance])
+                    #fn = self.signedgmean(group['FN'][group['FN'] <= self.opts.compliance])
                 else:
-                    fn = self.signedgmean(group['FN'])
+                    fn = np.mean(group['FN'])
+                    #fn = self.signedgmean(group['FN'])
                 if x > 0:
                     avg['Vpos'].append(x)
                     avg['FNpos'].append(fn)
@@ -452,7 +461,7 @@ class Parse():
         if tossed: self.logger.warn("Tossed %d compliance traces during FN calculation.", tossed)
         neg_min_x = np.array(neg_min_x)
         pos_min_x = np.array(pos_min_x)
-        return self.dohistogram(neg_min_x, "Vtrans(-)"), self.dohistogram(pos_min_x, "Vtrans(+)")
+        self.FN["neg"], self.FN["pos"] = self.dohistogram(neg_min_x, "Vtrans(-)"), self.dohistogram(pos_min_x, "Vtrans(+)")
 
     def signedgmean(self,Y):
         '''
