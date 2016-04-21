@@ -359,7 +359,8 @@ class Parse():
                 if row[1].V in rows:
                     #self.logger.warn("Traces are out of sync, do not trust R values!")
                     #TODO Don't just average out hysterysis 
-                    rows[row[1].V] = (rows[row[1].V]+row[1].J)/2
+                    #rows[row[1].V] = (rows[row[1].V]+row[1].J)/2
+                    rows[row[1].V] = np.mean([rows[row[1].V],row[1].J])
                 else:
                     rows[row[1].V] = row[1].J
                 if row[1].V not in r:
