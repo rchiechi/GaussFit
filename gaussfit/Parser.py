@@ -187,10 +187,10 @@ class Parse():
         self.findTraces()
         self.logger.info("* * * * * * Computing dY/dX  * * * * * * * *")
         self.loghandler.flush()
-        t1 = threading.Thread(target=self.dodjdv) # This must come first for self.ohmic to be populated!
+        t1 = threading.Thread(target = self.dodjdv) # This must come first for self.ohmic to be populated!
         t1.start()
         if self.opts.skipohmic:
-            t1.join()
+                t1.join()
         self.logger.info("* * * * * * Computing Vtrans * * * * * * * *")
         self.loghandler.flush()
         t2 = threading.Thread(target=self.findmin)
@@ -268,22 +268,27 @@ class Parse():
         self.logger.info("Found %s traces (%s)." % (ntraces,len(traces)) )
         self.traces = traces
         self.loghandler.flush() 
-        avg = {'V':[]}
-        for x,group in self.df.groupby('V'):
-            avg['V'].append(x)
-            for col in range(0,len(self.traces)):
-                j = group['J'][self.traces[col][0]:self.traces[col][1]]
-                fn = group['FN'][self.traces[col][0]:self.traces[col][1]]
-                if 'J_%s' % col in avg:
-                    avg['J_%s' % col].append(np.mean(j))
+        idx = []
+        frames = {}
+        self.logger.info("Compressing forward/reverse sweeps to single traces.")
+        self.loghandler.flush()
+        for col in range(0,len(self.traces)):
+            fbtrace = self.df[self.traces[col][0]:self.traces[col][1]].sort_values('V')
+            avg = {'V':[],'J':[],'FN':[]}
+            for x,group in fbtrace.groupby('V'):
+                avg['V'].append(x)
+                avg['J'].append(self.signedgmean(group['J']))
+                #avg['J'].append(np.mean(group['J']))
+                if not self.opts.nomin:
+                    fn = np.mean(group['FN'][group['FN'] <= self.opts.compliance])
+                    #fn = self.signedgmean(group['FN'][group['FN'] <= self.opts.compliance])
                 else:
-                    avg['J_%s' % col] = [np.mean(j)]
-                if 'FN_%s' % col in avg:
-                    avg['FN_%s' % col].append(np.mean(fn))
-                else:
-                    avg['FN_%s' % col] = [np.mean(fn)]
-        avg = pd.DataFrame(avg)
-        print(avg)    
+                    fn = np.mean(group['FN'])
+                    #fn = self.signedgmean(group['FN'])
+                avg['FN'].append(fn)
+            frames[col] = pd.DataFrame(avg)
+        self.avg = pd.concat(frames)
+
     def dodjdv(self):
         '''
         Fit a spline function to X/Y data and 
@@ -308,18 +313,20 @@ class Parse():
             spls[x] = []
             splhists[x] = {'spl':[],'hist':{}}
 
-        for col in range(0,len(self.traces)):
-            fbtrace = self.df[self.traces[col][0]:self.traces[col][1]].sort_values('V')
-            avg = {'V':[],'J':[]}
-            #TODO Move groupby out of for loop and take slices of groups instead
-            for x,group in fbtrace.groupby('V'):
-                avg['V'].append(x)
-                #avg['J'].append(self.signedgmean(group['J']))
-                avg['J'].append(np.mean(group['J']))
-            avg = pd.DataFrame(avg)
+        
+        #for col in range(0,len(self.traces)):
+        #    fbtrace = self.df[self.traces[col][0]:self.traces[col][1]].sort_values('V')
+        #    avg = {'V':[],'J':[]}
+        #    #TODO Move groupby out of for loop and take slices of groups instead
+        #    for x,group in fbtrace.groupby('V'):
+        #        avg['V'].append(x)
+        #        #avg['J'].append(self.signedgmean(group['J']))
+        #        avg['J'].append(np.mean(group['J']))
+        #    avg = pd.DataFrame(avg)
+        for trace in self.avg.index.levels[0]:
             try:
-                spl = scipy.interpolate.UnivariateSpline(avg.V,avg.J, k=5, s=self.opts.smooth )
-                dd =  scipy.interpolate.UnivariateSpline(avg.V, avg.J, k=5, s=None).derivative(2)
+                spl = scipy.interpolate.UnivariateSpline(self.avg.loc[trace]['V'],self.avg.loc[trace]['J'], k=5, s=self.opts.smooth )
+                dd =  scipy.interpolate.UnivariateSpline(self.avg.loc[trace]['V'],self.avg.loc[trace]['J'], k=5, s=None).derivative(2)
             except Exception as msg:
                 self.logger.error('Error in derivative calulation: %s' % str(msg))
                 continue
@@ -328,11 +335,11 @@ class Parse():
             spldd += -1*dd(vfilterneg) #Compute d2J/dV2
             if len(spldd[spldd<0]):
                     # record in the index where dY/dX is < 0 within vcutoff range
-                    self.ohmic.append(col)  
+                    self.ohmic.append(trace)  
                     if self.opts.skipohmic:
                         continue
             else:
-                for row in fbtrace.iterrows():
+                for row in self.avg.loc[trace].iterrows():
                     # filtered is a list containing only "clean" traces         
                     filtered.append( (row[1].V, spl(row[1].V), row[1].J) )
             err = None
@@ -359,7 +366,7 @@ class Parse():
         self.logger.info("dJdV complete.")
         self.loghandler.flush()
         self.DJDV, self.GHists, self.filtered = spls, splhists, filtered
-
+        sys.exit()
     def dorect(self):
         ''' 
         Divide each value of Y at +V by Y at -V
@@ -437,30 +444,37 @@ class Parse():
             # Vtrans has no physical meaning for curves with negative derivatives
             self.logger.info("Skipping %s (out of %s) non-tunneling traces for Vtrans calculation." % 
                     ( len(self.ohmic), (len(self.traces))))
-        for col in range(0,len(self.traces)):
-            if self.opts.skipohmic and col in self.ohmic:
-                continue
-            fbtrace = self.df[self.traces[col][0]:self.traces[col][1]].sort_values('V')
-            avg = {'Vpos':[],'FNpos':[],'Vneg':[],'FNneg':[]}
-            for x,group in fbtrace.groupby('V'):
-                # Without smoothing, we have to toss shorts or we get nonsense values
-                if not self.opts.nomin:
-                    fn = np.mean(group['FN'][group['FN'] <= self.opts.compliance])
-                    #fn = self.signedgmean(group['FN'][group['FN'] <= self.opts.compliance])
-                else:
-                    fn = np.mean(group['FN'])
-                    #fn = self.signedgmean(group['FN'])
-                if x > 0:
-                    avg['Vpos'].append(x)
-                    avg['FNpos'].append(fn)
-                elif x < 0:
-                    avg['Vneg'].append(x)
-                    avg['FNneg'].append(fn)
-            avg = pd.DataFrame(avg)
+#        for col in range(0,len(self.traces)):
+#            if self.opts.skipohmic and col in self.ohmic:
+#                continue
+#            fbtrace = self.df[self.traces[col][0]:self.traces[col][1]].sort_values('V')
+#            avg = {'Vpos':[],'FNpos':[],'Vneg':[],'FNneg':[]}
+#            for x,group in fbtrace.groupby('V'):
+#                # Without smoothing, we have to toss shorts or we get nonsense values
+#                if not self.opts.nomin:
+#                    fn = np.mean(group['FN'][group['FN'] <= self.opts.compliance])
+#                    #fn = self.signedgmean(group['FN'][group['FN'] <= self.opts.compliance])
+#                else:
+#                    fn = np.mean(group['FN'])
+#                    #fn = self.signedgmean(group['FN'])
+#                if x > 0:
+#                    avg['Vpos'].append(x)
+#                    avg['FNpos'].append(fn)
+#                elif x < 0:
+#                    avg['Vneg'].append(x)
+#                    avg['FNneg'].append(fn)
+#            avg = pd.DataFrame(avg)
+        
+        for trace in self.avg.index.levels[0]:
+            if self.opts.skipohmic and trace in self.ohmic:
+                    continue
             if self.opts.nomin:
                 try:
-                    rootpos = self.getminroot(scipy.interpolate.UnivariateSpline(avg.Vpos,avg.FNpos, k=4, s=None))
-                    rootneg = self.getminroot(scipy.interpolate.UnivariateSpline(avg.Vneg,avg.FNneg, k=4, s=None))
+                    rootpos = self.getminroot(scipy.interpolate.UnivariateSpline(self.avg.loc[trace]['V'][self.avg.loc[trace]['V'] > 0],
+                            self.avg.loc[trace]['FN'][self.avg.loc[trace]['V'] > 0], k=4, s=None))
+                    rootneg = self.getminroot(scipy.interpolate.UnivariateSpline(self.avg.loc[trace]['V'][self.avg.loc[trace]['V'] < 0],
+                            self.avg.loc[trace]['FN'][self.avg.loc[trace]['V'] < 0 ], k=4, s=None))
+                    #rootneg = self.getminroot(scipy.interpolate.UnivariateSpline(avg.Vneg,avg.FNneg, k=4, s=None))
                 except Exception as msg:
                     self.logger.warn("Skipped FN calculation: %s" % str(msg))
                     continue
@@ -470,9 +484,11 @@ class Parse():
                     pos_min_x.append(rootpos)
                 if np.NAN in (rootneg,rootpos):
                     self.logger.warn("No minimum found in FN derivative (-):%s, (+):%s" % (rootneg, rootpos) )
-            elif len(Vpos) and len(FNpos):
-                neg_min_x.append( fbtrace.V[ fbtrace.FN[fbtrace.V < 0].idxmin() ] )
-                pos_min_x.append( fbtrace.V[ fbtrace.FN[fbtrace.V > 0].idxmin() ] )
+            else:
+                neg_min_x.append(self.avg.loc[trace]['FN'][ self.avg[trace]['FN'][self.avg.loc[trace]['V'] < 0 ].idxmin() ])
+                pos_min_x.append(self.avg.loc[trace]['FN'][ self.avg[trace]['FN'][self.avg.loc[trace]['V'] > 0 ].idxmin() ])
+                #neg_min_x.append( fbtrace.V[ fbtrace.FN[fbtrace.V < 0].idxmin() ] )
+                #pos_min_x.append( fbtrace.V[ fbtrace.FN[fbtrace.V > 0].idxmin() ] )
 
         if tossed: self.logger.warn("Tossed %d compliance traces during FN calculation.", tossed)
         neg_min_x = np.array(neg_min_x)
