@@ -227,6 +227,7 @@ class Parse():
             lt = len(self.df.V[ traces[0][0]:traces[0][1] ])
             for trace in traces:
                 if lt != len(self.df.V[trace[0]:trace[1]]):
+                    #TODO Figure out how to mask/delete these files from parsing
                     if trace[0][0] != trace[1][0]:
                         self.logger.warn('Unequal voltage steps somewhere bewteen "%s" (and) "%s"' % (trace[0][0],trace[1][0]) )
                     else:
