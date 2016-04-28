@@ -209,6 +209,17 @@ class Parse():
 
     def findTraces(self):
         def __checktraces(traces):
+            if not traces:
+                self.logger.error("No traces!?")
+                return False
+            v = self.df.loc[self.df.index.levels[0][0]]['V'].values
+            st,ed = [v[0]],[v[-1]]
+            for r in self.df.index.levels[0][1:]:
+                s,e = self.df.loc[r]['V'].values[0],self.df.loc[r]['V'].values[-1]
+                if s not in st or e not in ed:
+                    self.logger.warn('file "%s" starts and ends with weird voltages (%s -> %s)' % (r,s,e))
+                st.append(s)
+                ed.append(e)
             if self.opts.tracebyfile:
                 return True
             self.logger.debug("Checking V starting from slice %s:%s" % (traces[0][0],traces[0][1]) )
@@ -216,7 +227,11 @@ class Parse():
             lt = len(self.df.V[ traces[0][0]:traces[0][1] ])
             for trace in traces:
                 if lt != len(self.df.V[trace[0]:trace[1]]):
-                    self.logger.warn("Unequal voltage steps in dataset!")
+                    if trace[0][0] != trace[1][0]:
+                        self.logger.warn('Unequal voltage steps somewhere bewteen "%s" (and) "%s"' % (trace[0][0],trace[1][0]) )
+                    else:
+                        self.logger.warn('Unequal voltage steps somewhere in "%s"' % trace[0][0] )
+                    self.loghandler.flush()
                     return False
                 self.logger.debug("Trace: %s -> %s" % (self.df.V[trace[0]],self.df.V[trace[-1]]) )
             self.logger.info("Traces look good.")
@@ -253,18 +268,23 @@ class Parse():
             self.logger.warn("Recomputing traces based on repeat values")
             traces = []
             Vinit = self.df.V[0]
-            trace = [0]
-            for row in self.df[trace[0]:].iterrows():
+            trace = []
+            for row in self.df[0:].iterrows():
                 if row[1].V == Vinit:
-                    if len(trace) == 1:
+                    if not len(trace) or len(trace) == 1:
                         trace.append(row[0])
                     elif len(trace) == 2:
                         traces.append(trace)
                         #print(self.df[trace[0]:trace[1]+1])
                         trace = [row[0]]
             ntraces = len(traces)
-            if not __checktraces(traces):
-                self.logger.error("Problem with traces: FN and derivative probably will not work correctly!")
+        if not __checktraces(traces):
+            self.logger.error("Problem with traces: FN and derivative probably will not work correctly!")
+            self.loghandler.flush()
+            #for r in self.df.index.levels[0]:
+            #    self.logger.info('(%s) start: %s end: %s' % (r,
+            #            self.df.loc[r]['V'].values[0],self.df.loc[r]['V'].values[-1]))
+            #self.loghandler.flush()
         self.logger.info("Found %s traces (%s)." % (ntraces,len(traces)) )
         self.traces = traces
         self.loghandler.flush() 
@@ -287,8 +307,11 @@ class Parse():
                     #fn = self.signedgmean(group['FN'])
                 avg['FN'].append(fn)
             frames[col] = pd.DataFrame(avg)
-        self.avg = pd.concat(frames)
-
+        try:
+            self.avg = pd.concat(frames)
+        except ValueError:
+            self.error = True
+            self.logger.error('Unable to parse traces.')
     def dodjdv(self):
         '''
         Fit a spline function to X/Y data and 
