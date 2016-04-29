@@ -23,7 +23,7 @@ Description:
 import sys,os,logging,warnings,csv,threading
 from gaussfit.colors import *
 from gaussfit.logger import DelayedHandler
-import concurrent.futures 
+#import concurrent.futures 
 
 try:
     import pandas as pd
