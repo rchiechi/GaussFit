@@ -166,7 +166,8 @@ class Parse():
         except ZeroDivisionError:
             self.logger.warn("Error computing FN (check your input data).")
             self.df['FN'] = np.array([x*0 for x in range(0, len(self.df['V']))])
-        self.df['logJ'] = np.log10(abs(self.df.J))
+        self.df.J.replace(0.0,value=10e-16,inplace=True)
+        self.df['logJ'] = np.log10(abs(self.df.J)) # Cannot log10 zero
         self.logger.info('%s values of log|J| above compliance (%s)' % 
                 (len(self.df['logJ'][self.df['logJ']>self.opts.compliance]),self.opts.compliance))
         
@@ -320,6 +321,7 @@ class Parse():
             self.avg = pd.concat(frames)
         except ValueError:
             self.error = True
+            self.avg = pd.DataFrame()
             self.logger.error('Unable to parse traces.')
     def dodjdv(self):
         '''
@@ -526,12 +528,10 @@ class Parse():
         routine, which defeats the purpose of machine-fitting
         '''
         
-        if label == "J":
+        yrange = (Y.min(),Y.max())
+        if label == "J": 
             Y = Y[Y <= self.opts.compliance]
-            #yrange = (Y.min()-1, Y.max()+1)
-            yrange = None
-        else:
-            yrange = None
+            yrange = (Y.min()-1, Y.max()+1)
         if label == "R": Y = Y[Y <= self.opts.maxr]
         if label=='DJDV': nbins = self.opts.heatmapbins
         else: nbins = self.opts.bins
