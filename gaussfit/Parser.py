@@ -538,8 +538,10 @@ class Parse():
         if len(Y) < 10:
             self.logger.warn("Histogram with only %d points.", len(Y))
         try:
+            #TODO Why not offer density plots as an option?
             freq, bins = np.histogram(Y, range=yrange, bins=nbins, density=False)
         except ValueError as msg:
+            #TODO we can now split out the file name with the bad data in it!
             self.logger.warning("Encountered this error while constructing histogram: %s", str(msg), exc_info=False)
             bins=np.array([0.,0.,0.,0.])
             freq=np.array([0.,0.,0.,0.])
