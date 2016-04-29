@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
 '''
-Copyright (C) 2015 Ryan Chiechi <r.c.chiechi@rug.nl>
-Description:
-        This program parses raw current-voltage data obtained from
-        molecular tunneling junctions. It is specifically designed
-        with EGaIn in mind, but may be applicable to other systems.
-
+Copyright (C) 2016 Ryan Chiechi <r.c.chiechi@rug.nl>
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -73,12 +68,13 @@ class Parse():
         self.filtered = []
         self.R = {}
         self.traces = {}
+        # Pass a lock when calling inside a thread
         if lock:
             self.lock = lock
         else:
             self.lock = threading.Lock()
+        # Pass your own log hanlder, e.g., when calling from a GUI
         if not handler:
-            #self.loghandler = logging.StreamHandler()
             self.loghandler = DelayedHandler()
             self.loghandler.setFormatter(logging.Formatter(\
                 fmt=GREEN+os.path.basename(sys.argv[0]+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
@@ -93,6 +89,7 @@ class Parse():
 
     @classmethod
     def doOutput(cls,writer):
+        ''' Run through all the methods for writing output files.'''
         writer.logger.info("Writing files...")
         writer.WriteParseInfo()
         writer.WriteVtrans()
@@ -123,7 +120,7 @@ class Parse():
         writer.logger.info("Done!")
 
     def ReadFiles(self, fns):
-        ''' Walk through input files and parse
+        '''Walk through input files and parse
         them into attributes '''
         if type(fns) == type(str()):
             fns = [fns]
@@ -151,11 +148,15 @@ class Parse():
         self.__parse()
 
     def ReadPandas(self,df):
+        '''Take a pandas.DataFrame as input instead of files.'''
         self.logger.debug("Using Pandas as input")
         self.df = df
         self.__parse()
 
     def __parse(self):
+        '''Read a pandas.DataFrame and compute Fowler-Nordheim
+        values, log10 the J or I values and create a dictionary
+        indexed by unique voltages.'''
         if (self.df.V.dtype,self.df.J.dtype) != ('float64','float64'):
             self.logger.error("Parsed data does not appear to contain numerical data!")
             self.error = True
@@ -168,7 +169,8 @@ class Parse():
         self.df['logJ'] = np.log10(abs(self.df.J))
         self.logger.info('%s values of log|J| above compliance (%s)' % 
                 (len(self.df['logJ'][self.df['logJ']>self.opts.compliance]),self.opts.compliance))
-
+        
+        #The default log handler only emits when you call flush() after setDelay() called
         self.loghandler.setDelay()
         
         for x, group in self.df.groupby('V'):
@@ -187,6 +189,7 @@ class Parse():
         self.findTraces()
         self.logger.info("* * * * * * Computing dY/dX  * * * * * * * *")
         self.loghandler.flush()
+        #NOTE Threads do not seem to help with performance
         t1 = threading.Thread(target = self.dodjdv) # This must come first for self.ohmic to be populated!
         t1.start()
         if self.opts.skipohmic:
@@ -208,9 +211,14 @@ class Parse():
         self.loghandler.unsetDelay()
 
     def findTraces(self):
+        '''Try to find individual J/V traces. A trace is defined
+        by a complete forward and reverse trace unless the input
+        dataset comprises only forward or only reverse traces.
+        findTraces will average the two sweeps, which may cause
+        problems with very hysteretic data.'''
         def __checktraces(traces):
             if not traces:
-                self.logger.error("No traces!?")
+                self.logger.error("No traces!?") # This should never happen!
                 return False
             v = self.df.loc[self.df.index.levels[0][0]]['V'].values
             st,ed = [v[0]],[v[-1]]
@@ -223,7 +231,6 @@ class Parse():
             if self.opts.tracebyfile:
                 return True
             self.logger.debug("Checking V starting from slice %s:%s" % (traces[0][0],traces[0][1]) )
-            #V = self.df.V[traces[0][0]]
             lt = len(self.df.V[ traces[0][0]:traces[0][1] ])
             for trace in traces:
                 if lt != len(self.df.V[trace[0]:trace[1]]):
@@ -248,7 +255,7 @@ class Parse():
             ntraces = len(traces)
 
         if not ntraces and self.df.V.value_counts().index[0] == 0.0:
-            #NOTE t is now a tuple with both indices 0 = filename, 1 = index
+            #NOTE t is a tuple with both indices 0 = filename, 1 = index
             try:
                 ntraces = int(self.df.V.value_counts()[0]/3) # Three zeros in every trace!
                 self.logger.info("This looks like an EGaIn dataset.")
@@ -302,6 +309,7 @@ class Parse():
                 #avg['J'].append(np.mean(group['J']))
                 if not self.opts.nomin:
                     fn = np.mean(group['FN'][group['FN'] <= self.opts.compliance])
+                    #NOTE signedgmean was very slow at one point so I disabled it
                     #fn = self.signedgmean(group['FN'][group['FN'] <= self.opts.compliance])
                 else:
                     fn = np.mean(group['FN'])
@@ -315,12 +323,10 @@ class Parse():
             self.logger.error('Unable to parse traces.')
     def dodjdv(self):
         '''
-        Fit a spline function to X/Y data and 
-        compute dY/dX and normalize 
+        Fit a spline function to X/Y data, 
+        compute dY/dX and normalize.
         '''
-        
         linx = np.linspace(self.df.V.min(), self.df.V.max(), 200)
-        
         if self.opts.vcutoff > 0:
             vfilterneg,vfilterpos = np.linspace(-1*self.opts.vcutoff,0,200), np.linspace(0,self.opts.vcutoff.max(),200)
         else:
@@ -336,17 +342,7 @@ class Parse():
         for x in linx: 
             spls[x] = []
             splhists[x] = {'spl':[],'hist':{}}
-
         
-        #for col in range(0,len(self.traces)):
-        #    fbtrace = self.df[self.traces[col][0]:self.traces[col][1]].sort_values('V')
-        #    avg = {'V':[],'J':[]}
-        #    #TODO Move groupby out of for loop and take slices of groups instead
-        #    for x,group in fbtrace.groupby('V'):
-        #        avg['V'].append(x)
-        #        #avg['J'].append(self.signedgmean(group['J']))
-        #        avg['J'].append(np.mean(group['J']))
-        #    avg = pd.DataFrame(avg)
         for trace in self.avg.index.levels[0]:
             try:
                 spl = scipy.interpolate.UnivariateSpline(self.avg.loc[trace]['V'],self.avg.loc[trace]['J'], k=5, s=self.opts.smooth )
@@ -372,7 +368,7 @@ class Parse():
                     d = spl.derivatives(x)
                 except ValueError as msg:
                     err = str(msg)
-                    #self.logger.error('Error computing derivative: %s' % str(msg))
+                    self.logger.warn('Error computing derivative: %s' % str(msg))
                     continue
                 if np.isnan(d[self.opts.heatmapd]):
                     self.logger.warn("Got NaN computing dJ/dV")
@@ -391,6 +387,7 @@ class Parse():
         self.loghandler.flush()
         self.DJDV, self.GHists, self.filtered = spls, splhists, filtered
         sys.exit()
+
     def dorect(self):
         ''' 
         Divide each value of Y at +V by Y at -V
@@ -403,9 +400,7 @@ class Parse():
             rows = {}
             for row in self.df[trace[0]:trace[1]].iterrows():
                 if row[1].V in rows:
-                    #self.logger.warn("Traces are out of sync, do not trust R values!")
-                    #TODO Don't just average out hysterysis 
-                    #rows[row[1].V] = (rows[row[1].V]+row[1].J)/2
+                    #TODO Don't just average out hysterysis, it is important for R
                     rows[row[1].V] = np.mean([rows[row[1].V],row[1].J])
                 else:
                     rows[row[1].V] = row[1].J
@@ -468,26 +463,6 @@ class Parse():
             # Vtrans has no physical meaning for curves with negative derivatives
             self.logger.info("Skipping %s (out of %s) non-tunneling traces for Vtrans calculation." % 
                     ( len(self.ohmic), (len(self.traces))))
-#        for col in range(0,len(self.traces)):
-#            if self.opts.skipohmic and col in self.ohmic:
-#                continue
-#            fbtrace = self.df[self.traces[col][0]:self.traces[col][1]].sort_values('V')
-#            avg = {'Vpos':[],'FNpos':[],'Vneg':[],'FNneg':[]}
-#            for x,group in fbtrace.groupby('V'):
-#                # Without smoothing, we have to toss shorts or we get nonsense values
-#                if not self.opts.nomin:
-#                    fn = np.mean(group['FN'][group['FN'] <= self.opts.compliance])
-#                    #fn = self.signedgmean(group['FN'][group['FN'] <= self.opts.compliance])
-#                else:
-#                    fn = np.mean(group['FN'])
-#                    #fn = self.signedgmean(group['FN'])
-#                if x > 0:
-#                    avg['Vpos'].append(x)
-#                    avg['FNpos'].append(fn)
-#                elif x < 0:
-#                    avg['Vneg'].append(x)
-#                    avg['FNneg'].append(fn)
-#            avg = pd.DataFrame(avg)
         
         for trace in self.avg.index.levels[0]:
             if self.opts.skipohmic and trace in self.ohmic:
@@ -498,7 +473,6 @@ class Parse():
                             self.avg.loc[trace]['FN'][self.avg.loc[trace]['V'] > 0], k=4, s=None))
                     rootneg = self.getminroot(scipy.interpolate.UnivariateSpline(self.avg.loc[trace]['V'][self.avg.loc[trace]['V'] < 0],
                             self.avg.loc[trace]['FN'][self.avg.loc[trace]['V'] < 0 ], k=4, s=None))
-                    #rootneg = self.getminroot(scipy.interpolate.UnivariateSpline(avg.Vneg,avg.FNneg, k=4, s=None))
                 except Exception as msg:
                     self.logger.warn("Skipped FN calculation: %s" % str(msg))
                     continue
@@ -511,8 +485,6 @@ class Parse():
             else:
                 neg_min_x.append(self.avg.loc[trace]['FN'][ self.avg[trace]['FN'][self.avg.loc[trace]['V'] < 0 ].idxmin() ])
                 pos_min_x.append(self.avg.loc[trace]['FN'][ self.avg[trace]['FN'][self.avg.loc[trace]['V'] > 0 ].idxmin() ])
-                #neg_min_x.append( fbtrace.V[ fbtrace.FN[fbtrace.V < 0].idxmin() ] )
-                #pos_min_x.append( fbtrace.V[ fbtrace.FN[fbtrace.V > 0].idxmin() ] )
 
         if tossed: self.logger.warn("Tossed %d compliance traces during FN calculation.", tossed)
         neg_min_x = np.array(neg_min_x)
@@ -610,4 +582,3 @@ class Parse():
         for key in ('pos', 'neg'):
             self.logger.info("|Vtrans %s| Gauss-mean: %0.4f Standard Deviation: %f" % (key, self.FN[key]['mean'], self.FN[key]['std']) )
             self.logger.info("|Vtrans %s| Geometric-mean: %0.4f Standard Deviation: %f" % (key, self.FN[key]['Gmean'], self.FN[key]['Gstd']) )
-        #print("* * * * * * * * * * * * * * * * * * *")

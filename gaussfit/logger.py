@@ -2,10 +2,6 @@
 #!/usr/bin/env python3
 '''
 Copyright (C) 2015 Ryan Chiechi <r.c.chiechi@rug.nl>
-Description:
-        This program parses raw current-voltage data obtained from
-        molecular tunneling junctions. It is specifically designed
-        with EGaIn in mind, but may be applicable to other systems.
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -27,11 +23,14 @@ from collections import Counter
 
 
 class DelayedHandler(logging.Handler):
-    """ Used to redirect logging output to the widget passed in parameters """
+    '''A log handler that buffers messages and 
+    folds repeat messages into one line.'''
+
+    buff = []
+
     def __init__(self,delay=False):
         logging.Handler.__init__(self)
         self.__delay = delay
-        self.buff = []
     def emit(self, message): # Overwrites the default handler's emit method
         self.buff.append(self.format(message))
         if not self.__delay:
@@ -54,12 +53,16 @@ class DelayedHandler(logging.Handler):
         self.__flush()
 
 class GUIHandler(logging.Handler):
-    """ Used to redirect logging output to the widget passed in parameters """
+    '''A log handler that buffers messages and folds repeats
+    into a single line. It expects a tkinter widget as input.'''
+
     from tkinter import NORMAL,DISABLED,END
+
+    buff = []
+
     def __init__(self, console, delay=False):
         logging.Handler.__init__(self)
         self.__delay = delay
-        self.buff = []
         self.setFormatter(logging.Formatter('%(levelname)s %(message)s'))
         self.console = console #Any text widget, you can use the class above or not
 

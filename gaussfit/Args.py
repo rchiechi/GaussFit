@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 '''
-Copyright (C) 2015 Ryan Chiechi <r.c.chiechi@rug.nl>
+Copyright (C) 2016 Ryan Chiechi <r.c.chiechi@rug.nl>
 Description:
-        This program parses raw current-voltage data obtained from
-        molecular tunneling junctions. It is specifically designed
-        with EGaIn in mind, but may be applicable to other systems.
+        Parse all of the command line arguments for GaussFit.py
+        and Stats.py
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -125,36 +124,18 @@ if len(Opts.in_files) and not Opts.outfile:
 		Opts.outfile = Opts.in_files[0]
 Opts.Xcol -= 1
 Opts.Ycol -= 1
-			
-#if not os.path.exists(Opts.out_dir):
-#	os.mkdir(Opts.out_dir)
-#	print("Creating %s" % Opts.out_dir)
-	#parser.print_help()
-	#print(RED+"\n\t\t> > > Output directory "+arg+" does not exist! < < <"+RS)
-	#sys.exit()
-
-# Set up terminal logging. Set LOG to a file for debugging.
-#LOG = False
-#if LOG:
-#	logging.basicConfig(level= getattr(logging,Opts.loglevel.upper()),format = '%(asctime)s %(process)d %(levelname)s %(message)s', filename=LOG,filemode='a+')
-#else:
-#	logging.basicConfig(level= getattr(logging,Opts.loglevel.upper()),format = GREEN+os.path.basename(sys.argv[0]+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE)
-#
-
+		
 if not len(Opts.in_files) and not Opts.GUI and 0 in (len(Opts.setA),len(Opts.setB)):
 	parser.print_help()
 	print(RED+"\n\t\t> > > No input files! < < < "+RS)
 	sys.exit()
 
 
+# Setup CSV parser dialect and separator for pandas
 if Opts.delim == 'tab':
-	delim='\t'
 	Opts.delim='\t'
 if Opts.delim == 'comma':
-	delim=','
 	Opts.delim=','
 if Opts.delim == 'space':
-	delim=' '
 	Opts.delim=' '
-# Setup CSV parser dialect
-csv.register_dialect('JV', delimiter=delim, quoting=csv.QUOTE_MINIMAL)
+csv.register_dialect('JV', delimiter=Opts.delim, quoting=csv.QUOTE_MINIMAL)

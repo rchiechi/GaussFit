@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
 '''
 Copyright (C) 2015 Ryan Chiechi <r.c.chiechi@rug.nl>
-Description:
-        This program parses raw current-voltage data obtained from
-        molecular tunneling junctions. It is specifically designed
-        with EGaIn in mind, but may be applicable to other systems.
-
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -20,7 +15,9 @@ Description:
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-import os,csv,warnings,datetime
+import os,warnings,datetime
+#TODO Replace csv with pandas
+import csv
 from shutil import copyfile
 try:
     import numpy as np
@@ -30,6 +27,7 @@ except ImportError as msg:
 warnings.filterwarnings('ignore','.*comparison.*',FutureWarning)    
 
 class Writer():
+    '''The main Writer class for creating text files of parsed data.'''
     def __init__(self,parser):
         self.parser = parser
         self.opts = self.parser.opts
@@ -39,11 +37,13 @@ class Writer():
 
     def __getattr__(self, name):
         try:
-                return getattr(self.parser, name)
+                return getattr(self.parser, name) # 'inheret' the methods of self.parser
         except AttributeError as e:
                 raise AttributeError("Writer object has no attribute '%s'" % name)
 
     def WriteParseInfo(self,extra=''):
+        '''Write some summary information about the parameters
+        used to parse the input data.'''
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_parseinfo.txt")
         with open(fn, 'a') as fh:
             fh.write("Parsed: %s\n" % str(datetime.datetime.today().ctime()) )
@@ -293,6 +293,8 @@ class Writer():
             copyfile(os.path.join(tdir,fn), \
                     os.path.join(self.opts.out_dir,fn))     
 class Plotter():
+    '''This is the main Plotter class for generating 
+    plots using matplotlib.'''
     def __init__(self,parser):
         self.parser = parser
         self.opts = self.parser.opts
@@ -465,7 +467,7 @@ class Plotter():
 
 
 class StatPlotter:
-    
+    '''This is the main Plotter class for Stats.py.'''
     def __init__(self, statparser):
         self.opts = statparser.opts
         self.dataset = statparser.dataset

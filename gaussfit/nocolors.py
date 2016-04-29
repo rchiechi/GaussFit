@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-__all__ = ["YELLOW", "WHITE", "RED", "TEAL", "GREEN", "BLUE", "RS", "CL"]
+__all__ = ["YELLOW", "WHITE", "RED", "TEAL", "GREEN", "BLUE", "RS"]
 
 YELLOW=""
 WHITE=""
@@ -9,4 +9,3 @@ TEAL=""
 GREEN=""
 BLUE=""
 RS=""
-CL=""
