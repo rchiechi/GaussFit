@@ -32,6 +32,7 @@ try:
 
 except ImportError as msg:
     print("\n\t\t%s> > > Error importing numpy/pandas/scipy! %s%s%s < < <%s" % (RED,RS,str(msg),RED,RS))
+    print("Try pip3 install <module>")
     sys.exit()
 
 warnings.filterwarnings('ignore','.*divide by zero.*',RuntimeWarning)

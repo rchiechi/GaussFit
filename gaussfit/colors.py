@@ -2,7 +2,12 @@
 
 __all__ = ["YELLOW", "WHITE", "RED", "TEAL", "GREEN", "BLUE", "RS"]
 
-from colorama import init,Fore,Back,Style
+try:
+    from colorama import init,Fore,Back,Style
+except ImportError:
+    import sys
+    print('Error importing colorama module (try pip3 install colorama)')
+    sys.exit()
 
 # Setup colors
 init(autoreset=True)

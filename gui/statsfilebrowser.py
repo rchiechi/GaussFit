@@ -21,7 +21,7 @@ Description:
 '''
 import sys,os,platform,threading,logging
 from gaussfit import *
-from gaussfit import Stats
+from gaussfit.stats import Stats
 from gaussfit.Output import WriteStats,StatPlotter
 from tkinter import filedialog #some weird bug...
 from tkinter import *
