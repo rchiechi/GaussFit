@@ -30,68 +30,51 @@ class DelayedHandler(logging.Handler):
 
     def __init__(self,delay=False):
         logging.Handler.__init__(self)
-        self.__delay = delay
+        self._delay = delay
     def emit(self, message): # Overwrites the default handler's emit method
         self.buff.append(self.format(message))
-        if not self.__delay:
-            self.__flush()
-    def __flush(self):
+        if not self._delay:
+            self._flush()
+
+    def _emit(self,msg):
+        print(msg)
+
+    def _flush(self):
         msgs = Counter(self.buff)
-        for msg in msgs:
-            i = msgs[msg]
-            if i > 1:
-                print('%s (repeated %s times)' % (str(msg),i))
-            else:
-                print(str(msg))
+        emitted = []
+        #for msg in msgs:
+        for msg in self.buff:
+            # FIFO
+            if msg not in emitted:
+                emitted.append(msg)
+                i = msgs[msg]
+                if i > 1:
+                    self._emit('%s (repeated %s times)' % (str(msg),i))
+                else:
+                    self._emit(str(msg))
         self.buff = []
     def setDelay(self):
-        self.__delay = True
+        self._delay = True
     def unsetDelay(self):
-        self.__delay = False
-        self.__flush()
+        self._delay = False
+        self._flush()
     def flush(self):
-        self.__flush()
+        self._flush()
 
-class GUIHandler(logging.Handler):
+class GUIHandler(DelayedHandler):
     '''A log handler that buffers messages and folds repeats
     into a single line. It expects a tkinter widget as input.'''
 
     from tkinter import NORMAL,DISABLED,END
 
-    buff = []
-
     def __init__(self, console, delay=False):
-        logging.Handler.__init__(self)
-        self.__delay = delay
+        DelayedHandler.__init__(self,delay)
         self.setFormatter(logging.Formatter('%(levelname)s %(message)s'))
         self.console = console #Any text widget, you can use the class above or not
 
-    def emit(self, message): # Overwrites the default handler's emit method
-        #formattedMessage = self.format(message)  #You can change the format here
-        self.buff.append(self.format(message))
-        if not self.__delay:
-            self.__flush()
-    def __emit(self,message):
+    def _emit(self,message):
         self.console["state"] = self.NORMAL
         self.console.insert(self.END, message+"\n") #Inserting the logger message in the widget
         self.console["state"] = self.DISABLED
         self.console.see(self.END)
-
-    def __flush(self):
-        msgs = Counter(self.buff)
-        for msg in msgs:
-            i = msgs[msg]
-            if i > 1:
-                self.__emit('%s (repeated %s times)' % (str(msg),i))
-            else:
-                self.__emit(str(msg))
-        self.buff = []
-       
-    def setDelay(self):
-        self.__delay = True
-    def unsetDelay(self):
-        self.__delay = False
-        self.__flush()
-    def flush(self):
-        self.__flush()
 

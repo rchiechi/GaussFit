@@ -16,8 +16,8 @@ Copyright (C) 2016 Ryan Chiechi <r.c.chiechi@rug.nl>
 '''
 
 import sys,os,logging,warnings,csv,threading
+#from collections import OrderedDict
 from gaussfit.colors import *
-from gaussfit.logger import DelayedHandler
 #import concurrent.futures 
 
 try:
@@ -44,9 +44,6 @@ warnings.filterwarnings('ignore','.*Mean of empty slice.*', RuntimeWarning)
 #warnings.filterwarnings('error','.*Degrees of freedom <= 0 for slice.*', RuntimeWarning)
 #warnings.filterwarnings('ignore','.*impossible result.*',UserWarning)
 
-
-
-
 class Parse():
     '''
     This is the main parsing class that takes input data
@@ -55,27 +52,31 @@ class Parse():
     operations: Gaussian fits, F-N calculations, Rectification,
     Vtrans, and dJ/DV.
     '''
+
+    # Class variabls
+    error = False
+    df = pd.DataFrame()
+    XY = pd.DataFrame()
+    X = np.array([])
+    FN = {}
+    compliance_traces = []
+    ohmic = []
+    DJDV = {}
+    GHists = {}
+    filtered = []
+    R = {}
+    traces = {}
+
     def __init__(self,opts,handler=None,lock=None):
-        self.error = False
         self.opts = opts
-        self.df = pd.DataFrame()
-        self.XY = {}
-        self.X = np.array([])
-        self.FN = {}
-        self.compliance_traces = []
-        self.ohmic = []
-        self.DJDV = {}
-        self.GHists = {}
-        self.filtered = []
-        self.R = {}
-        self.traces = {}
-        # Pass a lock when calling inside a thread
+                # Pass a lock when calling inside a thread
         if lock:
             self.lock = lock
         else:
             self.lock = threading.Lock()
         # Pass your own log hanlder, e.g., when calling from a GUI
         if not handler:
+            from gaussfit.logger import DelayedHandler
             self.loghandler = DelayedHandler()
             self.loghandler.setFormatter(logging.Formatter(\
                 fmt=GREEN+os.path.basename(sys.argv[0]+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
@@ -120,7 +121,7 @@ class Parse():
             print("Error outputting GMatrix")
         writer.logger.info("Done!")
 
-    def ReadFiles(self, fns):
+    def ReadFiles(self, fns, parse=True):
         '''Walk through input files and parse
         them into attributes '''
         if type(fns) == type(str()):
@@ -146,15 +147,15 @@ class Parse():
                     X.append(row[1][0])
                     Y.append(y)
             self.df = pd.DataFrame({'V':X,'J':Y})
-        self.__parse()
+        self.__parse(parse)
 
-    def ReadPandas(self,df):
+    def ReadPandas(self,df,parse):
         '''Take a pandas.DataFrame as input instead of files.'''
         self.logger.debug("Using Pandas as input")
         self.df = df
-        self.__parse()
+        self.__parse(parse)
 
-    def __parse(self):
+    def __parse(self,parse):
         '''Read a pandas.DataFrame and compute Fowler-Nordheim
         values, log10 the J or I values and create a dictionary
         indexed by unique voltages.'''
@@ -162,6 +163,12 @@ class Parse():
             self.logger.error("Parsed data does not appear to contain numerical data!")
             self.error = True
             return
+        elif self.df.J.first_valid_index() == None:
+            self.logger.error("Column %s is empty!" % str(self.opts.Ycol+1))
+            self.error =True
+            return
+        elif self.df.J.hasnans:
+            self.logger.warn("Input contains non-numerical data!")
         try:
             self.df['FN'] = np.log(abs(self.df.J)/self.df.V**2)
         except ZeroDivisionError:
@@ -175,20 +182,30 @@ class Parse():
         #The default log handler only emits when you call flush() after setDelay() called
         self.loghandler.setDelay()
         
+        XY = {}
         for x, group in self.df.groupby('V'):
-            self.XY[x] = { "Y":group['J'], 
+            XY[x] = { "Y":group['J'], 
                    "LogY":group['logJ'], 
-                   "hist":self.dohistogram(group['logJ'],"J"), 
+                   "hist":self.__dohistogram(group['logJ'],"J"), 
                    "FN": group['FN']}
+        #TODO Can I do this with a DataFrame indexed by V?
+        self.XY = pd.DataFrame(XY)
         
+        #TODO get rid of this
         self.X = sorted(self.XY.keys())
         self.logger.debug("X = %s" % str(self.X) ) 
         self.X = np.array(self.X)
         
-        self.logger.info("Done parsing input data")
+        self.logger.info("Done with initial parsing of input data")
+        if not parse: return 
+
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.loghandler.flush()
         self.findTraces()
+        if self.error: 
+            self.logger.error('Cannot compute statistics from these traces.')
+            self.loghandler.flush()
+            return # Bail if we can't parse traces
         self.logger.info("* * * * * * Computing dY/dX  * * * * * * * *")
         self.loghandler.flush()
         #NOTE Threads do not seem to help with performance
@@ -324,6 +341,10 @@ class Parse():
             self.error = True
             self.avg = pd.DataFrame()
             self.logger.error('Unable to parse traces.')
+        if ntraces == 1:
+            self.error = True
+            self.logger.warning('Only parsed one trace!')
+
     def dodjdv(self):
         '''
         Fit a spline function to X/Y data, 
@@ -385,11 +406,10 @@ class Parse():
                     ( len(self.ohmic), len(self.traces) ) )
         self.loghandler.flush()
         for x in splhists:
-            splhists[x]['hist'] = self.dohistogram(np.array(splhists[x]['spl']), label='DJDV')
+            splhists[x]['hist'] = self.__dohistogram(np.array(splhists[x]['spl']), label='DJDV')
         self.logger.info("dJdV complete.")
         self.loghandler.flush()
         self.DJDV, self.GHists, self.filtered = spls, splhists, filtered
-        sys.exit()
 
     def dorect(self):
         ''' 
@@ -425,7 +445,7 @@ class Parse():
                     clipped += 1
         for x in r:
             if x < 0: continue
-            R[x]={'r':np.array(r[x]),'hist':self.dohistogram(np.array(r[x]),"R")}
+            R[x]={'r':np.array(r[x]),'hist':self.__dohistogram(np.array(r[x]),"R")}
             R[-1*x] = R[x]
         R['X'] = np.array(sorted(R.keys()))
         if clipped:
@@ -492,7 +512,7 @@ class Parse():
         if tossed: self.logger.warn("Tossed %d compliance traces during FN calculation.", tossed)
         neg_min_x = np.array(neg_min_x)
         pos_min_x = np.array(pos_min_x)
-        self.FN["neg"], self.FN["pos"] = self.dohistogram(neg_min_x, "Vtrans(-)"), self.dohistogram(pos_min_x, "Vtrans(+)")
+        self.FN["neg"], self.FN["pos"] = self.__dohistogram(neg_min_x, "Vtrans(-)"), self.__dohistogram(pos_min_x, "Vtrans(+)")
 
     def signedgmean(self,Y):
         '''
@@ -518,7 +538,7 @@ class Parse():
         A, mu, B = p
         return A/( (x-mu)**2 + B**2)
 
-    def dohistogram(self, Y, label=""):
+    def __dohistogram(self, Y, label=""):
         '''
         Return a histogram of Y-values and a gaussian
         fit of the histogram, excluding values that
