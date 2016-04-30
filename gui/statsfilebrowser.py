@@ -20,7 +20,8 @@ Description:
         along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 import sys,os,platform,threading,logging
-from gaussfit.stats import Stats
+from gaussfit import *
+from gaussfit import Stats
 from gaussfit.Output import WriteStats,StatPlotter
 from tkinter import filedialog #some weird bug...
 from tkinter import *

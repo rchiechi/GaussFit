@@ -22,11 +22,9 @@ Description:
 '''
 
 
-from gaussfit.Output import WriteStats,StatPlotter
-from gaussfit.Args import Opts
-
 import sys,os,warnings,csv
-from gaussfit.colors import *
+from gaussfit import *
+from gaussfit.Output import WriteStats,StatPlotter
 from gaussfit.stats import Stats
 
 def Go(opts):

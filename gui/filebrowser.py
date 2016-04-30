@@ -20,8 +20,8 @@ Description:
         along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 import sys,os,platform,threading,logging
+from gaussfit import *
 from gaussfit.Output import Writer,Plotter
-from gaussfit.Parser import Parse
 from gaussfit.logger import GUIHandler
 from tkinter import filedialog #some weird bug...
 from tkinter import *

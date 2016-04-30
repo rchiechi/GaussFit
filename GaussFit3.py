@@ -20,10 +20,10 @@ Description:
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
-
+from gaussfit import *
 from gaussfit.Output import Writer,Plotter
-from gaussfit.Args import Opts
-from gaussfit.Parser import Parse
+#from gaussfit.args import Opts
+#from gaussfit.parse import Parse
 
 def Go(opts):
     '''

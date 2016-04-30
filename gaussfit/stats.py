@@ -22,7 +22,7 @@ Description:
 
 
 from gaussfit.Output import Writer,WriteStats
-from gaussfit.Parser import Parse
+from gaussfit import Parse
 
 import sys,os,logging,warnings,csv,datetime,threading,time,math
 
