@@ -16,7 +16,7 @@ Copyright (C) 2016 Ryan Chiechi <r.c.chiechi@rug.nl>
 '''
 
 import sys,os,logging,warnings,csv,threading
-#from collections import OrderedDict
+from collections import OrderedDict
 from gaussfit.colors import *
 #import concurrent.futures 
 
@@ -56,7 +56,7 @@ class Parse():
     # Class variabls
     error = False
     df = pd.DataFrame()
-    XY = pd.DataFrame()
+    XY = OrderedDict()
     X = np.array([])
     FN = {}
     compliance_traces = []
@@ -108,8 +108,8 @@ class Parse():
         try:
             writer.WriteHistograms()
             writer.WriteGNUplot('JVhistplot')
-        except IndexError:
-            print("Error outputting histrograms")
+        except IndexError as msg:
+            print("Error outputting histrograms %s" % str(msg))
         try:
             writer.WriteGHistogram()
         except IndexError:
@@ -132,7 +132,7 @@ class Parse():
             frames = {}
             for f in fns:
                 try:
-                    frames[f]=pd.read_csv(f,sep=self.opts.delim,usecols=(self.opts.Xcol,self.opts.Ycol),names=('V','J'),header=0)
+                    frames[f] = pd.read_csv(f,sep=self.opts.delim,usecols=(self.opts.Xcol,self.opts.Ycol),names=('V','J'),header=0)
                 except OSError as msg:
                     self.logger.warn("Skipping %s because %s" % (f,str(msg)))
             self.df = pd.concat(frames)
@@ -182,19 +182,14 @@ class Parse():
         #The default log handler only emits when you call flush() after setDelay() called
         self.loghandler.setDelay()
         
-        XY = {}
+        #TODO V needs to be in here
         for x, group in self.df.groupby('V'):
-            XY[x] = { "Y":group['J'], 
+            self.XY[x] = { "Y":group['J'], 
                    "LogY":group['logJ'], 
                    "hist":self.__dohistogram(group['logJ'],"J"), 
                    "FN": group['FN']}
-        #TODO Can I do this with a DataFrame indexed by V?
-        self.XY = pd.DataFrame(XY)
-        
-        #TODO get rid of this
-        self.X = sorted(self.XY.keys())
-        self.logger.debug("X = %s" % str(self.X) ) 
-        self.X = np.array(self.X)
+
+        #TODO Can I do this with a Panel?
         
         self.logger.info("Done with initial parsing of input data")
         if not parse: return 
@@ -313,17 +308,16 @@ class Parse():
             #            self.df.loc[r]['V'].values[0],self.df.loc[r]['V'].values[-1]))
             #self.loghandler.flush()
         self.logger.info("Found %s traces (%s)." % (ntraces,len(traces)) )
-        self.traces = traces
-        self.loghandler.flush() 
         idx = []
         frames = {}
         self.logger.info("Compressing forward/reverse sweeps to single traces.")
-        self.loghandler.flush()
-        for col in range(0,len(self.traces)):
-            fbtrace = self.df[self.traces[col][0]:self.traces[col][1]].sort_values('V')
-            avg = {'V':[],'J':[],'FN':[]}
+        for col in range(0,len(traces)):
+            fbtrace = self.df[traces[col][0]:traces[col][1]].sort_values('V')
+            avg = OrderedDict({'J':[],'FN':[]})
+            idx = []
             for x,group in fbtrace.groupby('V'):
-                avg['V'].append(x)
+                #avg['V'].append(x)
+                idx.append(x)
                 avg['J'].append(self.signedgmean(group['J']))
                 #avg['J'].append(np.mean(group['J']))
                 if not self.opts.nomin:
@@ -334,7 +328,7 @@ class Parse():
                     fn = np.mean(group['FN'])
                     #fn = self.signedgmean(group['FN'])
                 avg['FN'].append(fn)
-            frames[col] = pd.DataFrame(avg)
+            frames[col] = pd.DataFrame(avg,index=idx)
         try:
             self.avg = pd.concat(frames)
         except ValueError:
@@ -360,17 +354,16 @@ class Parse():
         else:
             vfilterneg,vfilterpos = linx[linx < 0], linx[linx > 0]
 
-        spls = {}
-        splhists = {}
+        spls = OrderedDict()
+        splhists = OrderedDict()
         filtered = [('Potential', 'Fit', 'Y')]
         for x in linx: 
             spls[x] = []
             splhists[x] = {'spl':[],'hist':{}}
-        
         for trace in self.avg.index.levels[0]:
             try:
-                spl = scipy.interpolate.UnivariateSpline(self.avg.loc[trace]['V'],self.avg.loc[trace]['J'], k=5, s=self.opts.smooth )
-                dd =  scipy.interpolate.UnivariateSpline(self.avg.loc[trace]['V'],self.avg.loc[trace]['J'], k=5, s=None).derivative(2)
+                spl = scipy.interpolate.UnivariateSpline(self.avg.loc[trace].index,self.avg.loc[trace]['J'], k=5, s=self.opts.smooth )
+                dd =  scipy.interpolate.UnivariateSpline(self.avg.loc[trace].index,self.avg.loc[trace]['J'], k=5, s=None).derivative(2)
             except Exception as msg:
                 self.logger.error('Error in derivative calulation: %s' % str(msg))
                 continue
@@ -385,9 +378,9 @@ class Parse():
             else:
                 for row in self.avg.loc[trace].iterrows():
                     # filtered is a list containing only "clean" traces         
-                    filtered.append( (row[1].V, spl(row[1].V), row[1].J) )
+                    filtered.append( (row[0], spl(row[0]), row[1].J) )
             err = None
-            for x in sorted(spls.keys()):
+            for x in spls:
                 try:
                     d = spl.derivatives(x)
                 except ValueError as msg:
@@ -403,7 +396,7 @@ class Parse():
                 self.logger.error("Error while computing derivative: %s" % str(err))
 
         self.logger.info("Non-tunneling traces: %s (out of %0d)" % 
-                    ( len(self.ohmic), len(self.traces) ) )
+                    ( len(self.ohmic), len(self.avg.index.levels[0]) ) )
         self.loghandler.flush()
         for x in splhists:
             splhists[x]['hist'] = self.__dohistogram(np.array(splhists[x]['spl']), label='DJDV')
@@ -416,45 +409,41 @@ class Parse():
         Divide each value of Y at +V by Y at -V
         and build a histogram of rectification, R
         '''
-        R = {}
-        r = {}
+        r = OrderedDict()
+        for x in self.XY: r[x] = []
         clipped = 0
-        for trace in self.traces:
-            rows = {}
-            for row in self.df[trace[0]:trace[1]].iterrows():
-                if row[1].V in rows:
-                    #TODO Don't just average out hysterysis, it is important for R
-                    rows[row[1].V] = np.mean([rows[row[1].V],row[1].J])
-                else:
-                    rows[row[1].V] = row[1].J
-                if row[1].V not in r:
-                    r[row[1].V] = []
-            for x in rows:
-                #TODO AFM data break this!
-                if x not in rows or -1*x not in rows:
+        for trace in self.avg.index.levels[0]:
+            for x in self.avg.loc[trace].index[self.avg.loc[trace].index >= 0]:
+                if -1*x not in self.avg.loc[trace]['J']:
                     self.logger.warn("Rectification data missing voltages.")
+                    if self.opts.logr: r[x].append(0.)
+                    else: r[x].append(1.)
                     continue
-                if x == 0.0:
-                    r[x].append(1.)
+                elif x == 0.0:
+                    if self.opts.logr: r[x].append(0.)
+                    else: r[x].append(1.)
                     continue
                 if self.opts.logr:
-                    r[x].append(np.log10(abs(rows[x]/rows[-1*x])))
+                    r[x].append(np.log10(abs(self.avg.loc[trace]['J'][x]/self.avg.loc[trace]['J'][-1*x])))
                 else:
-                    r[x].append(abs(rows[x]/rows[-1*x]))
+                    r[x].append(abs(self.avg.loc[trace]['J'][x]/self.avg.loc[trace]['J'][-1*x]))
                 if r[x][-1] > self.opts.maxr:
                     clipped += 1
-        for x in r:
-            if x < 0: continue
-            R[x]={'r':np.array(r[x]),'hist':self.__dohistogram(np.array(r[x]),"R")}
-            R[-1*x] = R[x]
-        R['X'] = np.array(sorted(R.keys()))
+
+        for x in reversed(list(self.XY)):
+            if x >= 0:
+                self.XY[x]['R']={'r':np.array(r[x]),'hist':self.__dohistogram(np.array(r[x]),"R")}
+                if -1*x in self.XY: self.XY[-1*x]['R']=self.XY[x]['R']
+            if 'R' not in self.XY[x]:
+                self.logger.warn("Unequal +/- voltages in R-plot will be filled with R=1.")
+                if self.opts.logr: y = np.array([1.,1.,1.])
+                else: y = np.array([0.,0.,0.,])
+                self.XY[x] = {'r':y,'hist':self.__dohistogram(y,"R")}
         if clipped:
             if self.opts.logr: rstr = 'log|R|'
             else: rstr = '|R|'
             self.logger.info("%s values of %s exceed maxR (%s)" % (clipped, rstr, self.opts.maxr))
         self.logger.info("R complete.")
-        self.loghandler.flush()
-        self.R = R
     
     def getminroot(self, spl):
         '''
@@ -485,17 +474,17 @@ class Parse():
         if self.opts.skipohmic:
             # Vtrans has no physical meaning for curves with negative derivatives
             self.logger.info("Skipping %s (out of %s) non-tunneling traces for Vtrans calculation." % 
-                    ( len(self.ohmic), (len(self.traces))))
+                    ( len(self.ohmic), (len(self.avg.index.levels[0]))))
         
         for trace in self.avg.index.levels[0]:
             if self.opts.skipohmic and trace in self.ohmic:
                     continue
             if self.opts.nomin:
                 try:
-                    rootpos = self.getminroot(scipy.interpolate.UnivariateSpline(self.avg.loc[trace]['V'][self.avg.loc[trace]['V'] > 0],
-                            self.avg.loc[trace]['FN'][self.avg.loc[trace]['V'] > 0], k=4, s=None))
-                    rootneg = self.getminroot(scipy.interpolate.UnivariateSpline(self.avg.loc[trace]['V'][self.avg.loc[trace]['V'] < 0],
-                            self.avg.loc[trace]['FN'][self.avg.loc[trace]['V'] < 0 ], k=4, s=None))
+                    rootpos = self.getminroot(scipy.interpolate.UnivariateSpline(self.avg.loc[trace].index[self.avg.loc[trace].index > 0],
+                            self.avg.loc[trace]['FN'][self.avg.loc[trace].index > 0], k=4, s=None))
+                    rootneg = self.getminroot(scipy.interpolate.UnivariateSpline(self.avg.loc[trace].index[self.avg.loc[trace].index < 0],
+                            self.avg.loc[trace]['FN'][self.avg.loc[trace].index < 0 ], k=4, s=None))
                 except Exception as msg:
                     self.logger.warn("Skipped FN calculation: %s" % str(msg))
                     continue
@@ -506,8 +495,8 @@ class Parse():
                 if np.NAN in (rootneg,rootpos):
                     self.logger.warn("No minimum found in FN derivative (-):%s, (+):%s" % (rootneg, rootpos) )
             else:
-                neg_min_x.append(self.avg.loc[trace]['FN'][ self.avg[trace]['FN'][self.avg.loc[trace]['V'] < 0 ].idxmin() ])
-                pos_min_x.append(self.avg.loc[trace]['FN'][ self.avg[trace]['FN'][self.avg.loc[trace]['V'] > 0 ].idxmin() ])
+                neg_min_x.append(self.avg.loc[trace]['FN'][ self.avg[trace]['FN'][self.avg.loc[trace].index < 0 ].idxmin() ])
+                pos_min_x.append(self.avg.loc[trace]['FN'][ self.avg[trace]['FN'][self.avg.loc[trace].index > 0 ].idxmin() ])
 
         if tossed: self.logger.warn("Tossed %d compliance traces during FN calculation.", tossed)
         neg_min_x = np.array(neg_min_x)

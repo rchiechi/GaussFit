@@ -21,9 +21,9 @@ Description:
 '''
 
 
+from gaussfit import *
 from gaussfit.Output import Writer,WriteStats
-from gaussfit import Parse
-
+from gaussfit.logger import DelayedHandler
 import sys,os,logging,warnings,csv,datetime,threading,time,math
 
 try:
@@ -61,7 +61,7 @@ class ParserThread(threading.Thread):
         self.logger.info("Starting thread...")
         try:
             self.parser.ReadFiles(self.files)
-            for x in self.parser.X:
+            for x in self.parser.XY:
                 if not self.alive.isSet():
                     break
                 if x == 0:
@@ -91,7 +91,7 @@ class Stats:
         self.fnstats = {}
         self.extrainfo=''
         if not handler:
-            self.loghandler = logging.StreamHandler()
+            self.loghandler = DelayedHandler()
             self.loghandler.setFormatter(logging.Formatter(\
                 fmt=self.GREEN+os.path.basename(sys.argv[0]+self.TEAL)+
                 ' %(levelname)s '+self.YELLOW+'%(message)s'+self.WHITE))
@@ -161,26 +161,33 @@ class Stats:
         if x not in Set:
             Set[x] = {'J':{'mean':[],'std':[], 'Y':[]},'R':{'mean':[],'std':[], 'Y':[]}, \
                     'FN':{'pos':{'mean':[],'std':[]},'neg':{'mean':[],'std':[]}}}
-        if abs(x) not in parser.R:
-            parser.R[abs(x)] = {'hist':{'Gmean':1.0, 'Gstd':0.0},'r':[]}
-        Set[x]['J']['mean'].append(parser.XY[x]['hist']['Gmean'])
-        Set[x]['J']['std'].append(parser.XY[x]['hist']['Gstd'])
-        Set[x]['J']['Y'].append(parser.XY[x]['LogY'])
-        Set[x]['R']['mean'].append(parser.R[abs(x)]['hist']['Gmean'])
-        Set[x]['R']['std'].append(parser.R[abs(x)]['hist']['Gstd'])
-        Set[x]['R']['Y'].append(parser.R[abs(x)]['r'])
-        Set[x]['FN']['pos']['mean'].append(parser.FN['pos']['Gmean'])
-        Set[x]['FN']['pos']['std'].append(parser.FN['pos']['Gstd'])
-        Set[x]['FN']['neg']['mean'].append(parser.FN['neg']['Gmean'])
-        Set[x]['FN']['neg']['std'].append(parser.FN['neg']['Gstd'])
+        if abs(x) not in parser.XY:
+            #TODO How possible!?
+            parser.XY[abs(x)]['R'] = {'hist':{'Gmean':1.0, 'Gstd':0.0},'r':[]}
+        try:
 
+            Set[x]['J']['mean'].append(parser.XY[x]['hist']['Gmean'])
+            Set[x]['J']['std'].append(parser.XY[x]['hist']['Gstd'])
+            Set[x]['J']['Y'].append(parser.XY[x]['LogY'])
+            Set[x]['R']['mean'].append(parser.XY[abs(x)]['R']['hist']['Gmean'])
+            Set[x]['R']['std'].append(parser.XY[abs(x)]['R']['hist']['Gstd'])
+            Set[x]['R']['Y'].append(parser.XY[abs(x)]['R']['r'])
+            Set[x]['FN']['pos']['mean'].append(parser.FN['pos']['Gmean'])
+            Set[x]['FN']['pos']['std'].append(parser.FN['pos']['Gstd'])
+            Set[x]['FN']['neg']['mean'].append(parser.FN['neg']['Gmean'])
+            Set[x]['FN']['neg']['std'].append(parser.FN['neg']['Gstd'])
+        except KeyError as msg:
+            print(x)
+            print(parser.XY.keys())
+            print(parser.XY[x])
+            sys.exit()
     @classmethod
     def DoPop(cls,parser,Set,x):
         Pop[x] = {'J':{'mean':0,'std':0},'R':{'mean':0,'std':0}, 'FN':{'pos':{'mean':0,'std':0},'neg':{'mean':0,'std':0}}}
         Pop[x]['J']['mean'] = parser.XY[x]['hist']['mean']
         Pop[x]['J']['std'] = parser.XY[x]['hist']['std']
-        Pop[x]['R']['mean'] = parser.R[abs(x)]['hist']['mean']
-        Pop[x]['R']['std'] = parser.R[abs(x)]['hist']['std']
+        Pop[x]['R']['mean'] = parser.XY[abs(x)]['R']['hist']['mean']
+        Pop[x]['R']['std'] = parser.XY[abs(x)]['R']['hist']['std']
         Pop[x]['FN']['neg']['mean'] = parser.FN['neg']['mean']
         Pop[x]['FN']['neg']['std'] = parser.FN['neg']['std']
         Pop[x]['FN']['pos']['mean'] = parser.FN['pos']['mean']

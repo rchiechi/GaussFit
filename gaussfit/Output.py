@@ -57,11 +57,11 @@ class Writer():
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             headers = []
-            for x in self.X: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
+            for x in self.XY: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
             writer.writerow(headers)
             for i in range(0, len( self.XY[list(self.XY.keys())[0]]['hist']['bin'] ) ):
                 row = []
-                for x in self.X: row += ["%0.4f"%self.XY[x]['hist']['bin'][i], 
+                for x in self.XY: row += ["%0.4f"%self.XY[x]['hist']['bin'][i], 
                                  "%s"%self.XY[x]['hist']['freq'][i],
                              "%0.4f"%self.XY[x]['hist']['fit'][i]]
                 writer.writerow(row)
@@ -70,22 +70,22 @@ class Writer():
             writer = csv.writer(csvfile, dialect='JV')
             headers = []
             if self.opts.logr:
-                for x in self.R['X']: headers += ["log |R| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
+                for x in self.XY: headers += ["log |R| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
             else:
-                for x in self.R['X']: headers += ["|R| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
+                for x in self.XY: headers += ["|R| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
             writer.writerow(headers)
-            for i in range(0, len( self.R[list(self.R.keys())[0]]['hist']['bin'] ) ):
+            for i in range(0, len( self.XY[list(self.XY)[0]]['R']['hist']['bin'] ) ):
                 row = []
-                for x in self.R['X']: row += ["%0.4f"%self.R[x]['hist']['bin'][i],
-                                 "%d"%self.R[x]['hist']['freq'][i],
-                                 "%0.4f"%self.R[x]['hist']['fit'][i]]
+                for x in self.XY: row += ["%0.4f"%self.XY[x]['R']['hist']['bin'][i],
+                                 "%d"%self.XY[x]['R']['hist']['freq'][i],
+                                 "%0.4f"%self.XY[x]['R']['hist']['fit'][i]]
                 writer.writerow(row)
 
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_LogdJdVHistograms.txt")
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             headers = []
-            for x in self.X: headers += ["Log |dJ/dV| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
+            for x in self.XY: headers += ["log |dJ/dV| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
             writer.writerow(headers)
             for i in range(0, len( self.GHists[list(self.GHists.keys())[0]]['hist']['bin'] ) ):
                 row = []
@@ -113,7 +113,7 @@ class Writer():
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             writer.writerow(["1/V"] + ['Y_%d'%x for x in range(1,len( self.XY[list(self.XY.keys())[0]]['FN'] )+1)])
-            for x in self.X:
+            for x in self.XY:
                 if x == 0.0:
                     continue
                 writer.writerow(["%0.4f\t" % (1/x)] + list(self.XY[x]['FN']))
@@ -125,7 +125,7 @@ class Writer():
             writer.writerow(["Potential (V)","Log|J|","Standard Devaition","Standard Error of the Mean"])
             Y = []
             Yerr = []
-            for x in self.X:
+            for x in self.XY:
                 writer.writerow(['%f'%x,'%f'%self.XY[x]['hist']['mean'],'%f'%self.XY[x]['hist']['std'],\
                         '%f'% (self.XY[x]['hist']['std']/np.sqrt(len(self.opts.in_files))) ])
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RGauss.txt")
@@ -137,8 +137,8 @@ class Writer():
                 writer.writerow(["Potential (V)","|R|","Standard Deviation"])
             Y = []
             Yerr = []
-            for x in self.R['X']:
-                writer.writerow(['%f'%x,'%f'%self.R[x]['hist']['mean'],'%f'%self.R[x]['hist']['std']])
+            for x in self.XY:
+                writer.writerow(['%f'%x,'%f'%self.XY[x]['R']['hist']['mean'],'%f'%self.XY[x]['R']['hist']['std']])
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_logdJdVGauss.txt")
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
@@ -156,7 +156,7 @@ class Writer():
         with open(fn,'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             writer.writerow(["Potential (V)"] + ['Y_%d'%x for x in range(1,len(self.XY[list(self.XY.keys())[0]][key] )+1)])
-            for x in self.X:
+            for x in self.XY:
                 writer.writerow(["%0.4f"%x]+list(self.XY[x][key]))
 
     def WriteDJDV(self):
@@ -171,21 +171,19 @@ class Writer():
                 writer.writerow(["%0.4f"%x]+self.DJDV[x])
 
     def WriteFiltered(self):
-        label = 'filtered'
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt")
+        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_filtered.txt")
         with open(fn,'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             for l in self.filtered:
                 writer.writerow(l)
 
     def WriteRData(self):
-        key,label = 'r', 'Rdata'
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt")
+        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Rdata.txt")
         with open(fn,'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
-            writer.writerow(["Potential (V)"] + ['Y_%d'%x for x in range(1,len(self.R[list(self.R.keys())[0]][key] )+1)])
-            for x in self.R['X']:
-                writer.writerow(["%0.4f"%x]+list(self.R[x][key]))
+            writer.writerow(["Potential (V)"] + ['R_%d'%x for x in range(1,len(self.XY[list(self.XY)[0]]['R'] )+1)])
+            for x in self.XY:
+                writer.writerow(["%0.4f"%x]+list(self.XY[x]['R']))
 
     def WriteGHistogram(self):
         '''Output for a contour plot of conductance'''
@@ -306,7 +304,7 @@ class Plotter():
                 raise AttributeError("Plotter object has no attribute '%s'" % name)
 
     def PlotData(self, key, ax, sym, **kw):
-        xax = self.X
+        xax = np.array(list(self.XY))
         if key == "FN":
             xax = 1/xax
             ax.set_title("Fowler Nordheim Plot of Initial Data")
@@ -326,15 +324,15 @@ class Plotter():
         while True:
             i += 1
             try:
-                allY = np.append(allY,[self.XY[x][key][i] for x in self.X])
-                ax.plot(xax,[self.XY[x][key][i] for x in self.X], sym, **kw)
+                allY = np.append(allY,[self.XY[x][key][i] for x in self.XY])
+                ax.plot(xax,[self.XY[x][key][i] for x in self.XY], sym, **kw)
             except IndexError:
                 break
             except ValueError:
                 break
         #if key == 'LogY':
         #   ax.set_ylim(allY.min(),allY.max())
-        ax.axis([self.X.min(), self.X.max(), allY.min(),allY.max()])
+        ax.axis([xax.min(), xax.max(), allY.min(),allY.max()])
 
     def PlotR(self, ax):
         if self.opts.logr: 
@@ -345,19 +343,18 @@ class Plotter():
             ax.set_ylabel(r'|R|')
         ax.set_xlabel("Potenial (V)")
         Y, Yerr = [],[]
-        for x in self.R['X']:
-            Y.append(self.R[x]["hist"]["mean"])
-            Yerr.append(self.R[x]["hist"]["std"])
-        ax.errorbar(self.R['X'], Y,  yerr=Yerr, marker='o', lw=0.0, color='k')
+        for x in self.XY:
+            Y.append(self.XY[x]['R']["hist"]["mean"])
+            Yerr.append(self.XY[x]['R']["hist"]["std"])
+        ax.errorbar(list(self.XY), Y,  yerr=Yerr, marker='o', lw=0.0, color='k')
 
     def PlotRFit(self,ax):
-        #print(self.R['X'])
-        key = self.R['X'][-1]
+        key = list(self.XY)[-1]
         ax.set_title(r'Histogram and fit at $'+str(key)+'$ V')
         ax.set_xlabel(r'$log|R|$')
         ax.set_ylabel('Counts')
-        ax.bar(self.R[key]['hist']['bin'], self.R[key]['hist']['freq'], width=0.05, color='r')
-        ax.plot(self.R[key]['hist']['bin'], self.R[key]['hist']['fit'], lw=2.0, color='b', label='Fit')
+        ax.bar(self.XY[key]['R']['hist']['bin'], self.XY[key]['R']['hist']['freq'], width=0.05, color='r')
+        ax.plot(self.XY[key]['R']['hist']['bin'], self.XY[key]['R']['hist']['fit'], lw=2.0, color='b', label='Fit')
 
 
     
@@ -422,10 +419,10 @@ class Plotter():
         ax.set_xlabel('Potential (V)')
         ax.set_ylabel(r'Current Density $log_{10}|J(\mathrm{A cm}^{-2})|$')
         Y, Yerr = [],[]
-        for x in self.X:
+        for x in self.XY:
             Y.append(self.XY[x]["hist"]["mean"])
             Yerr.append(self.XY[x]["hist"]["std"])
-        ax.errorbar(self.X, Y, yerr=Yerr, lw=3.0, color='k')
+        ax.errorbar(list(self.XY.keys()), Y, yerr=Yerr, lw=3.0, color='k')
 
     def PlotVtrans(self,ax):
         ax.set_title(r'Histogram and fit of $V_{trans}$')
