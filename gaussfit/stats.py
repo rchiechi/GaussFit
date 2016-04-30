@@ -161,6 +161,9 @@ class Stats:
         if x not in Set:
             Set[x] = {'J':{'mean':[],'std':[], 'Y':[]},'R':{'mean':[],'std':[], 'Y':[]}, \
                     'FN':{'pos':{'mean':[],'std':[]},'neg':{'mean':[],'std':[]}}}
+        if x not in parser.XY:
+            #TODO How possible!?
+            return 
         if abs(x) not in parser.XY:
             #TODO How possible!?
             parser.XY[abs(x)]['R'] = {'hist':{'Gmean':1.0, 'Gstd':0.0},'r':[]}

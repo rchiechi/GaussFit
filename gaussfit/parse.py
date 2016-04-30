@@ -274,7 +274,9 @@ class Parse():
                 ntraces = int(self.df.V.value_counts()[0]/3) # Three zeros in every trace!
                 self.logger.info("This looks like an EGaIn dataset.")
                 for t in zip(*(iter(self.df[self.df.V == 0.00].V.index),) * 3):
-                    traces.append( (t[0],t[2]) )
+                    #traces.append( (t[0], (t[2][0],t[2][1]+1) ) )
+                    traces.append( (t[0], t[2]) )
+
             except ValueError:
                 self.logger.warn("Did not find three-zero (EGaIn) traces!")
         if not ntraces:
@@ -313,6 +315,7 @@ class Parse():
         self.logger.info("Compressing forward/reverse sweeps to single traces.")
         for col in range(0,len(traces)):
             fbtrace = self.df[traces[col][0]:traces[col][1]].sort_values('V')
+            print(fbtrace)
             avg = OrderedDict({'J':[],'FN':[]})
             idx = []
             for x,group in fbtrace.groupby('V'):
