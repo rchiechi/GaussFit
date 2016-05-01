@@ -15,7 +15,7 @@ Copyright (C) 2016 Ryan Chiechi <r.c.chiechi@rug.nl>
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-import sys,os,logging,warnings,csv,threading
+import sys,os,logging,warnings,threading,time
 from collections import OrderedDict
 from gaussfit.colors import *
 #import concurrent.futures 
@@ -55,6 +55,7 @@ class Parse():
 
     # Class variabls
     error = False
+    parsed = False
     df = pd.DataFrame()
     XY = OrderedDict()
     X = np.array([])
@@ -181,16 +182,9 @@ class Parse():
         
         #The default log handler only emits when you call flush() after setDelay() called
         self.loghandler.setDelay()
-        
-        for x, group in self.df.groupby('V'):
-            self.XY[x] = { "Y":group['J'], 
-                   "LogY":group['logJ'], 
-                   "hist":self.__dohistogram(group['logJ'],"J"), 
-                   "FN": group['FN'],
-                   "R": {} }
-        
-        self.logger.info("Done with initial parsing of input data")
-        self.loghandler.flush()
+       
+        #self.logger.info("Done with initial parsing of input data")
+        #self.loghandler.flush()
         if not parse: return 
 
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
@@ -202,6 +196,7 @@ class Parse():
             return # Bail if we can't parse traces
         self.logger.info("* * * * * * Computing dY/dX  * * * * * * * *")
         self.loghandler.flush()
+        #self.dodjdv()
         #NOTE Threads do not seem to help with performance
         t1 = threading.Thread(target = self.dodjdv) # This must come first for self.ohmic to be populated!
         t1.start()
@@ -209,19 +204,50 @@ class Parse():
                 t1.join()
         self.logger.info("* * * * * * Computing Vtrans * * * * * * * *")
         self.loghandler.flush()
+        #self.findmin()
         t2 = threading.Thread(target=self.findmin)
         t2.start()
         self.logger.info("* * * * * * Computing |R|  * * * * * * * * *")
         self.loghandler.flush()
-        t3 = threading.Thread(target=self.dorect)
-        t3.start()
+        R = self.dorect()
+        for x, group in self.df.groupby('V'):
+            self.XY[x] = { "Y":group['J'], 
+                       "LogY":group['logJ'], 
+                       "hist":self.__dohistogram(group['logJ'],"J"), 
+                       "FN": group['FN'],
+                       "R": R[x] }
         t1.join()
         t2.join()
-        t3.join()
         self.logger.info("* * * * * * * * * * * * * * * * * * * * * * ")
         self.loghandler.flush()
         self.PrintFN()
         self.loghandler.unsetDelay()
+        self.parsed = True
+
+    def wait(self):
+        self.logger.debug("Waiting for parser to complete.")
+        t = 0
+        while not self.parsed:
+            if t > 60:
+                self.logger.error("Timeout waiting for parser to complete.")
+                break
+            time.sleep(0.5)
+            t += 0.5
+
+    def getXY(self):
+        self.wait()
+        if self.error:
+            return {}
+        else:
+            return self.XY
+
+    def getFN(self):
+        self.wait()
+        if self.error:
+            return {}
+        else:
+            return self.FN
+
 
     def findTraces(self):
         '''Try to find individual J/V traces. A trace is defined
@@ -411,7 +437,8 @@ class Parse():
         and build a histogram of rectification, R
         '''
         r = OrderedDict()
-        for x in self.XY: r[x] = []
+        R = OrderedDict()
+        for x, group in self.df.groupby('V'): r[x] = []
         clipped = 0
         for trace in self.avg.index.levels[0]:
             for x in self.avg.loc[trace].index[self.avg.loc[trace].index >= 0]:
@@ -430,22 +457,22 @@ class Parse():
                     r[x].append(abs(self.avg.loc[trace]['J'][x]/self.avg.loc[trace]['J'][-1*x]))
                 if r[x][-1] > self.opts.maxr:
                     clipped += 1
-        for x in reversed(list(self.XY)):
+        for x in reversed(list(r)):
             if x >= 0:
-                self.XY[x]['R'] = {'r':np.array(r[x]),'hist':self.__dohistogram(np.array(r[x]),"R")}
-                if -1*x in self.XY: self.XY[-1*x]['R'] = self.XY[x]['R']
-        #for x in self.XY:
-            if 'hist' not in self.XY[x]['R']:
-                self.logger.warn("Unequal +/- voltages in R-plot will be filled with R=1.")
-                if self.opts.logr: y = np.array([1.,1.,1.,1.,1.,1.,1.,1.,1.,1.])
-                else: y = np.array([0.,0.,0.,0.,0.,0.,0.,0.,0.,0.])
-                self.XY[x]['R'] = {'r':y,'hist':self.__dohistogram(y,"R")}
+                R[x] = {'r':np.array(r[x]),'hist':self.__dohistogram(np.array(r[x]),"R")}
+                R[-1*x] = R[x]
+            if 'hist' not in R[x]:
+                        self.logger.warn("Unequal +/- voltages in R-plot will be filled with R=1.")
+                        if self.opts.logr: y = np.array([1.,1.,1.,1.,1.,1.,1.,1.,1.,1.])
+                        else: y = np.array([0.,0.,0.,0.,0.,0.,0.,0.,0.,0.])
+                        R[x] = {'r':y,'hist':self.__dohistogram(y,"R")}
         if clipped:
             if self.opts.logr: rstr = 'log|R|'
             else: rstr = '|R|'
             self.logger.info("%s values of %s exceed maxR (%s)" % (clipped, rstr, self.opts.maxr))
         self.logger.info("R complete.")
-    
+        return R
+
     def getminroot(self, spl):
         '''
         Return the root of the first derivative of a spline function

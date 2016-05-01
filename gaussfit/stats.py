@@ -65,7 +65,9 @@ class ParserThread(threading.Thread):
         try:
             self.parser.ReadFiles(self.files)
             self.handler.flush()
-            for x in self.parser.XY:
+            XY = self.parser.getXY()
+            FN = self.parser.getFN()
+            for x in XY:
                 if not self.alive.isSet():
                     break
                 if x == 0:
@@ -75,21 +77,23 @@ class ParserThread(threading.Thread):
                         self.Set[x] = {'J':{'mean':[],'std':[], 'Y':[]},'R':{'mean':[],'std':[], 'Y':[]}, \
                                 'FN':{'pos':{'mean':[],'std':[]},'neg':{'mean':[],'std':[]}}}
                     try:
-                        self.Set[x]['J']['mean'].append(self.parser.XY[x]['hist']['Gmean'])
-                        self.Set[x]['J']['std'].append(self.parser.XY[x]['hist']['Gstd'])
-                        self.Set[x]['J']['Y'].append(self.parser.XY[x]['LogY'])
-                        self.Set[x]['R']['mean'].append(self.parser.XY[x]['R']['hist']['Gmean'])
-                        self.Set[x]['R']['std'].append(self.parser.XY[x]['R']['hist']['Gstd'])
-                        self.Set[x]['R']['Y'].append(self.parser.XY[x]['R']['r'])
-                        self.Set[x]['FN']['pos']['mean'].append(self.parser.FN['pos']['Gmean'])
-                        self.Set[x]['FN']['pos']['std'].append(self.parser.FN['pos']['Gstd'])
-                        self.Set[x]['FN']['neg']['mean'].append(self.parser.FN['neg']['Gmean'])
-                        self.Set[x]['FN']['neg']['std'].append(self.parser.FN['neg']['Gstd'])
+                        self.Set[x]['J']['mean'].append(XY[x]['hist']['Gmean'])
+                        self.Set[x]['J']['std'].append(XY[x]['hist']['Gstd'])
+                        self.Set[x]['J']['Y'].append(XY[x]['LogY'])
+                        self.Set[x]['R']['mean'].append(XY[x]['R']['hist']['Gmean'])
+                        self.Set[x]['R']['std'].append(XY[x]['R']['hist']['Gstd'])
+                        self.Set[x]['R']['Y'].append(XY[x]['R']['r'])
+                        self.Set[x]['FN']['pos']['mean'].append(FN['pos']['Gmean'])
+                        self.Set[x]['FN']['pos']['std'].append(FN['pos']['Gstd'])
+                        self.Set[x]['FN']['neg']['mean'].append(FN['neg']['Gmean'])
+                        self.Set[x]['FN']['neg']['std'].append(FN['neg']['Gstd'])
                     except KeyError as msg:
                          #TODO WTF!? This cannot happen!
                          self.logger.warning("Skipping value due to missing %s." % str(msg))
+                         print(x)
+                         print(self.files)
         except Exception as msg:
-            self.logger.warning("Skipping %s because of %s." % (f, str(msg)))
+            self.logger.warning("Skipping file because of %s." % (str(msg)))
         finally:
             self.limiter.release()
         
