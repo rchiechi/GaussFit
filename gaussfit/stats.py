@@ -49,26 +49,46 @@ class ParserThread(threading.Thread):
         threading.Thread.__init__(self)
         self.alive = alive
         self.files = files
-        self.Set, self.Pop = Set,Pop
+        self.Set = Set
         self.lock = lock
         self.limiter = limiter
-        self.parser = Parse(opts,handler,lock)
+        self.handler = handler
+        self.handler.setDelay()
+        self.parser = Parse(opts,self.handler,self.lock)
         self.logger = logging.getLogger('thread')
         self.logger.setLevel(getattr(logging,opts.loglevel.upper()))
-        self.logger.addHandler(handler)
+        self.logger.addHandler(self.handler)
     def run(self):
         self.limiter.acquire()
         self.logger.info("Starting thread...")
+        self.handler.flush()
         try:
             self.parser.ReadFiles(self.files)
+            self.handler.flush()
             for x in self.parser.XY:
                 if not self.alive.isSet():
                     break
                 if x == 0:
                     continue
                 with self.lock:
-                    Stats.DoSet(self.parser, self.Set, x)
-        except FloatingPointError as msg:
+                    if x not in self.Set:
+                        self.Set[x] = {'J':{'mean':[],'std':[], 'Y':[]},'R':{'mean':[],'std':[], 'Y':[]}, \
+                                'FN':{'pos':{'mean':[],'std':[]},'neg':{'mean':[],'std':[]}}}
+                    try:
+                        self.Set[x]['J']['mean'].append(self.parser.XY[x]['hist']['Gmean'])
+                        self.Set[x]['J']['std'].append(self.parser.XY[x]['hist']['Gstd'])
+                        self.Set[x]['J']['Y'].append(self.parser.XY[x]['LogY'])
+                        self.Set[x]['R']['mean'].append(self.parser.XY[x]['R']['hist']['Gmean'])
+                        self.Set[x]['R']['std'].append(self.parser.XY[x]['R']['hist']['Gstd'])
+                        self.Set[x]['R']['Y'].append(self.parser.XY[x]['R']['r'])
+                        self.Set[x]['FN']['pos']['mean'].append(self.parser.FN['pos']['Gmean'])
+                        self.Set[x]['FN']['pos']['std'].append(self.parser.FN['pos']['Gstd'])
+                        self.Set[x]['FN']['neg']['mean'].append(self.parser.FN['neg']['Gmean'])
+                        self.Set[x]['FN']['neg']['std'].append(self.parser.FN['neg']['Gstd'])
+                    except KeyError as msg:
+                         #TODO WTF!? This cannot happen!
+                         self.logger.warning("Skipping value due to missing %s." % str(msg))
+        except Exception as msg:
             self.logger.warning("Skipping %s because of %s." % (f, str(msg)))
         finally:
             self.limiter.release()
@@ -155,46 +175,6 @@ class Stats:
         for c in children:
             c.join()
         return Set,Pop
-
-    @classmethod
-    def DoSet(cls,parser,Set,x):
-        if x not in Set:
-            Set[x] = {'J':{'mean':[],'std':[], 'Y':[]},'R':{'mean':[],'std':[], 'Y':[]}, \
-                    'FN':{'pos':{'mean':[],'std':[]},'neg':{'mean':[],'std':[]}}}
-        if x not in parser.XY:
-            #TODO How possible!?
-            return 
-        if abs(x) not in parser.XY:
-            #TODO How possible!?
-            parser.XY[abs(x)]['R'] = {'hist':{'Gmean':1.0, 'Gstd':0.0},'r':[]}
-        try:
-
-            Set[x]['J']['mean'].append(parser.XY[x]['hist']['Gmean'])
-            Set[x]['J']['std'].append(parser.XY[x]['hist']['Gstd'])
-            Set[x]['J']['Y'].append(parser.XY[x]['LogY'])
-            Set[x]['R']['mean'].append(parser.XY[abs(x)]['R']['hist']['Gmean'])
-            Set[x]['R']['std'].append(parser.XY[abs(x)]['R']['hist']['Gstd'])
-            Set[x]['R']['Y'].append(parser.XY[abs(x)]['R']['r'])
-            Set[x]['FN']['pos']['mean'].append(parser.FN['pos']['Gmean'])
-            Set[x]['FN']['pos']['std'].append(parser.FN['pos']['Gstd'])
-            Set[x]['FN']['neg']['mean'].append(parser.FN['neg']['Gmean'])
-            Set[x]['FN']['neg']['std'].append(parser.FN['neg']['Gstd'])
-        except KeyError as msg:
-            print(x)
-            print(parser.XY.keys())
-            print(parser.XY[x])
-            sys.exit()
-    @classmethod
-    def DoPop(cls,parser,Set,x):
-        Pop[x] = {'J':{'mean':0,'std':0},'R':{'mean':0,'std':0}, 'FN':{'pos':{'mean':0,'std':0},'neg':{'mean':0,'std':0}}}
-        Pop[x]['J']['mean'] = parser.XY[x]['hist']['mean']
-        Pop[x]['J']['std'] = parser.XY[x]['hist']['std']
-        Pop[x]['R']['mean'] = parser.XY[abs(x)]['R']['hist']['mean']
-        Pop[x]['R']['std'] = parser.XY[abs(x)]['R']['hist']['std']
-        Pop[x]['FN']['neg']['mean'] = parser.FN['neg']['mean']
-        Pop[x]['FN']['neg']['std'] = parser.FN['neg']['std']
-        Pop[x]['FN']['pos']['mean'] = parser.FN['pos']['mean']
-        Pop[x]['FN']['pos']['std'] = parser.FN['pos']['std']
 
     def __autonobs(self,opts,pop_files):
         Set,Pop = {},{}

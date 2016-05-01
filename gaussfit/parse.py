@@ -182,14 +182,12 @@ class Parse():
         #The default log handler only emits when you call flush() after setDelay() called
         self.loghandler.setDelay()
         
-        #TODO V needs to be in here
         for x, group in self.df.groupby('V'):
             self.XY[x] = { "Y":group['J'], 
                    "LogY":group['logJ'], 
                    "hist":self.__dohistogram(group['logJ'],"J"), 
-                   "FN": group['FN']}
-
-        #TODO Can I do this with a Panel?
+                   "FN": group['FN'],
+                   "R": {} }
         
         self.logger.info("Done with initial parsing of input data")
         if not parse: return 
@@ -315,7 +313,6 @@ class Parse():
         self.logger.info("Compressing forward/reverse sweeps to single traces.")
         for col in range(0,len(traces)):
             fbtrace = self.df[traces[col][0]:traces[col][1]].sort_values('V')
-            print(fbtrace)
             avg = OrderedDict({'J':[],'FN':[]})
             idx = []
             for x,group in fbtrace.groupby('V'):
@@ -432,16 +429,16 @@ class Parse():
                     r[x].append(abs(self.avg.loc[trace]['J'][x]/self.avg.loc[trace]['J'][-1*x]))
                 if r[x][-1] > self.opts.maxr:
                     clipped += 1
-
         for x in reversed(list(self.XY)):
             if x >= 0:
-                self.XY[x]['R']={'r':np.array(r[x]),'hist':self.__dohistogram(np.array(r[x]),"R")}
-                if -1*x in self.XY: self.XY[-1*x]['R']=self.XY[x]['R']
-            if 'R' not in self.XY[x]:
+                self.XY[x]['R'] = {'r':np.array(r[x]),'hist':self.__dohistogram(np.array(r[x]),"R")}
+                if -1*x in self.XY: self.XY[-1*x]['R'] = self.XY[x]['R']
+        #for x in self.XY:
+            if 'hist' not in self.XY[x]['R']:
                 self.logger.warn("Unequal +/- voltages in R-plot will be filled with R=1.")
                 if self.opts.logr: y = np.array([1.,1.,1.])
                 else: y = np.array([0.,0.,0.,])
-                self.XY[x] = {'r':y,'hist':self.__dohistogram(y,"R")}
+                self.XY[x]['R'] = {'r':y,'hist':self.__dohistogram(y,"R")}
         if clipped:
             if self.opts.logr: rstr = 'log|R|'
             else: rstr = '|R|'
@@ -548,7 +545,7 @@ class Parse():
         if label == "R": Y = Y[Y <= self.opts.maxr]
         if label=='DJDV': nbins = self.opts.heatmapbins
         else: nbins = self.opts.bins
-        if len(Y) < 10:
+        if len(Y) < 10 and label != 'R':
             self.logger.warn("Histogram with only %d points.", len(Y))
         try:
             #TODO Why not offer density plots as an option?

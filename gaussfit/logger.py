@@ -19,9 +19,9 @@ Copyright (C) 2015 Ryan Chiechi <r.c.chiechi@rug.nl>
 
 import sys,os,logging
 from  gaussfit.colors import *
-from collections import Counter
+from collections import Counter,OrderedDict
 
-
+#TODO Isn't this done with QueueHandler?
 class DelayedHandler(logging.Handler):
     '''A log handler that buffers messages and 
     folds repeat messages into one line.'''
@@ -30,38 +30,46 @@ class DelayedHandler(logging.Handler):
 
     def __init__(self,delay=False):
         logging.Handler.__init__(self)
+        self.createLock()
         self._delay = delay
+
     def emit(self, message): # Overwrites the default handler's emit method
-        self.buff.append(self.format(message))
+        self.buff.append(message)
         if not self._delay:
-            self._flush()
+            self.flush()
 
-    def _emit(self,msg):
-        print(msg)
+    def _emit(self,message,level):
+        self.acquire()
+        if level in ('INFO' 'DEBUG'):
+            sys.stdout.write(message)
+            sys.stdout.write("\n")
+            sys.stdout.flush()
+        else:
+            sys.stderr.write(message)
+            sys.stderr.write("\n")
+            sys.stderr.flush()
+        self.release()
 
-    def _flush(self):
-        msgs = Counter(self.buff)
+    def flush(self):
+        msgs = Counter(map(self.format,self.buff))
         emitted = []
-        #for msg in msgs:
-        for msg in self.buff:
-            # FIFO
-            if msg not in emitted:
-                emitted.append(msg)
-                i = msgs[msg]
+        for message in reversed(self.buff):
+            fmsg = self.format(message)
+            if fmsg not in emitted:
+                emitted.append(fmsg)
+                i = msgs[fmsg]
                 if i > 1:
-                    self._emit('%s (repeated %s times)' % (str(msg),i))
+                    self._emit('%s (repeated %s times)' % (self.format(message),i), message.levelname)
                 else:
-                    self._emit(str(msg))
+                    self._emit(self.format(message), message.levelname)
         self.buff = []
     def setDelay(self):
         self._delay = True
     def unsetDelay(self):
         self._delay = False
-        self._flush()
-    def flush(self):
-        self._flush()
+        self.flush()
 
-class GUIHandler(DelayedHandler):
+class GUIHandlerDelayedHandler(DelayedHandler):
     '''A log handler that buffers messages and folds repeats
     into a single line. It expects a tkinter widget as input.'''
 
@@ -72,9 +80,11 @@ class GUIHandler(DelayedHandler):
         self.setFormatter(logging.Formatter('%(levelname)s %(message)s'))
         self.console = console #Any text widget, you can use the class above or not
 
-    def _emit(self,message):
+    def _emit(self,message,level):
+        self.acquire()
         self.console["state"] = self.NORMAL
-        self.console.insert(self.END, message+"\n") #Inserting the logger message in the widget
+        self.console.insert(self.END, self.format(message)+"\n") #Inserting the logger message in the widget
         self.console["state"] = self.DISABLED
         self.console.see(self.END)
+        self.release()
 
