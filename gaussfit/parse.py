@@ -182,9 +182,9 @@ class Parse():
         
         #The default log handler only emits when you call flush() after setDelay() called
         self.loghandler.setDelay()
-       
-        #self.logger.info("Done with initial parsing of input data")
-        #self.loghandler.flush()
+      
+        # In the event that we want to call parsing method by hand
+        # we stop here when just self.df is complete
         if not parse: return 
 
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
@@ -196,26 +196,23 @@ class Parse():
             return # Bail if we can't parse traces
         self.logger.info("* * * * * * Computing dY/dX  * * * * * * * *")
         self.loghandler.flush()
-        #self.dodjdv()
-        #NOTE Threads do not seem to help with performance
         t1 = threading.Thread(target = self.dodjdv) # This must come first for self.ohmic to be populated!
         t1.start()
         if self.opts.skipohmic:
                 t1.join()
         self.logger.info("* * * * * * Computing Vtrans * * * * * * * *")
         self.loghandler.flush()
-        #self.findmin()
         t2 = threading.Thread(target=self.findmin)
         t2.start()
         self.logger.info("* * * * * * Computing |R|  * * * * * * * * *")
         self.loghandler.flush()
-        R = self.dorect()
-        for x, group in self.df.groupby('V'):
+        xy,R = self.dorect()
+        for x, group in xy:
             self.XY[x] = { "Y":group['J'], 
-                       "LogY":group['logJ'], 
-                       "hist":self.__dohistogram(group['logJ'],"J"), 
-                       "FN": group['FN'],
-                       "R": R[x] }
+                   "LogY":group['logJ'], 
+                   "hist":self.__dohistogram(group['logJ'],"J"), 
+                   "FN": group['FN'],
+                   "R": R[x] }
         t1.join()
         t2.join()
         self.logger.info("* * * * * * * * * * * * * * * * * * * * * * ")
@@ -223,31 +220,6 @@ class Parse():
         self.PrintFN()
         self.loghandler.unsetDelay()
         self.parsed = True
-
-    def wait(self):
-        self.logger.debug("Waiting for parser to complete.")
-        t = 0
-        while not self.parsed:
-            if t > 60:
-                self.logger.error("Timeout waiting for parser to complete.")
-                break
-            time.sleep(0.5)
-            t += 0.5
-
-    def getXY(self):
-        self.wait()
-        if self.error:
-            return {}
-        else:
-            return self.XY
-
-    def getFN(self):
-        self.wait()
-        if self.error:
-            return {}
-        else:
-            return self.FN
-
 
     def findTraces(self):
         '''Try to find individual J/V traces. A trace is defined
@@ -330,10 +302,6 @@ class Parse():
         if not __checktraces(traces):
             self.logger.error("Problem with traces: FN and derivative probably will not work correctly!")
             self.loghandler.flush()
-            #for r in self.df.index.levels[0]:
-            #    self.logger.info('(%s) start: %s end: %s' % (r,
-            #            self.df.loc[r]['V'].values[0],self.df.loc[r]['V'].values[-1]))
-            #self.loghandler.flush()
         self.logger.info("Found %s traces (%s)." % (ntraces,len(traces)) )
         idx = []
         frames = {}
@@ -343,7 +311,6 @@ class Parse():
             avg = OrderedDict({'J':[],'FN':[]})
             idx = []
             for x,group in fbtrace.groupby('V'):
-                #avg['V'].append(x)
                 idx.append(x)
                 avg['J'].append(self.signedgmean(group['J']))
                 #avg['J'].append(np.mean(group['J']))
@@ -435,10 +402,14 @@ class Parse():
         ''' 
         Divide each value of Y at +V by Y at -V
         and build a histogram of rectification, R
+        also construct the unique Voltage list
         '''
         r = OrderedDict()
         R = OrderedDict()
-        for x, group in self.df.groupby('V'): r[x] = []
+        xy = []
+        for x, group in self.df.groupby('V'): 
+            r[x] = []
+            xy.append( (x,group) )
         clipped = 0
         for trace in self.avg.index.levels[0]:
             for x in self.avg.loc[trace].index[self.avg.loc[trace].index >= 0]:
@@ -471,7 +442,7 @@ class Parse():
             else: rstr = '|R|'
             self.logger.info("%s values of %s exceed maxR (%s)" % (clipped, rstr, self.opts.maxr))
         self.logger.info("R complete.")
-        return R
+        return xy,R
 
     def getminroot(self, spl):
         '''
@@ -483,7 +454,6 @@ class Parse():
             splvals[float(spl(r))] = r
         if not splvals:
             return np.NAN
-            #return False
         # Because UnivariateSpline crashes when we use 
         # 1/X, the plots are flipped so we take the max
         return splvals[np.nanmax(list(splvals.keys()))]
@@ -612,6 +582,31 @@ class Parse():
 
         return {"bin":bin_centers, "freq":freq, "mean":coeff[1], "std":coeff[2], \
                 "var":coeff[2], "bins":bins, "fit":hist_fit, "Gmean":Ym, "Gstd":Ys}
+
+
+    def wait(self):
+        self.logger.debug("Waiting for parser to complete.")
+        t = 0
+        while not self.parsed:
+            if t > 60:
+                self.logger.error("Timeout waiting for parser to complete.")
+                break
+            time.sleep(0.5)
+            t += 0.5
+
+    def getXY(self):
+        self.wait()
+        if self.error:
+            return {}
+        else:
+            return self.XY
+
+    def getFN(self):
+        self.wait()
+        if self.error:
+            return {}
+        else:
+            return self.FN
 
     def PrintFN(self):
         '''
