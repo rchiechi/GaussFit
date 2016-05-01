@@ -190,11 +190,12 @@ class Parse():
                    "R": {} }
         
         self.logger.info("Done with initial parsing of input data")
+        self.loghandler.flush()
         if not parse: return 
 
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
-        self.loghandler.flush()
         self.findTraces()
+        self.loghandler.flush()
         if self.error: 
             self.logger.error('Cannot compute statistics from these traces.')
             self.loghandler.flush()
@@ -436,8 +437,8 @@ class Parse():
         #for x in self.XY:
             if 'hist' not in self.XY[x]['R']:
                 self.logger.warn("Unequal +/- voltages in R-plot will be filled with R=1.")
-                if self.opts.logr: y = np.array([1.,1.,1.])
-                else: y = np.array([0.,0.,0.,])
+                if self.opts.logr: y = np.array([1.,1.,1.,1.,1.,1.,1.,1.,1.,1.])
+                else: y = np.array([0.,0.,0.,0.,0.,0.,0.,0.,0.,0.])
                 self.XY[x]['R'] = {'r':y,'hist':self.__dohistogram(y,"R")}
         if clipped:
             if self.opts.logr: rstr = 'log|R|'
@@ -545,7 +546,7 @@ class Parse():
         if label == "R": Y = Y[Y <= self.opts.maxr]
         if label=='DJDV': nbins = self.opts.heatmapbins
         else: nbins = self.opts.bins
-        if len(Y) < 10 and label != 'R':
+        if len(Y) < 10:
             self.logger.warn("Histogram with only %d points.", len(Y))
         try:
             #TODO Why not offer density plots as an option?

@@ -53,7 +53,8 @@ class DelayedHandler(logging.Handler):
     def flush(self):
         msgs = Counter(map(self.format,self.buff))
         emitted = []
-        for message in reversed(self.buff):
+        for message in self.buff:
+            #FIFO
             fmsg = self.format(message)
             if fmsg not in emitted:
                 emitted.append(fmsg)
@@ -69,7 +70,7 @@ class DelayedHandler(logging.Handler):
         self._delay = False
         self.flush()
 
-class GUIHandlerDelayedHandler(DelayedHandler):
+class GUIHandler(DelayedHandler):
     '''A log handler that buffers messages and folds repeats
     into a single line. It expects a tkinter widget as input.'''
 
@@ -81,10 +82,8 @@ class GUIHandlerDelayedHandler(DelayedHandler):
         self.console = console #Any text widget, you can use the class above or not
 
     def _emit(self,message,level):
-        self.acquire()
         self.console["state"] = self.NORMAL
-        self.console.insert(self.END, self.format(message)+"\n") #Inserting the logger message in the widget
+        self.console.insert(self.END, message+"\n") #Inserting the logger message in the widget
         self.console["state"] = self.DISABLED
         self.console.see(self.END)
-        self.release()
 
