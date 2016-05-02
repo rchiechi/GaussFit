@@ -125,29 +125,40 @@ class Parse():
     def ReadFiles(self, fns, parse=True):
         '''Walk through input files and parse
         them into attributes '''
+        frames = {}
         if type(fns) == type(str()):
             fns = [fns]
+        self.logger.debug('Parsing %s' % ', '.join(fns))
         if self.opts.Ycol > 0:
             self.logger.info("Parsing two columns of data.")
-            self.logger.debug('Parsing %s' % ', '.join(fns))
-            frames = {}
             for f in fns:
                 try:
                     frames[f] = pd.read_csv(f,sep=self.opts.delim,usecols=(self.opts.Xcol,self.opts.Ycol),names=('V','J'),header=0)
                 except OSError as msg:
                     self.logger.warn("Skipping %s because %s" % (f,str(msg)))
-            self.df = pd.concat(frames)
         else:
-            #TODO This needs to be multiindex
             self.logger.info("Parsing all columns of data.")
-            self.df = pd.concat((pd.read_csv(f,sep=self.opts.delim,
-                header=None,skiprows=1) for f in fns),ignore_index=True)
-            X,Y = [],[]
-            for row in self.df.iterrows():
-                for y in row[1][1:]:
-                    X.append(row[1][0])
-                    Y.append(y)
-            self.df = pd.DataFrame({'V':X,'J':Y})
+            for f in fns:
+                try:
+                    _df = pd.read_csv(f,sep=self.opts.delim,index_col=self.opts.Xcol,header=0)
+                    i = 0
+                    for col in _df:
+                        frames['%s_%.2d' % (f,str(i))] = pd.dataframe({'V':_df.index,'J':_df[col]})
+                        i += 1
+                except OSError as msg:
+                    self.logger.warn("Skipping %s because %s" % (f,str(msg)))
+
+            #self.df = pd.concat((pd.read_csv(f,sep=self.opts.delim,
+            #    header=None,skiprows=1) for f in fns),ignore_index=True)
+            #X,Y = [],[]
+            #for row in self.df.iterrows():
+            #    for y in row[1][1:]:
+            #        X.append(row[1][0])
+            #        Y.append(y)
+            #self.df = pd.DataFrame({'V':X,'J':Y})
+       
+        # Create main dataframe and parse it
+        self.df = pd.concat(frames)
         self.__parse(parse)
 
     def ReadPandas(self,df,parse):
