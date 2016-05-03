@@ -167,12 +167,12 @@ class ChooseFiles(Frame):
              'tooltip': "Check the values of d2J/dV2 between |vcutoff| and Vmin/Vmax for line-shape filtering. Set to -1 for Vmin/Vmax."},
             {'name': 'Smooth', 'text': "Smoothing parameter:",
              'tooltip': "The cutoff value for the residual squares (the difference between experimental data points and the fit). The default is 1e-12. Set to 0 to disable smoothing."},
-            {'name': 'Gminmax', 'text': "Y-scale for conductance:",
-                 'tooltip': "Set Ymin,Ymax for the conductance plot (lower-left of plot output)."},
+            {'name': 'Gminmax', 'text': "Y-scale for histogram:",
+                 'tooltip': "Set Ymin,Ymax for the heapmap plot (lower-left of plot output)."},
             {'name': 'Bins', 'text': "Bins for J/R Histograms:",
              'tooltip': "Set binning for histograms of J and R."},
             {'name': 'Heatmapbins', 'text': "Bins for G Histograms:",
-             'tooltip': "Set binning for conductance heatmap histograms."}
+             'tooltip': "Set binning for heatmap histograms."}
             ]
         
         i = 0
