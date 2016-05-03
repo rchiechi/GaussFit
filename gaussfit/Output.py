@@ -52,6 +52,12 @@ class Writer():
             fh.write(t)
             fh.write(extra+"\n")    
 
+    def WriteSummary(self):
+        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Summary.txt")
+        self.df.to_csv(fn,sep=self.opts.delim)
+        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Traces.txt")
+        self.avg.to_csv(fn,sep=self.opts.delim)
+
     def WriteHistograms(self):
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms.txt")
         with open(fn, 'w', newline='') as csvfile:

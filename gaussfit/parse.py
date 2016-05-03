@@ -95,6 +95,7 @@ class Parse():
         ''' Run through all the methods for writing output files.'''
         writer.logger.info("Writing files...")
         writer.WriteParseInfo()
+        writer.WriteSummary()
         writer.WriteVtrans()
         writer.WriteGNUplot('Vtransplot')
         writer.WriteFN()
