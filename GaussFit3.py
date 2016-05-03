@@ -37,7 +37,6 @@ def Go(opts):
             Parse.doOutput(writer)
     if opts.plot and not parser.error:
             plotter = Plotter(parser)
-            #logging.info("Generating plots...")
             try:
                     import matplotlib.pyplot as plt
                     plotter.DoPlots(plt,*opts.plots)

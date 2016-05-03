@@ -443,11 +443,11 @@ class Parse():
             if x >= 0:
                 R[x] = {'r':np.array(r[x]),'hist':self.__dohistogram(np.array(r[x]),"R")}
                 R[-1*x] = R[x]
-            if 'hist' not in R[x]:
-                        self.logger.warn("Unequal +/- voltages in R-plot will be filled with R=1.")
-                        if self.opts.logr: y = np.array([1.,1.,1.,1.,1.,1.,1.,1.,1.,1.])
-                        else: y = np.array([0.,0.,0.,0.,0.,0.,0.,0.,0.,0.])
-                        R[x] = {'r':y,'hist':self.__dohistogram(y,"R")}
+            if x not in R:
+                    self.logger.warn("Unequal +/- voltages in R-plot will be filled with R=1.")
+                    if self.opts.logr: y = np.array([1.,1.,1.,1.,1.,1.,1.,1.,1.,1.])
+                    else: y = np.array([0.,0.,0.,0.,0.,0.,0.,0.,0.,0.])
+                    R[x] = {'r':y,'hist':self.__dohistogram(y,"R")}
         if clipped:
             if self.opts.logr: rstr = 'log|R|'
             else: rstr = '|R|'
