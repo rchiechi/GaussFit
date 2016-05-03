@@ -547,7 +547,12 @@ class Parse():
         routine, which defeats the purpose of machine-fitting
         '''
         
-        yrange = (Y.min(),Y.max())
+        try:
+            yrange = (Y.min(),Y.max())
+        except ValueError as msg:
+            self.logger.error("Error ranging data for histogram: %s" % str(msg))
+            yrange = (0,0)
+
         if label == "J": 
             Y = Y[Y <= self.opts.compliance]
             yrange = (Y.min()-1, Y.max()+1)
