@@ -34,11 +34,11 @@ To quickly plot your data without writing files:
 ```
 GaussFit.py -n (-G) <files>
 ```
-To quickly write your data without plotting:
+To write your data quickly and without plotting:
 ```
 GaussFit.py -o <output name> (-G) <files>
 ```
-To to both:
+To do both:
 ```
 GaussFit.py -o <output name> -p (-G) <files>
 ```
