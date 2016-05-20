@@ -118,11 +118,10 @@ class ChooseFiles(Frame):
               {'name':'plot','text':'Plot','row':1,'tooltip':"Show summary plots after parsing."},
               {'name':'write','text':'Write','row':2,'tooltip':"Write results to text files after parsing."},
               {'name':'skipohmic','text':'Skip bad dJ/dV','row':3,'tooltip':'Skip plots with d2J/dV2 < 0 between Vcutoff and Vmin/Vmax.'},
-              {'name':'nomin','text':'Use dJ/dV for Vtrans','row':4,'tooltip':'Use dJ/dV plots to find the minimum of F-N plots when computing Vtrans.'},
+              {'name':'interpolateminfn','text':'Interpolate FN','row':4,'tooltip':'Find FN from the minimum of the derivative.'},
               {'name':'logr','text':'Use log|R|','row':5,'tooltip':'Use log |R| instead of |R| when computing histograms.'},
               {'name':'lorenzian','text':'Lorenzian','row':6,'tooltip':'Fit a Lorenzian instead of a Gaussian.'},
-              {'name':'tracebyfile','text':'AFM Data','row':7,'tooltip':'Each file contains one (foward/backward) trace.'},
-              {'name':'interpolateminfn','text':'Interpolate FN','row':8,'tooltip':'Use interpolation even when finding FN minima without dJ/dV.'}
+              {'name':'tracebyfile','text':'AFM Data','row':7,'tooltip':'Each file contains one (foward/backward) trace.'}
               ]
 
         for c in self.checks:
@@ -320,14 +319,6 @@ class ChooseFiles(Frame):
         else:
             self.Check_plot["state"]=NORMAL
         
-        if self.opts.nomin:
-            self.opts.interpolateminfn = False
-            self.interpolateminfn.set(0)
-            self.Check_interpolateminfn["state"]=DISABLED
-        else:
-            self.Check_interpolateminfn["state"]=NORMAL
-
-
         for n in (('Smooth',1e-12),('Bins',50),('Heatmapbins',25)):
             try:
                 var = int(getattr(self,'Entry'+n[0]).get())

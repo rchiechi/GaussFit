@@ -87,9 +87,6 @@ class Parse():
         self.logger.addHandler(self.loghandler)
         self.logger.setLevel(getattr(logging,self.opts.loglevel.upper()))
 
-        if self.opts.nomin:
-            self.logger.debug("Using interpolation on FN")
-
     @classmethod
     def doOutput(cls,writer):
         ''' Run through all the methods for writing output files.'''
@@ -326,12 +323,12 @@ class Parse():
                 idx.append(x)
                 avg['J'].append(self.signedgmean(group['J']))
                 #avg['J'].append(np.mean(group['J']))
-                if not self.opts.nomin:
-                    fn = np.mean(group['FN'][group['FN'] <= self.opts.compliance])
+                #if not self.opts.nomin:
+                #    fn = np.mean(group['FN'][group['FN'] <= self.opts.compliance])
                     #NOTE signedgmean was very slow at one point so I disabled it
                     #fn = self.signedgmean(group['FN'][group['FN'] <= self.opts.compliance])
-                else:
-                    fn = np.mean(group['FN'])
+                #else:
+                fn = np.mean(group['FN'])
                     #fn = self.signedgmean(group['FN'])
                 avg['FN'].append(fn)
             frames[col] = pd.DataFrame(avg,index=idx)
@@ -456,26 +453,6 @@ class Parse():
         self.logger.info("R complete.")
         return xy,R
 
-    def getminroot(self, spl):
-        '''
-        Return the root of the first derivative of a spline function
-        that results in the lowest value of ln(Y/X^2) vs. 1/X
-        Or just minimumn of option is set
-        '''
-        if self.opts.interpolateminfn:
-            self.logger.debug('Finding min of interpolated curve.')
-            return np.array(spl).min()
-
-        self.logger.debug('Finding roots of interpolated curve.')
-        splvals = {}
-        for r in spl.derivative().roots():
-            splvals[float(spl(r))] = r
-        if not splvals:
-            return np.NAN
-        # Because UnivariateSpline crashes when we use 
-        # 1/X, the plots are flipped so we take the max
-        return splvals[np.nanmax(list(splvals.keys()))]
-
     def findmin(self):
         '''
         Find the troughs of ln(Y/X^2) vs. 1/X plots
@@ -484,6 +461,29 @@ class Parse():
         that gives the most negative value of Y (opts.smooth)
         or simply the most negative value of Y (! opts.smooth)
         '''
+   
+        def findmin(df):
+            print(df)
+            pidx = []
+            nidx = []
+            for row in df.iterrows():
+                if row[1].Y > 0:
+                    pidx.append(row[0])
+                elif row[1].Y < 0:
+                    nidx.append(row[0])
+            if not pidx or not nidx:
+                self.logger.debug('FN derivative did not change signs.')
+            return 1/df.X[df.Y.idxmin()]
+            print(pidx)
+            print(nidx)
+            if pidx[-1] < nidx[0]:
+                return 1/df[nidx[0]].X
+            elif ndix[-1] < pidx[0]:
+                return 1/df[pidx[0]].X
+            else:
+                self.logger.debug("Error finding vtrans in trace.")
+                return 0
+
         neg_min_x, pos_min_x = [],[]
         i = -1
         tossed = 0
@@ -495,26 +495,28 @@ class Parse():
         for trace in self.avg.index.levels[0]:
             if self.opts.skipohmic and trace in self.ohmic:
                     continue
-            if self.opts.nomin:
-                try:
-                    rootpos = self.getminroot(scipy.interpolate.UnivariateSpline(self.avg.loc[trace].index[self.avg.loc[trace].index > 0],
-                            self.avg.loc[trace]['FN'][self.avg.loc[trace].index > 0], k=4, s=None))
-                    rootneg = self.getminroot(scipy.interpolate.UnivariateSpline(self.avg.loc[trace].index[self.avg.loc[trace].index < 0],
-                            self.avg.loc[trace]['FN'][self.avg.loc[trace].index < 0 ], k=4, s=None))
-                except Exception as msg:
-                    self.logger.warn("Skipped FN calculation: %s" % str(msg))
-                    continue
-                if np.isfinite(rootneg):
-                    neg_min_x.append(rootneg)
-                if np.isfinite(rootpos):
-                    pos_min_x.append(rootpos)
-                if np.NAN in (rootneg,rootpos):
-                    self.logger.warn("No minimum found in FN derivative (-):%s, (+):%s" % (rootneg, rootpos) )
+
+            if self.opts.interpolateminfn:
+                self.logger.debug('Finding minimum of interpolated FN plot.')
+                splpos = scipy.interpolate.UnivariateSpline( 1/np.array(self.avg.loc[trace].index[self.avg.loc[trace].index > 0]), 
+                                                    self.avg.loc[trace]['FN'][self.avg.loc[trace].index > 0].values, k=5, s=None).derivative()
+                splneg = scipy.interpolate.UnivariateSpline( 1/np.array(self.avg.loc[trace].index[self.avg.loc[trace].index < 0]),
+                                                    self.avg.loc[trace]['FN'][self.avg.loc[trace].index < 0 ].values, k=5, s=None).derivative()
+                xy = {'X':[],'Y':[]}
+                for x in 1/np.linspace(-2,2,200):
+                    if x > 0:
+                        xy['Y'].append(splpos(x))
+                    elif x < 0:
+                        xy['Y'].append(splneg(x))
+                    else:
+                        continue
+                    xy['X'].append(x)
+                fndf = pd.DataFrame(xy)
+                pos_min_x.append( 1/fndf['X'][ abs(fndf[fndf.X > 0]['Y']).idxmin()] )
+                neg_min_x.append( 1/fndf['X'][ abs(fndf[fndf.X < 0]['Y']).idxmin()] )
+
             else:
-                #neg_min_x.append(self.avg.loc[trace]['FN'][ self.avg[trace]['FN'][self.avg.loc[trace].index < 0 ].idxmin() ])
-                #pos_min_x.append(self.avg.loc[trace]['FN'][ self.avg[trace]['FN'][self.avg.loc[trace].index > 0 ].idxmin() ])
-                #TODO Returns the *fist* occurance of a miniumum value.
-                #TODO Option to find minimum of interpolated plot (instead of only second derivative)
+                self.logger.debug('Finding FN min of plot.')
                 neg_min_x.append(self.avg.loc[trace]['FN'][ self.avg.loc[trace].index < 0 ].idxmin() )
                 pos_min_x.append(self.avg.loc[trace]['FN'][ self.avg.loc[trace].index > 0 ].idxmin() )
 

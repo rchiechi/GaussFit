@@ -19,6 +19,15 @@ import os,warnings,datetime
 #TODO Replace csv with pandas
 import csv
 from shutil import copyfile
+import logging
+from gaussfit.colors import *
+
+logger = logging.getLogger('output')
+loghandler = logging.StreamHandler()
+loghandler.setFormatter(logging.Formatter(\
+                fmt=GREEN+os.path.basename('%(name)s'+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
+logger.addHandler(loghandler)
+
 try:
     import numpy as np
     from scipy.interpolate import griddata
@@ -32,7 +41,7 @@ class Writer():
         self.parser = parser
         self.opts = self.parser.opts
         if not os.path.exists(parser.opts.out_dir):
-            print("Creating %s" % parser.opts.out_dir)
+            logger.info("Creating %s" % parser.opts.out_dir)
             os.mkdir(parser.opts.out_dir)
 
     def __getattr__(self, name):
@@ -255,13 +264,13 @@ class Writer():
         '''Output for a generic set of data expecting an n-dimensional array'''
 
         if len(labels) and len(labels) != len(dataset):
-            print("ERROR: Length of column labels does not match number of data columns for WriteGeneric!")
+            logger.error("Length of column labels does not match number of data columns for WriteGeneric!")
             return
 
         lencola = len(dataset[0])
         for d in dataset:
             if len(d) != lencola:
-                print("ERROR: Length of columns differs for WriteGeneric!")
+                logger.error("Length of columns differs for WriteGeneric!")
                 return
 
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+bfn+".txt")
@@ -284,7 +293,7 @@ class Writer():
         try:
             nsub = str(open(gpintp,'rt').read()).count('%s')
         except FileNotFoundError as msg:
-            print("Could not read template file %s" % gpintp)
+            logger.warn("Could not read template file %s" % gpintp)
             return
         ssub = []
         for i in range(0,nsub):
@@ -544,13 +553,13 @@ def WriteStats(out_dir, outfile, dataset, bfn, labels=[]):
     '''Output for a generic set of data expecting an n-dimensional array'''
 
     if len(labels) and len(labels) != len(dataset):
-        print("ERROR: Length of column labels does not match number of data columns for WriteGeneric!")
+        logger.error("Length of column labels does not match number of data columns for WriteGeneric!")
         return
 
     lencola = len(dataset[0])
     for d in dataset:
         if len(d) != lencola:
-            print("ERROR: Length of columns differs for WriteGeneric!")
+            logger.error("Length of columns differs for WriteGeneric!")
             return
     fn = os.path.join(out_dir,outfile+"_"+bfn+".txt")
     with open(fn, 'w', newline='') as csvfile:
