@@ -312,9 +312,6 @@ class ChooseFiles(Frame):
     def checkOptions(self, event=None):
         for c in self.checks:
             setattr(self.opts,c['name'],self.boolmap[getattr(self,c['name']).get()])
-            print(c['name'])
-            print(self.boolmap[getattr(self,c['name']).get()])
-            print(getattr(self.opts,c['name']))
             
         if not self.opts.write:
             self.opts.plot = True
