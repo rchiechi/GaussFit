@@ -25,6 +25,8 @@ from gaussfit.Output import Writer,Plotter
 #from gaussfit.args import Opts
 #from gaussfit.parse import Parse
 
+#TODO colorama
+
 def Go(opts):
     '''
     Call this function to execute the parsing engine

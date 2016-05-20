@@ -80,7 +80,7 @@ class Parse():
             from gaussfit.logger import DelayedHandler
             self.loghandler = DelayedHandler()
             self.loghandler.setFormatter(logging.Formatter(\
-                fmt=GREEN+os.path.basename(sys.argv[0]+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
+                fmt=GREEN+os.path.basename('%(name)s'+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
         else:
             self.loghandler = handler
         self.logger = logging.getLogger('parser')
