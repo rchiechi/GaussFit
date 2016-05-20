@@ -122,7 +122,7 @@ class ChooseFiles(Frame):
               {'name':'logr','text':'Use log|R|','row':5,'tooltip':'Use log |R| instead of |R| when computing histograms.'},
               {'name':'lorenzian','text':'Lorenzian','row':6,'tooltip':'Fit a Lorenzian instead of a Gaussian.'},
               {'name':'tracebyfile','text':'AFM Data','row':7,'tooltip':'Each file contains one (foward/backward) trace.'},
-              {'name':'interpolatefnmin','text':'Interpolate FN','row':8,'tooltip':'Use interpolation even when finding FN minima without d2J/dV2.'}
+              {'name':'interpolateminfn','text':'Interpolate FN','row':8,'tooltip':'Use interpolation even when finding FN minima without d2J/dV2.'}
               ]
 
         for c in self.checks:
@@ -312,13 +312,24 @@ class ChooseFiles(Frame):
     def checkOptions(self, event=None):
         for c in self.checks:
             setattr(self.opts,c['name'],self.boolmap[getattr(self,c['name']).get()])
-        
+            print(c['name'])
+            print(self.boolmap[getattr(self,c['name']).get()])
+            print(getattr(self.opts,c['name']))
+            
         if not self.opts.write:
             self.opts.plot = True
             self.plot.set(1)
             self.Check_plot["state"]=DISABLED
         else:
             self.Check_plot["state"]=NORMAL
+        
+        if self.opts.nomin:
+            self.opts.interpolateminfn = False
+            self.interpolateminfn.set(0)
+            self.Check_interpolateminfn["state"]=DISABLED
+        else:
+            self.Check_interpolateminfn["state"]=NORMAL
+
 
         for n in (('Smooth',1e-12),('Bins',50),('Heatmapbins',25)):
             try:

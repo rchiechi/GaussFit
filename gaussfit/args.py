@@ -77,9 +77,9 @@ parser.add_argument('-m','--maxr', type=float, default=2,
 		help="Maximum allowable value of log|R| or (R if -R).")
 parser.add_argument('-c','--compliance', default=np.inf, type=float, 
 		help="Set compliance limit for gaussian fits.")
-parser.add_argument('-M','--minfn', action='store_false', dest='nomin', default=True, 
+parser.add_argument('--minfn', action='store_false', dest='nomin', default=True, 
 		help="Compute Vtrans from the min(Y) instead of the derivitve of the cubic spline.")
-parser.add_argument('--interpolateminfn', action='store_false', dest='nomin', default=True, 
+parser.add_argument('--interpolateminfn', action='store_true', default=False, 
 		help="Compute Vtrans from the interpolated min(Y) instead of the derivitve of the cubic spline.")
 parser.add_argument('-s','--skip',  action='store_false', dest='skipohmic', default=True, 
 		help="Do NOT skip plots with negative d2J/dV2 values at vcutoff for Vtrans calcuation and conductance plot.")
