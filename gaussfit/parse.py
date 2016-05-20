@@ -461,31 +461,7 @@ class Parse():
         that gives the most negative value of Y (opts.smooth)
         or simply the most negative value of Y (! opts.smooth)
         '''
-   
-        def findmin(df):
-            print(df)
-            pidx = []
-            nidx = []
-            for row in df.iterrows():
-                if row[1].Y > 0:
-                    pidx.append(row[0])
-                elif row[1].Y < 0:
-                    nidx.append(row[0])
-            if not pidx or not nidx:
-                self.logger.debug('FN derivative did not change signs.')
-            return 1/df.X[df.Y.idxmin()]
-            print(pidx)
-            print(nidx)
-            if pidx[-1] < nidx[0]:
-                return 1/df[nidx[0]].X
-            elif ndix[-1] < pidx[0]:
-                return 1/df[pidx[0]].X
-            else:
-                self.logger.debug("Error finding vtrans in trace.")
-                return 0
-
         neg_min_x, pos_min_x = [],[]
-        i = -1
         tossed = 0
         if self.opts.skipohmic:
             # Vtrans has no physical meaning for curves with negative derivatives
@@ -494,7 +470,8 @@ class Parse():
         
         for trace in self.avg.index.levels[0]:
             if self.opts.skipohmic and trace in self.ohmic:
-                    continue
+                tossed += 1    
+                continue
 
             if self.opts.interpolateminfn:
                 self.logger.debug('Finding minimum of interpolated FN plot.')
