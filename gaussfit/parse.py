@@ -460,7 +460,10 @@ class Parse():
         '''
         Return the root of the first derivative of a spline function
         that results in the lowest value of ln(Y/X^2) vs. 1/X
+        Or just minimumn of option is set
         '''
+        if self.opts.interpolateminfn:
+            return np.array(spl).min()
         splvals = {}
         for r in spl.derivative().roots():
             splvals[float(spl(r))] = r
@@ -508,6 +511,7 @@ class Parse():
                 #neg_min_x.append(self.avg.loc[trace]['FN'][ self.avg[trace]['FN'][self.avg.loc[trace].index < 0 ].idxmin() ])
                 #pos_min_x.append(self.avg.loc[trace]['FN'][ self.avg[trace]['FN'][self.avg.loc[trace].index > 0 ].idxmin() ])
                 #TODO Returns the *fist* occurance of a miniumum value.
+                #TODO Option to find minimum of interpolated plot (instead of only second derivative)
                 neg_min_x.append(self.avg.loc[trace]['FN'][ self.avg.loc[trace].index < 0 ].idxmin() )
                 pos_min_x.append(self.avg.loc[trace]['FN'][ self.avg.loc[trace].index > 0 ].idxmin() )
 
