@@ -122,7 +122,7 @@ class ChooseFiles(Frame):
               {'name':'logr','text':'Use log|R|','row':5,'tooltip':'Use log |R| instead of |R| when computing histograms.'},
               {'name':'lorenzian','text':'Lorenzian','row':6,'tooltip':'Fit a Lorenzian instead of a Gaussian.'},
               {'name':'tracebyfile','text':'AFM Data','row':7,'tooltip':'Each file contains one (foward/backward) trace.'},
-              {'name':'interpolateminfn','text':'Interpolate FN','row':8,'tooltip':'Use interpolation even when finding FN minima without d2J/dV2.'}
+              {'name':'interpolateminfn','text':'Interpolate FN','row':8,'tooltip':'Use interpolation even when finding FN minima without dJ/dV.'}
               ]
 
         for c in self.checks:

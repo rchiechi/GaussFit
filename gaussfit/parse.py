@@ -463,7 +463,10 @@ class Parse():
         Or just minimumn of option is set
         '''
         if self.opts.interpolateminfn:
+            self.logger.debug('Finding min of interpolated curve.')
             return np.array(spl).min()
+
+        self.logger.debug('Finding roots of interpolated curve.')
         splvals = {}
         for r in spl.derivative().roots():
             splvals[float(spl(r))] = r
