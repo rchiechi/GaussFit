@@ -462,6 +462,8 @@ class Parse():
         or simply the most negative value of Y (! opts.smooth)
         '''
         neg_min_x, pos_min_x = [],[]
+        vmin,vmax = self.df.V.min(), self.df.V.max()
+        xneg,xpos = 1/np.linspace(vmin,0,250),1/np.linspace(vmax,0,250)
         tossed = 0
         if self.opts.skipohmic:
             # Vtrans has no physical meaning for curves with negative derivatives
@@ -475,31 +477,41 @@ class Parse():
 
             if self.opts.interpolateminfn:
                 self.logger.debug('Finding minimum of interpolated FN plot.')
-                splpos = scipy.interpolate.UnivariateSpline( 1/np.array(self.avg.loc[trace].index[self.avg.loc[trace].index > 0]), 
-                                                    self.avg.loc[trace]['FN'][self.avg.loc[trace].index > 0].values, k=5, s=None).derivative()
-                splneg = scipy.interpolate.UnivariateSpline( 1/np.array(self.avg.loc[trace].index[self.avg.loc[trace].index < 0]),
-                                                    self.avg.loc[trace]['FN'][self.avg.loc[trace].index < 0 ].values, k=5, s=None).derivative()
+                splpos = scipy.interpolate.interp1d( 1/np.array(self.avg.loc[trace].index[self.avg.loc[trace].index > 0]), 
+                                                   self.avg.loc[trace]['FN'][self.avg.loc[trace].index > 0].values,kind='linear',fill_value='extrapolate')
+                splneg = scipy.interpolate.interp1d( 1/np.array(self.avg.loc[trace].index[self.avg.loc[trace].index < 0]),
+                                                   self.avg.loc[trace]['FN'][self.avg.loc[trace].index < 0 ].values,kind='linear',fill_value='extrapolate')
                 xy = {'X':[],'Y':[]}
-                for x in 1/np.linspace(-2,2,200):
-                    if x > 0:
-                        xy['Y'].append(splpos(x))
-                    elif x < 0:
-                        xy['Y'].append(splneg(x))
-                    else:
+                for x in xneg:
+                    if not np.isfinite(x):
                         continue
+                    xy['Y'].append(splneg(x))
+                    xy['X'].append(x)
+                for x in xpos:
+                    if not np.isfinite(x):
+                        continue
+                    xy['Y'].append(splpos(x))
                     xy['X'].append(x)
                 fndf = pd.DataFrame(xy)
-                pos_min_x.append( 1/fndf['X'][ abs(fndf[fndf.X > 0]['Y']).idxmin()] )
-                neg_min_x.append( 1/fndf['X'][ abs(fndf[fndf.X < 0]['Y']).idxmin()] )
-
+                pidx = fndf[fndf.X > 0]['Y'].idxmin()
+                nidx = fndf[fndf.X < 0]['Y'].idxmin()
+                try:
+                    splpos = scipy.interpolate.UnivariateSpline(fndf['X'][pidx-20:pidx+20].values,fndf['Y'][pidx-20:pidx+20].values, k=4 )
+                    splneg = scipy.interpolate.UnivariateSpline(fndf['X'][nidx-20:nidx+20].values,fndf['Y'][nidx-20:nidx+20].values, k=4 )
+                    pos_min_x += list(1/np.array(splpos.derivative().roots()))
+                    neg_min_x += list(1/np.array(splneg.derivative().roots()))
+                except Exception as msg:
+                    self.logger.warn('Error finding FN minimum from derivative, falling back to minimum. %s' %str(msg))
+                    pos_min_x.append(np.mean( 1/fndf['X'][pidx-20:pidx+20].values))
+                    neg_min_x.append(np.mean( 1/fndf['X'][nidx-20:nidx+20].values))
             else:
                 self.logger.debug('Finding FN min of plot.')
                 neg_min_x.append(self.avg.loc[trace]['FN'][ self.avg.loc[trace].index < 0 ].idxmin() )
                 pos_min_x.append(self.avg.loc[trace]['FN'][ self.avg.loc[trace].index > 0 ].idxmin() )
 
         if tossed: self.logger.warn("Tossed %d compliance traces during FN calculation.", tossed)
-        neg_min_x = np.array(neg_min_x)
-        pos_min_x = np.array(pos_min_x)
+        neg_min_x = np.array(list(filter(np.isfinite,neg_min_x)))
+        pos_min_x = np.array(list(filter(np.isfinite,pos_min_x)))
         self.FN["neg"], self.FN["pos"] = self.__dohistogram(neg_min_x, "Vtrans(-)"), self.__dohistogram(pos_min_x, "Vtrans(+)")
 
     def signedgmean(self,Y):
