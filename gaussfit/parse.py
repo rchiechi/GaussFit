@@ -512,7 +512,7 @@ class Parse():
         if tossed: self.logger.warn("Tossed %d compliance traces during FN calculation.", tossed)
         neg_min_x = np.array(list(filter(np.isfinite,neg_min_x)))
         pos_min_x = np.array(list(filter(np.isfinite,pos_min_x)))
-        self.FN["neg"], self.FN["pos"] = self.__dohistogram(neg_min_x, "Vtrans(-)"), self.__dohistogram(pos_min_x, "Vtrans(+)")
+        self.FN["neg"], self.FN["pos"] = self.__dohistogram(neg_min_x, "Vtrans(-)", True), self.__dohistogram(pos_min_x, "Vtrans(+)",True)
 
     def signedgmean(self,Y):
         '''
@@ -538,7 +538,7 @@ class Parse():
         A, mu, B = p
         return A/( (x-mu)**2 + B**2)
 
-    def __dohistogram(self, Y, label=""):
+    def __dohistogram(self, Y, label="", density=False):
         '''
         Return a histogram of Y-values and a gaussian
         fit of the histogram, excluding values that
@@ -565,7 +565,7 @@ class Parse():
             self.logger.warn("Histogram with only %d points.", len(Y))
         try:
             #TODO Why not offer density plots as an option?
-            freq, bins = np.histogram(Y, range=yrange, bins=nbins, density=False)
+            freq, bins = np.histogram(Y, range=yrange, bins=nbins, density=density)
         except ValueError as msg:
             #TODO we can now split out the file name with the bad data in it!
             self.logger.warning("Encountered this error while constructing histogram: %s", str(msg), exc_info=False)
