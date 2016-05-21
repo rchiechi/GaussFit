@@ -497,12 +497,15 @@ class Parse():
                 nidx = fndf[fndf.X < 0]['Y'].idxmin()
                 try:
                     splpos = scipy.interpolate.UnivariateSpline(fndf['X'][pidx-20:pidx+20].values,fndf['Y'][pidx-20:pidx+20].values, k=4 )
-                    splneg = scipy.interpolate.UnivariateSpline(fndf['X'][nidx-20:nidx+20].values,fndf['Y'][nidx-20:nidx+20].values, k=4 )
                     pos_min_x += list(1/np.array(splpos.derivative().roots()))
+                except Exception as msg:
+                    self.logger.warn('Error finding FN(+) minimum from derivative, falling back to minimum. %s' %str(msg))
+                    pos_min_x.append(np.mean( 1/fndf['X'][pidx-20:pidx+20].values))
+                try:
+                    splneg = scipy.interpolate.UnivariateSpline(fndf['X'][nidx-20:nidx+20].values,fndf['Y'][nidx-20:nidx+20].values, k=4 )
                     neg_min_x += list(1/np.array(splneg.derivative().roots()))
                 except Exception as msg:
-                    self.logger.warn('Error finding FN minimum from derivative, falling back to minimum. %s' %str(msg))
-                    pos_min_x.append(np.mean( 1/fndf['X'][pidx-20:pidx+20].values))
+                    self.logger.warn('Error finding FN(–) minimum from derivative, falling back to minimum. %s' %str(msg))
                     neg_min_x.append(np.mean( 1/fndf['X'][nidx-20:nidx+20].values))
             else:
                 self.logger.debug('Finding FN min of plot.')
