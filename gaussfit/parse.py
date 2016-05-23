@@ -155,6 +155,9 @@ class Parse():
             #        Y.append(y)
             #self.df = pd.DataFrame({'V':X,'J':Y})
        
+        if not frames:
+            self.logger.error("No files to parse!")
+            sys.exit()
         # Create main dataframe and parse it
         self.df = pd.concat(frames)
         self.__parse(parse)
@@ -463,7 +466,7 @@ class Parse():
         '''
         neg_min_x, pos_min_x = [],[]
         vmin,vmax = self.df.V.min(), self.df.V.max()
-        xneg,xpos = 1/np.linspace(vmin,0,250),1/np.linspace(vmax,0,250)
+        xneg,xpos = np.linspace(vmin,0,250),np.linspace(vmax,0,250)
         tossed = 0
         if self.opts.skipohmic:
             # Vtrans has no physical meaning for curves with negative derivatives
@@ -475,12 +478,37 @@ class Parse():
                 tossed += 1    
                 continue
 
-            if self.opts.interpolateminfn:
+            if not self.opts.interpolateminfn:
+
+                self.logger.debug('Finding FN min of plot.')
+                neg_min_x.append(self.avg.loc[trace]['FN'][ self.avg.loc[trace].index < 0 ].idxmin() )
+                pos_min_x.append(self.avg.loc[trace]['FN'][ self.avg.loc[trace].index > 0 ].idxmin() )
+
+            else:
+                err = (False,False)
+                self.logger.debug('Finding minimum FN plot from derivative.')
+                splpos = scipy.interpolate.UnivariateSpline(np.array(self.avg.loc[trace].index[self.avg.loc[trace].index > 0]),
+                                                        self.avg.loc[trace]['FN'][self.avg.loc[trace].index > 0].values, k=4)
+                splneg = scipy.interpolate.UnivariateSpline(np.array(self.avg.loc[trace].index[self.avg.loc[trace].index < 0]),
+                                                        self.avg.loc[trace]['FN'][self.avg.loc[trace].index < 0].values, k=4)
+                try:
+                    pos_min_x += list(np.array(splpos.derivative().roots()))
+                except ValueError as msg:
+                    self.logger.warn('Error finding derivative of FN(+), falling back to linear interpolation. %s' % str(msg))
+                    err[0] = True
+                try:
+                    neg_min_x += list(np.array(splneg.derivative().roots()))
+                except ValueError as msg:
+                    self.logger.warn('Error finding derivative of FN(–), falling back to linear interpolation. %s' % str(msg))
+                    err[1] = True
+                if err == (False,False):
+                    continue
+
                 self.logger.debug('Finding minimum of interpolated FN plot.')
-                splpos = scipy.interpolate.interp1d( 1/np.array(self.avg.loc[trace].index[self.avg.loc[trace].index > 0]), 
+                splpos = scipy.interpolate.interp1d( np.array(self.avg.loc[trace].index[self.avg.loc[trace].index > 0]), 
                                                    self.avg.loc[trace]['FN'][self.avg.loc[trace].index > 0].values,kind='linear',fill_value='extrapolate')
-                splneg = scipy.interpolate.interp1d( 1/np.array(self.avg.loc[trace].index[self.avg.loc[trace].index < 0]),
-                                                   self.avg.loc[trace]['FN'][self.avg.loc[trace].index < 0 ].values,kind='linear',fill_value='extrapolate')
+                splneg = scipy.interpolate.interp1d( np.array(self.avg.loc[trace].index[self.avg.loc[trace].index < 0]),
+                                                   self.avg.loc[trace]['FN'][self.avg.loc[trace].index < 0 ].values ,kind='linear',fill_value='extrapolate')
                 xy = {'X':[],'Y':[]}
                 for x in xneg:
                     if not np.isfinite(x):
@@ -495,27 +523,25 @@ class Parse():
                 fndf = pd.DataFrame(xy)
                 pidx = fndf[fndf.X > 0]['Y'].idxmin()
                 nidx = fndf[fndf.X < 0]['Y'].idxmin()
-                try:
-                    splpos = scipy.interpolate.UnivariateSpline(fndf['X'][pidx-20:pidx+20].values,fndf['Y'][pidx-20:pidx+20].values, k=4 )
-                    pos_min_x += list(1/np.array(splpos.derivative().roots()))
-                except Exception as msg:
-                    self.logger.warn('Error finding FN(+) minimum from derivative, falling back to minimum. %s' %str(msg))
-                    pos_min_x.append(np.mean( 1/fndf['X'][pidx-20:pidx+20].values))
-                try:
-                    splneg = scipy.interpolate.UnivariateSpline(fndf['X'][nidx-20:nidx+20].values,fndf['Y'][nidx-20:nidx+20].values, k=4 )
-                    neg_min_x += list(1/np.array(splneg.derivative().roots()))
-                except Exception as msg:
-                    self.logger.warn('Error finding FN(–) minimum from derivative, falling back to minimum. %s' %str(msg))
-                    neg_min_x.append(np.mean( 1/fndf['X'][nidx-20:nidx+20].values))
-            else:
-                self.logger.debug('Finding FN min of plot.')
-                neg_min_x.append(self.avg.loc[trace]['FN'][ self.avg.loc[trace].index < 0 ].idxmin() )
-                pos_min_x.append(self.avg.loc[trace]['FN'][ self.avg.loc[trace].index > 0 ].idxmin() )
-
+                if err[0]:
+                    try:
+                        splpos = scipy.interpolate.UnivariateSpline(fndf['X'][pidx-20:pidx+20].values,fndf['Y'][pidx-20:pidx+20].values, k=4 )
+                        pos_min_x += list(np.array(splpos.derivative().roots()))
+                    except Exception as msg:
+                        self.logger.warn('Error finding FN(+) minimum from interpolated derivative, falling back to minimum. %s' %str(msg))
+                        pos_min_x.append(np.mean(fndf['X'][pidx-20:pidx+20].values))
+                if err[1]:
+                    try:
+                        splneg = scipy.interpolate.UnivariateSpline(fndf['X'][nidx-20:nidx+20].values,fndf['Y'][nidx-20:nidx+20].values, k=4 )
+                        neg_min_x += list(np.array(splneg.derivative().roots()))
+                    except Exception as msg:
+                        self.logger.warn('Error finding FN(–) minimum from interpolated derivative, falling back to minimum. %s' %str(msg))
+                        neg_min_x.append(np.mean(fndf['X'][nidx-20:nidx+20].values))
+     
         if tossed: self.logger.warn("Tossed %d compliance traces during FN calculation.", tossed)
         neg_min_x = np.array(list(filter(np.isfinite,neg_min_x)))
         pos_min_x = np.array(list(filter(np.isfinite,pos_min_x)))
-        self.FN["neg"], self.FN["pos"] = self.__dohistogram(neg_min_x, "Vtrans(-)", True), self.__dohistogram(pos_min_x, "Vtrans(+)",True)
+        self.FN["neg"], self.FN["pos"] = self.__dohistogram(neg_min_x, "Vtrans(-)", True), self.__dohistogram(pos_min_x, "Vtrans(+)", True)
 
     def signedgmean(self,Y):
         '''
