@@ -321,10 +321,19 @@ class ChooseFiles(Frame):
         
         for n in (('Smooth',1e-12),('Bins',50),('Heatmapbins',25)):
             try:
-                var = int(getattr(self,'Entry'+n[0]).get())
-            except ValueError:
+                var = getattr(self,'Entry'+n[0]).get()
+                if 'Smooth' in n:
+                    var = float(var)
+                else:
+                    var = int(var)
+            except ValueError as msg:
                 var = n[1]
-            if var > 0:
+            if var == 0:
+                var = int(0)
+            if 'Smooth' in n:
+                if var >= 0:
+                    setattr(self.opts,n[0].lower(),var)
+            elif var > 0:
                 setattr(self.opts,n[0].lower(),var)
             getattr(self,'Entry'+n[0]).delete(0,END)
             getattr(self,'Entry'+n[0]).insert(0,getattr(self.opts,n[0].lower()))
