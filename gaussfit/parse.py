@@ -76,6 +76,7 @@ class Parse():
         else:
             self.lock = threading.Lock()
         # Pass your own log hanlder, e.g., when calling from a GUI
+        # But make sure it supports a flush() method!
         if not handler:
             from gaussfit.logger import DelayedHandler
             self.loghandler = DelayedHandler()
@@ -632,14 +633,22 @@ class Parse():
 
 
     def wait(self):
+        '''
+        Wait at most 60 seconds for either an error to occur or 
+        for the parser to complete.
+        '''
         self.logger.debug("Waiting for parser to complete.")
         t = 0
-        while not self.parsed:
+        while not self.parsed and not self.error:
             if t > 60:
                 self.logger.error("Timeout waiting for parser to complete.")
+                sys.exit(-1)
                 break
-            time.sleep(0.5)
-            t += 0.5
+            time.sleep(1)
+            t += 1
+        if self.error:
+            self.logger.error("!!! Parser completing with error, check the results carefully !!!")
+            self.loghandler.flush()
 
     def getXY(self):
         self.wait()
