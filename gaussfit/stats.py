@@ -120,6 +120,7 @@ class Stats:
                 fmt=self.GREEN+os.path.basename(sys.argv[0]+self.TEAL)+
                 ' %(levelname)s '+self.YELLOW+'%(message)s'+self.WHITE))
         else:
+            # Make sure it has a flush() method!
             self.loghandler = handler
       
         self.logger = logging.getLogger('statparser')
@@ -177,7 +178,11 @@ class Stats:
             children.append(ParserThread(limiter,alive,lock,opts,f,Set,Pop,self.loghandler))
             children[-1].start()
         for c in children:
-            c.join()
+            c.join(5*60.0)
+            if c.is_alive():
+                self.logger.error("Parser thread timed out: don't trust output!")
+                alive.clear()
+                time.sleep(5)
         return Set,Pop
 
     def __autonobs(self,opts,pop_files):
