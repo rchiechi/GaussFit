@@ -23,6 +23,7 @@ import sys,os,platform,threading,logging
 from gaussfit import *
 from gaussfit.stats import Stats
 from gaussfit.Output import WriteStats,StatPlotter
+from gaussfit.logger import GUIHandler
 from tkinter import filedialog #some weird bug...
 from tkinter import *
 from tkinter.ttk import *
@@ -87,10 +88,13 @@ class ChooseFiles(Frame):
         self.RightOptionsFrame.pack(side=RIGHT,fill=Y)
         self.LoggingFrame.pack(side=BOTTOM, fill=BOTH, expand=1)
         
-        self.logger = logging.getLogger('gui')
-        self.logger.addHandler(LoggingToGUI(self.Logging))
+        self.logger = logging.getLogger('parser.gui')
+        self.handler = GUIHandler(self.Logging)
+        self.logger.addHandler(self.handler)
+        self.logger.setLevel(getattr(logging,self.opts.loglevel.upper()))
         self.logger.info("Logging...")
-
+        self.handler.flush()
+        
         self.updateFileListBox('A')
         self.updateFileListBox('B')
 
@@ -240,7 +244,7 @@ class ChooseFiles(Frame):
                         self.logger.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
         else: 
             if len(self.opts.setA) and len(self.opts.setB):
-                statparser = Stats(self.opts,handler=LoggingToGUI(self.Logging))
+                statparser = Stats(self.opts,handler=GUIHandler(self.Logging))
                 self.gothreads.append(ParseThread(statparser))
                 self.gothreads[-1].start()
                 self.ButtonParse.after('500',self.Parse)
@@ -362,17 +366,17 @@ class ChooseFiles(Frame):
 
 
 
-class LoggingToGUI(logging.Handler):
-    """ Used to redirect logging output to the widget passed in parameters """
-    def __init__(self, console):
-        logging.Handler.__init__(self)
-        self.setFormatter(logging.Formatter('%(levelname)s %(message)s'))
-        self.console = console #Any text widget, you can use the class above or not
-
-    def emit(self, message): # Overwrites the default handler's emit method
-        formattedMessage = self.format(message)  #You can change the format here
-        self.console["state"] = NORMAL
-        self.console.insert(END, formattedMessage+"\n") #Inserting the logger message in the widget
-        self.console["state"] = DISABLED
-        self.console.see(END)
-
+#class LoggingToGUI(logging.Handler):
+#    """ Used to redirect logging output to the widget passed in parameters """
+#    def __init__(self, console):
+#        logging.Handler.__init__(self)
+#        self.setFormatter(logging.Formatter('%(levelname)s %(message)s'))
+#        self.console = console #Any text widget, you can use the class above or not
+#
+#    def emit(self, message): # Overwrites the default handler's emit method
+#        formattedMessage = self.format(message)  #You can change the format here
+#        self.console["state"] = NORMAL
+#        self.console.insert(END, formattedMessage+"\n") #Inserting the logger message in the widget
+#        self.console["state"] = DISABLED
+#        self.console.see(END)
+    
