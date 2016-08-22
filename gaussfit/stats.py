@@ -336,6 +336,9 @@ class Stats:
 
         if self.opts.write:
             self.logger.info("Writing stats to %s" % self.opts.outfile+"_Ttest"+key+".txt")
+            if not os.path.exists(self.opts.out_dir):
+                self.logger.info("Creating %s" % self.opts.out_dir)
+                os.mkdir(self.opts.out_dir)
             WriteStats(self.opts.out_dir, self.opts.outfile, dataset, \
                 "Ttest"+key, ["Voltage", "P-value (Gmean)", "T-stat (Gmean)", "P-value (J)","T-stat (J)", "AlphaA", "AlphaB"])
         self.dataset[key] = dataset
