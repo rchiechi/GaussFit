@@ -13,7 +13,7 @@ except ImportError:
 init(autoreset=True)
 YELLOW=Fore.YELLOW
 WHITE=Fore.WHITE
-RED=Fore.WHITE
+RED=Fore.RED
 TEAL=Fore.CYAN
 GREEN=Fore.GREEN
 BLUE=Fore.BLUE
