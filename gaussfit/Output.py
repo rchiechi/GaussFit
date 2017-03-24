@@ -253,11 +253,11 @@ class Writer():
             writer = csv.writer(csvfile, dialect='JV')
             headers = []
             for x in X[0]:
-                headers += ["%0.1f"%x]
+                headers += ["%0.4f"%x]
             writer.writerow(headers)
             headers = []
             for i in range(0,len(Y)):
-                headers += ['%0.1f'%Y[i][0]]
+                headers += ['%0.4f'%Y[i][0]]
             writer.writerow(headers)
 
     def WriteGeneric(self, dataset, bfn, labels=[]):
