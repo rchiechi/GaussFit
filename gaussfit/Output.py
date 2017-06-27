@@ -103,7 +103,7 @@ class Writer():
                                  "%0.4f"%self.XY[x]['R']['hist']['fit'][i],
                                  "%0.4f"%self.XY[x]['R']['hist']['skew'],
                                  "%0.4f"%self.XY[x]['R']['hist']['kurtosis'],
-                                 "%0.4f"%self.XY[x]['R']['hist']['skewtest'],
+                                 "%0.4f"%self.XY[x]['R']['hist']['skewstat'],
                                  "%0.4f"%self.XY[x]['R']['hist']['skewpval']]
                 writer.writerow(row)
 
