@@ -79,11 +79,20 @@ class Writer():
                 row = []
                 for x in self.XY: row += ["%0.4f"%self.XY[x]['hist']['bin'][i], 
                              "%s"%self.XY[x]['hist']['freq'][i],
-                             "%0.4f"%self.XY[x]['hist']['fit'][i],
-                             "%0.4f"%self.XY[x]['hist']['skew'],
-                             "%0.4f"%self.XY[x]['hist']['kurtosis'],
-                             "%0.4f"%self.XY[x]['hist']['skewstat'],
-                             "%0.4f"%self.XY[x]['hist']['skewpval']]
+                             "%0.4f"%self.XY[x]['hist']['fit'][i]]
+                writer.writerow(row)
+
+        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms_stats.txt")
+        with open(fn, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile, dialect='JV')
+            headers = ["Voltage", "Skew", "Kurtosis", "Skew test", "Skew pvalue"]
+            writer.writerow(headers)
+            for x in self.XY: 
+                row = ["%0.4f"%x,
+                         "%0.4f"%self.XY[x]['hist']['skew'],
+                         "%0.4f"%self.XY[x]['hist']['kurtosis'],
+                         "%0.4f"%self.XY[x]['hist']['skewstat'],
+                         "%0.4f"%self.XY[x]['hist']['skewpval']]
                 writer.writerow(row)
           
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RHistograms.txt")
@@ -94,18 +103,27 @@ class Writer():
                 for x in self.XY: headers += ["log |R| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
             else:
                 for x in self.XY: headers += ["|R| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
-            for x in self.XY: headers += ["Skew (%0.4f)"%x, "Kurtosis (%0.4f)"%x, "Skew test (%0.4f)"%x, "Skew pvalue (%0.4f)"%x]
             writer.writerow(headers)
             for i in range(0, len( self.XY[list(self.XY)[0]]['R']['hist']['bin'] ) ):
                 row = []
                 for x in self.XY: row += ["%0.4f"%self.XY[x]['R']['hist']['bin'][i],
                                  "%d"%self.XY[x]['R']['hist']['freq'][i],
-                                 "%0.4f"%self.XY[x]['R']['hist']['fit'][i],
-                                 "%0.4f"%self.XY[x]['R']['hist']['skew'],
-                                 "%0.4f"%self.XY[x]['R']['hist']['kurtosis'],
-                                 "%0.4f"%self.XY[x]['R']['hist']['skewstat'],
-                                 "%0.4f"%self.XY[x]['R']['hist']['skewpval']]
+                                 "%0.4f"%self.XY[x]['R']['hist']['fit'][i]]
                 writer.writerow(row)
+
+        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RHistograms_stats.txt")
+        with open(fn, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile, dialect='JV')
+            headers = ["Voltage", "Skew", "Kurtosis", "Skew test", "Skew pvalue"]
+            writer.writerow(headers)
+            for x in self.XY: 
+                row = ["%0.4f"%x,
+                         "%0.4f"%self.XY[x]['R']['hist']['skew'],
+                         "%0.4f"%self.XY[x]['R']['hist']['kurtosis'],
+                         "%0.4f"%self.XY[x]['R']['hist']['skewstat'],
+                         "%0.4f"%self.XY[x]['R']['hist']['skewpval']]
+                writer.writerow(row)
+          
 
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_LogdJdVHistograms.txt")
         with open(fn, 'w', newline='') as csvfile:
@@ -118,6 +136,19 @@ class Writer():
                 for x in self.GHists: row += ["%0.4f"%self.GHists[x]['hist']['bin'][i], 
                                  "%s"%self.GHists[x]['hist']['freq'][i],
                              "%0.4f"%self.GHists[x]['hist']['fit'][i]]
+                writer.writerow(row)
+
+        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_LogdJdVHistograms_stats.txt")
+        with open(fn, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile, dialect='JV')
+            headers = ["Voltage", "Skew", "Kurtosis", "Skew test", "Skew pvalue"]
+            writer.writerow(headers)
+            for x in self.GHists: 
+                row = ["%0.4f"%x,
+                         "%0.4f"%self.GHists[x]['hist']['skew'],
+                         "%0.4f"%self.GHists[x]['hist']['kurtosis'],
+                         "%0.4f"%self.GHists[x]['hist']['skewstat'],
+                         "%0.4f"%self.GHists[x]['hist']['skewpval']]
                 writer.writerow(row)
 
 
