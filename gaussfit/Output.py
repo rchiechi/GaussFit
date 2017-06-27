@@ -72,14 +72,20 @@ class Writer():
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             headers = []
-            for x in self.XY: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
+            for x in self.XY: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x, \
+                    "Skew (%0.4f)"%x, "Kurtosis (%0.4f)"%x, "Skew test (%0.4f)"%x, "Skew pvalue (%0.4f)"%x]
             writer.writerow(headers)
             for i in range(0, len( self.XY[list(self.XY.keys())[0]]['hist']['bin'] ) ):
                 row = []
                 for x in self.XY: row += ["%0.4f"%self.XY[x]['hist']['bin'][i], 
-                                 "%s"%self.XY[x]['hist']['freq'][i],
-                             "%0.4f"%self.XY[x]['hist']['fit'][i]]
+                             "%s"%self.XY[x]['hist']['freq'][i],
+                             "%0.4f"%self.XY[x]['hist']['fit'][i],
+                             "%0.4f"%self.XY[x]['hist']['skew'][i],
+                             "%0.4f"%self.XY[x]['hist']['kurtosis'][i],
+                             "%0.4f"%self.XY[x]['hist']['skewstat'][i],
+                             "%0.4f"%self.XY[x]['hist']['skewpval'][i]]
                 writer.writerow(row)
+          
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RHistograms.txt")
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
@@ -88,12 +94,17 @@ class Writer():
                 for x in self.XY: headers += ["log |R| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
             else:
                 for x in self.XY: headers += ["|R| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
+            for x in self.XY: headers += ["Skew (%0.4f)"%x, "Kurtosis (%0.4f)"%x, "Skew test (%0.4f)"%x, "Skew pvalue (%0.4f)"%x]
             writer.writerow(headers)
             for i in range(0, len( self.XY[list(self.XY)[0]]['R']['hist']['bin'] ) ):
                 row = []
                 for x in self.XY: row += ["%0.4f"%self.XY[x]['R']['hist']['bin'][i],
                                  "%d"%self.XY[x]['R']['hist']['freq'][i],
-                                 "%0.4f"%self.XY[x]['R']['hist']['fit'][i]]
+                                 "%0.4f"%self.XY[x]['R']['hist']['fit'][i],
+                                 "%0.4f"%self.XY[x]['R']['hist']['skew'][i],
+                                 "%0.4f"%self.XY[x]['R']['hist']['kurtosis'][i],
+                                 "%0.4f"%self.XY[x]['R']['hist']['skewtest'][i],
+                                 "%0.4f"%self.XY[x]['R']['hist']['skewpval'][i]]
                 writer.writerow(row)
 
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_LogdJdVHistograms.txt")
@@ -122,7 +133,17 @@ class Writer():
                     data[self.FN[key]['bin'][i]] = (self.FN[key]['freq'][i],self.FN[key]['fit'][i])
                 for x in sorted(data.keys()):
                     writer.writerow(['%0.4f'%x,'%d'%data[x][0],'%0.2f'%data[x][1]])
-                    
+        
+        fn = os.path.join(self.opts.out_dir, self.opts.outfile+"_Vtrans_stats.txt")
+        with open(fn, 'w') as fh:
+            for key in ('pos', 'neg'):
+                fh.write('--- %s ---\n' % key)
+                fh.write('Skew: %s\n' % self.FN[key]['skew'])
+                fh.write('Skew stat test: %s\n' % self.FN[key]['skewstat'])
+                fh.write('Skew p-val: %s\n' % self.FN[key]['skewpval'])
+                fh.write('Kurtosis: %s\n' % self.FN[key]['kurtosis'])
+
+    
     def WriteFN(self):
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_FN.txt")
         with open(fn, 'w', newline='') as csvfile:
@@ -305,6 +326,9 @@ class Writer():
         for fn in tocopy:
             copyfile(os.path.join(tdir,fn), \
                     os.path.join(self.opts.out_dir,fn))     
+
+            
+            
 class Plotter():
     '''This is the main Plotter class for generating 
     plots using matplotlib.'''
