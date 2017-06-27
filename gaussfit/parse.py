@@ -24,7 +24,7 @@ try:
     import pandas as pd
     from scipy.optimize import curve_fit,OptimizeWarning
     import scipy.interpolate 
-    from scipy.stats import gmean,norm
+    from scipy.stats import gmean,norm,skew,skewtest,kurtosis
     import scipy.misc 
     import numpy as np
     # SciPy throws a useless warning for noisy J/V traces
@@ -626,10 +626,14 @@ class Parse():
         except ValueError as msg:
             self.logger.warning("|%s| Skipping data with ridiculous numbers in it (%s)", label, str(msg), exc_info=False )
             #coeff=p0
-            #hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
+
+        #hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
+
+        skewstat, skewpval = skewtest(freq)
 
         return {"bin":bin_centers, "freq":freq, "mean":coeff[1], "std":coeff[2], \
-                "var":coeff[2], "bins":bins, "fit":hist_fit, "Gmean":Ym, "Gstd":Ys}
+                "var":coeff[2], "bins":bins, "fit":hist_fit, "Gmean":Ym, "Gstd":Ys,\
+                "skew":skew(freq), "kurtosis":kurtosis(freq), "skewstat":skewstat, "skewpval":skewpval}
 
 
     def wait(self):
