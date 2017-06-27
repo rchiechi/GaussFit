@@ -80,10 +80,10 @@ class Writer():
                 for x in self.XY: row += ["%0.4f"%self.XY[x]['hist']['bin'][i], 
                              "%s"%self.XY[x]['hist']['freq'][i],
                              "%0.4f"%self.XY[x]['hist']['fit'][i],
-                             "%0.4f"%self.XY[x]['hist']['skew'][i],
-                             "%0.4f"%self.XY[x]['hist']['kurtosis'][i],
-                             "%0.4f"%self.XY[x]['hist']['skewstat'][i],
-                             "%0.4f"%self.XY[x]['hist']['skewpval'][i]]
+                             "%0.4f"%self.XY[x]['hist']['skew'],
+                             "%0.4f"%self.XY[x]['hist']['kurtosis'],
+                             "%0.4f"%self.XY[x]['hist']['skewstat'],
+                             "%0.4f"%self.XY[x]['hist']['skewpval']]
                 writer.writerow(row)
           
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RHistograms.txt")
@@ -101,10 +101,10 @@ class Writer():
                 for x in self.XY: row += ["%0.4f"%self.XY[x]['R']['hist']['bin'][i],
                                  "%d"%self.XY[x]['R']['hist']['freq'][i],
                                  "%0.4f"%self.XY[x]['R']['hist']['fit'][i],
-                                 "%0.4f"%self.XY[x]['R']['hist']['skew'][i],
-                                 "%0.4f"%self.XY[x]['R']['hist']['kurtosis'][i],
-                                 "%0.4f"%self.XY[x]['R']['hist']['skewtest'][i],
-                                 "%0.4f"%self.XY[x]['R']['hist']['skewpval'][i]]
+                                 "%0.4f"%self.XY[x]['R']['hist']['skew'],
+                                 "%0.4f"%self.XY[x]['R']['hist']['kurtosis'],
+                                 "%0.4f"%self.XY[x]['R']['hist']['skewtest'],
+                                 "%0.4f"%self.XY[x]['R']['hist']['skewpval']]
                 writer.writerow(row)
 
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_LogdJdVHistograms.txt")
