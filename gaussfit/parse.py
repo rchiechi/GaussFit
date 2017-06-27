@@ -24,7 +24,7 @@ try:
     import pandas as pd
     from scipy.optimize import curve_fit,OptimizeWarning
     import scipy.interpolate 
-    from scipy.stats import gmean,norm,skew,skewtest,kurtosis
+    from scipy.stats import gmean,norm,skew,skewtest,kurtosis,kurtosistest
     import scipy.misc 
     import numpy as np
     # SciPy throws a useless warning for noisy J/V traces
@@ -630,10 +630,11 @@ class Parse():
         #hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
 
         skewstat, skewpval = skewtest(freq)
-
+        kurtstat, kurtpval = kurtosistest(freq)
         return {"bin":bin_centers, "freq":freq, "mean":coeff[1], "std":coeff[2], \
                 "var":coeff[2], "bins":bins, "fit":hist_fit, "Gmean":Ym, "Gstd":Ys,\
-                "skew":skew(freq), "kurtosis":kurtosis(freq), "skewstat":skewstat, "skewpval":skewpval}
+                "skew":skew(freq), "kurtosis":kurtosis(freq), "skewstat":skewstat, "skewpval":skewpval,
+                "kurtstat":kurtstat, "kurtpval":kurtpval}
 
 
     def wait(self):

@@ -85,14 +85,16 @@ class Writer():
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms_stats.txt")
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
-            headers = ["Voltage", "Skew", "Kurtosis", "Skew test", "Skew pvalue"]
+            headers = ["Voltage", "Skew", "Kurtosis", "Skew zscore", "Skew pvalue", "Kurtosis zscore", "Kurtosis pvalue"]
             writer.writerow(headers)
             for x in self.XY: 
                 row = ["%0.4f"%x,
                          "%0.4f"%self.XY[x]['hist']['skew'],
                          "%0.4f"%self.XY[x]['hist']['kurtosis'],
                          "%0.4f"%self.XY[x]['hist']['skewstat'],
-                         "%0.4f"%self.XY[x]['hist']['skewpval']]
+                         "%0.4f"%self.XY[x]['hist']['skewpval'],
+                         "%0.4f"%self.XY[x]['hist']['kurtstat'],
+                         "%0.4f"%self.XY[x]['hist']['kurtpval']]
                 writer.writerow(row)
           
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RHistograms.txt")
@@ -114,14 +116,16 @@ class Writer():
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RHistograms_stats.txt")
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
-            headers = ["Voltage", "Skew", "Kurtosis", "Skew test", "Skew pvalue"]
+            headers = ["Voltage", "Skew", "Kurtosis", "Skew zscore", "Skew pvalue", "Kurtosis zscore", "Kurtosis pvalue"]
             writer.writerow(headers)
             for x in self.XY: 
                 row = ["%0.4f"%x,
                          "%0.4f"%self.XY[x]['R']['hist']['skew'],
                          "%0.4f"%self.XY[x]['R']['hist']['kurtosis'],
                          "%0.4f"%self.XY[x]['R']['hist']['skewstat'],
-                         "%0.4f"%self.XY[x]['R']['hist']['skewpval']]
+                         "%0.4f"%self.XY[x]['R']['hist']['skewpval'],
+                         "%0.4f"%self.XY[x]['R']['hist']['kurtstat'],
+                         "%0.4f"%self.XY[x]['R']['hist']['kurtpval']]
                 writer.writerow(row)
           
 
@@ -141,14 +145,16 @@ class Writer():
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_LogdJdVHistograms_stats.txt")
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
-            headers = ["Voltage", "Skew", "Kurtosis", "Skew test", "Skew pvalue"]
+            headers = ["Voltage", "Skew", "Kurtosis", "Skew zscore", "Skew pvalue", "Kurtosis zscore", "Kurtosis pvalue"]
             writer.writerow(headers)
             for x in self.GHists: 
                 row = ["%0.4f"%x,
                          "%0.4f"%self.GHists[x]['hist']['skew'],
                          "%0.4f"%self.GHists[x]['hist']['kurtosis'],
                          "%0.4f"%self.GHists[x]['hist']['skewstat'],
-                         "%0.4f"%self.GHists[x]['hist']['skewpval']]
+                         "%0.4f"%self.GHists[x]['hist']['skewpval'],
+                         "%0.4f"%self.GHists[x]['hist']['kurtstat'],
+                         "%0.4f"%self.GHists[x]['hist']['kurtpval']]
                 writer.writerow(row)
 
 
@@ -170,9 +176,11 @@ class Writer():
             for key in ('pos', 'neg'):
                 fh.write('--- %s ---\n' % key)
                 fh.write('Skew: %s\n' % self.FN[key]['skew'])
-                fh.write('Skew stat test: %s\n' % self.FN[key]['skewstat'])
+                fh.write('Skew z-score: %s\n' % self.FN[key]['skewstat'])
                 fh.write('Skew p-val: %s\n' % self.FN[key]['skewpval'])
                 fh.write('Kurtosis: %s\n' % self.FN[key]['kurtosis'])
+                fh.write('Kurtosis z-score test: %s\n' % self.FN[key]['kurtstat'])
+                fh.write('Kurtosis p-val: %s\n' % self.FN[key]['kurtpval'])
 
     
     def WriteFN(self):
