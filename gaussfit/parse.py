@@ -353,6 +353,7 @@ class Parse():
         '''
         linx = np.linspace(self.df.V.min(), self.df.V.max(), 200)
         if self.opts.vcutoff > 0:
+            self.logger.debug('Using %s cutoff for dj/dv' % self.opts.vcutoff) 
             vfilterneg,vfilterpos = np.linspace(-1*self.opts.vcutoff,0,200), np.linspace(0,self.opts.vcutoff.max(),200)
         else:
             vfilterneg,vfilterpos = np.linspace(self.df.V.min(),0,200), np.linspace(0,self.df.V.max(),200)
