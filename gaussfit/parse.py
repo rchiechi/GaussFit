@@ -406,8 +406,8 @@ class Parse():
                     continue
                 spls[x].append(d[self.opts.heatmapd])
                 splhists[x]['spl'].append(np.log10(abs(d[self.opts.heatmapd])))
-                spls_norm[x].append( d[1] * (x/spl[x]) )
-                spl_normhists[x]['spl'].append( d[1] * (x/spl[x])  )
+                spls_norm[x].append( d[1] * (x/spl(x]) )
+                spl_normhists[x]['spl'].append( d[1] * (x/spl(x))  )
             if err:
                 self.logger.error("Error while computing derivative: %s" % str(err))
 
