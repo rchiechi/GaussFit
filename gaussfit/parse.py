@@ -99,6 +99,7 @@ class Parse():
         writer.WriteFN()
         writer.WriteGauss()
         writer.WriteGNUplot('JVplot')
+        writer.WriteGNUplot('NDCplot')
         writer.WriteData()
         writer.WriteDJDV()
         writer.WriteNDC()
