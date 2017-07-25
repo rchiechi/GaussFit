@@ -372,7 +372,7 @@ class Parse():
             spls[x] = []
             splhists[x] = {'spl':[],'hist':{}}
             spls_norm[x] = []
-            spls_normhists[x] = {'spl':[],'hist':{}}
+            spl_normhists[x] = {'spl':[],'hist':{}}
         for trace in self.avg.index.levels[0]:
             try:
                 spl = scipy.interpolate.UnivariateSpline(self.avg.loc[trace].index,self.avg.loc[trace]['J'], k=5, s=self.opts.smooth )
