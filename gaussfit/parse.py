@@ -368,6 +368,7 @@ class Parse():
         spls_norm = OrderedDict()
         splhists = OrderedDict()
         spl_normhists = OrderedDict()
+        ndc_cut, ndc_tot = 0,0
         filtered = [('Potential', 'Fit', 'Y')]
         for x in linx: 
             spls[x] = []
@@ -377,7 +378,6 @@ class Parse():
         for trace in self.avg.index.levels[0]:
             try:
                 spl = scipy.interpolate.UnivariateSpline(self.avg.loc[trace].index,self.avg.loc[trace]['J'], k=5, s=self.opts.smooth )
-                #d = spl.derivative()
                 dd =  scipy.interpolate.UnivariateSpline(self.avg.loc[trace].index,self.avg.loc[trace]['J'], k=5, s=None).derivative(2)
             except Exception as msg:
                 self.logger.error('Error in derivative calulation: %s' % str(msg))
@@ -407,13 +407,19 @@ class Parse():
                     continue
                 spls[x].append(d[self.opts.heatmapd])
                 splhists[x]['spl'].append(np.log10(abs(d[self.opts.heatmapd])))
-                spls_norm[x].append( d[1] * (x/spl(x)) )
-                spl_normhists[x]['spl'].append( d[1] * (x/spl(x))  )
+                ndc = d[1] * (x/spl(x))
+                spls_norm[x].append( ndc )
+                ndc_tot += 1
+                if 0.0 < ndc < 10.0:
+                    spl_normhists[x]['spl'].append( ndc )
+                else:
+                    ndc_cut += 1
             if err:
                 self.logger.error("Error while computing derivative: %s" % str(err))
 
         self.logger.info("Non-tunneling traces: %s (out of %0d)" % 
                     ( len(self.ohmic), len(self.avg.index.levels[0]) ) )
+        self.logger.info("NDC values not between 0 and 10: %s (%0.2f%%)" % (ndc_cut, (ndc_cut/ndc_tot)*100) )
         self.loghandler.flush()
         for x in splhists:
             splhists[x]['hist'] = self.__dohistogram(np.array(splhists[x]['spl']), label='DJDV')
