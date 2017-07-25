@@ -101,6 +101,7 @@ class Parse():
         writer.WriteGNUplot('JVplot')
         writer.WriteData()
         writer.WriteDJDV()
+        writer.WriteNDC()
         writer.WriteFiltered()
         writer.WriteData(True)
         writer.WriteRData()
@@ -363,14 +364,19 @@ class Parse():
             vfilterneg,vfilterpos = linx[linx < 0], linx[linx > 0]
 
         spls = OrderedDict()
+        spls_norm = OrderedDict()
         splhists = OrderedDict()
+        spl_normhists = OrderedDict()
         filtered = [('Potential', 'Fit', 'Y')]
         for x in linx: 
             spls[x] = []
             splhists[x] = {'spl':[],'hist':{}}
+            spls_norm[x] = []
+            spls_normhists[x] = {'spl':[],'hist':{}}
         for trace in self.avg.index.levels[0]:
             try:
                 spl = scipy.interpolate.UnivariateSpline(self.avg.loc[trace].index,self.avg.loc[trace]['J'], k=5, s=self.opts.smooth )
+                #d = spl.derivative()
                 dd =  scipy.interpolate.UnivariateSpline(self.avg.loc[trace].index,self.avg.loc[trace]['J'], k=5, s=None).derivative(2)
             except Exception as msg:
                 self.logger.error('Error in derivative calulation: %s' % str(msg))
@@ -400,6 +406,8 @@ class Parse():
                     continue
                 spls[x].append(d[self.opts.heatmapd])
                 splhists[x]['spl'].append(np.log10(abs(d[self.opts.heatmapd])))
+                spls_norm[x].append( d[1] * (x/spl[x]) )
+                spl_normhists[x]['spl'].append( d[1] * (x/spl[x])  )
             if err:
                 self.logger.error("Error while computing derivative: %s" % str(err))
 
@@ -408,9 +416,10 @@ class Parse():
         self.loghandler.flush()
         for x in splhists:
             splhists[x]['hist'] = self.__dohistogram(np.array(splhists[x]['spl']), label='DJDV')
+            spl_normhists[x]['hist'] = self.__dohistogram(np.array(spl_normhists[x]['spl']), label='NDC')
         self.logger.info("dJdV complete.")
         self.loghandler.flush()
-        self.DJDV, self.GHists, self.filtered = spls, splhists, filtered
+        self.DJDV, self.GHists, self.NDC, self.NDCHists, self.filtered = spls, splhists, spls_norm, spl_normhists, filtered
 
     def dorect(self):
         ''' 
