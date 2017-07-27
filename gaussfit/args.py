@@ -105,6 +105,8 @@ parser.add_argument('--maxfev', type=int, default=10000,
 		help="Maximum interations for fitting histograms.")
 parser.add_argument('--plots', type=str, nargs='*', default=['J'], 
 		help="What to plot: J,R.")
+parser.add_argument('--histplots', type=str, nargs='*', default=['NDC'], 
+		help="What to plot: NDC,G.")
 parser.add_argument('-T','--threads', type=int,default=8, 
 		help="Use n threads for parsing for marginal speed boost.")
 parser.add_argument('--autonobs', default=False, action='store_true', 

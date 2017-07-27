@@ -294,51 +294,51 @@ class Writer():
                     writer.writerow(row)
                 writer.writerow([])
 
-    def WriteGMatrixold(self):
-        '''Output for a matlab-style colormap maxtrix'''
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_GMatrix.txt")
-        with open(fn, 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile, dialect='JV')
-            x,y,z = [],[],[]
-            for i in range(0, len(self.GHists[list(self.GHists.keys())[0]]['hist']['bin'])):
-                for v in self.GHists:
-                    x.append(v)
-                    y.append(self.GHists[v]['hist']['bin'][i])
-                    z.append(self.GHists[v]['hist']['freq'][i])
-            x,y,z = np.array(x),np.array(y),np.array(z)
-            xmin,xmax = x.min(),x.max()
-            ymin,ymax = self.opts.mlow, self.opts.mhi
-            xi=np.linspace(xmin,xmax,200)
-            yi=np.linspace(ymin,ymax,200)
-            X,Y= np.meshgrid(xi,yi)
-            Z = griddata((x, y), z, (X, Y),fill_value=0,method='cubic')
-            
-            #headers = ['MatrixData']
-            #for x in X[0]:
-            #   headers += ["%0.1f"%x]
-            #writer.writerow(headers)
-            
-            for i in range(0,len(Z)):
-                zi = []
-                for z in Z[i]:
-                    if z < 0:
-                        zi.append(0)
-                    else:
-                        zi.append(z)
-                #writer.writerow( ['%0.1f'%Y[i][0]]+list(Z[i]) )
-                #writer.writerow( ['%0.1f'%Y[i][0]]+zi )
-                writer.writerow(zi)
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_GMatrix_Labels.txt")
-        with open(fn, 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile, dialect='JV')
-            headers = []
-            for x in X[0]:
-                headers += ["%0.4f"%x]
-            writer.writerow(headers)
-            headers = []
-            for i in range(0,len(Y)):
-                headers += ['%0.4f'%Y[i][0]]
-            writer.writerow(headers)
+#    def WriteGMatrixold(self):
+#        '''Output for a matlab-style colormap maxtrix'''
+#        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_GMatrix.txt")
+#        with open(fn, 'w', newline='') as csvfile:
+#            writer = csv.writer(csvfile, dialect='JV')
+#            x,y,z = [],[],[]
+#            for i in range(0, len(self.GHists[list(self.GHists.keys())[0]]['hist']['bin'])):
+#                for v in self.GHists:
+#                    x.append(v)
+#                    y.append(self.GHists[v]['hist']['bin'][i])
+#                    z.append(self.GHists[v]['hist']['freq'][i])
+#            x,y,z = np.array(x),np.array(y),np.array(z)
+#            xmin,xmax = x.min(),x.max()
+#            ymin,ymax = self.opts.mlow, self.opts.mhi
+#            xi=np.linspace(xmin,xmax,200)
+#            yi=np.linspace(ymin,ymax,200)
+#            X,Y= np.meshgrid(xi,yi)
+#            Z = griddata((x, y), z, (X, Y),fill_value=0,method='cubic')
+#            
+#            #headers = ['MatrixData']
+#            #for x in X[0]:
+#            #   headers += ["%0.1f"%x]
+#            #writer.writerow(headers)
+#            
+#            for i in range(0,len(Z)):
+#                zi = []
+#                for z in Z[i]:
+#                    if z < 0:
+#                        zi.append(0)
+#                    else:
+#                        zi.append(z)
+#                #writer.writerow( ['%0.1f'%Y[i][0]]+list(Z[i]) )
+#                #writer.writerow( ['%0.1f'%Y[i][0]]+zi )
+#                writer.writerow(zi)
+#        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_GMatrix_Labels.txt")
+#        with open(fn, 'w', newline='') as csvfile:
+#            writer = csv.writer(csvfile, dialect='JV')
+#            headers = []
+#            for x in X[0]:
+#                headers += ["%0.4f"%x]
+#            writer.writerow(headers)
+#            headers = []
+#            for i in range(0,len(Y)):
+#                headers += ['%0.4f'%Y[i][0]]
+#            writer.writerow(headers)
 
     def WriteGMatrix(self, label):
         '''Output for a matlab-style colormap maxtrix'''
@@ -535,7 +535,7 @@ class Plotter():
             ax.set_ylabel(r'$log|J A cm^{-2}|$')
         elif self.opts.heatmapd == 1:
             ax.set_title("Derivative of Initial Data")
-            ax.set_ylabel(r'$\mathregular{\frac{dJ}{dV}}$')
+            ax.set_ylabel(r'$\mathregular{\log|\frac{dJ}{dV}|}$')
         elif self.opts.heatmapd == 2:
             ax.set_title("Second Derivative of Initial Data")
             ax.set_ylabel(r'$\mathregular{\frac{d^2J}{dV^2}}$')
@@ -552,6 +552,34 @@ class Plotter():
         xmin,xmax = x.min(),x.max()
         #ymin,ymax = y.min(),y.max()
         ymin,ymax = self.opts.mlow, self.opts.mhi
+        x = np.r_[x,xmin,xmax]
+        y = np.r_[y,ymin,ymax]
+        z = np.r_[z,z[0],z[-1]]
+        xi = np.linspace(xmin, xmax, 200)
+        yi = np.linspace(ymin, ymax, 200)
+        X,Y= np.meshgrid(xi,yi)
+        Z = griddata((x, y), z, (X, Y),method='nearest')
+        ax.axis([xmin, xmax, ymin, ymax])
+        ax.pcolormesh(X,Y,Z, cmap = plt.get_cmap('rainbow'))
+
+
+    def PlotNDC(self,ax):
+        import matplotlib.pyplot as plt
+        ax.set_title("NDC Plot")
+        ax.set_xlabel("Potential (V)")
+        ax.set_title("Heatmap of NDC")
+        ax.set_ylabel('Normalized Differential Condutance')
+        x,y,z =[],[],[]
+        for v in self.NDCHists:
+            for i in range(0, len(self.NDCHists[v]['hist']['bin'])):
+                if i in self.ohmic and self.opts.skipohmic:
+                    continue
+                x.append(v)
+                y.append(self.NDCHists[v]['hist']['bin'][i])
+                z.append(self.NDCHists[v]['hist']['freq'][i])
+        x,y,z = np.array(x),np.array(y),np.array(z)
+        xmin,xmax = x.min(),x.max()
+        ymin,ymax = self.opts.ndc_mlow, self.opts.ndc_mhi
         x = np.r_[x,xmin,xmax]
         y = np.r_[y,ymin,ymax]
         z = np.r_[z,z[0],z[-1]]
@@ -590,21 +618,24 @@ class Plotter():
         ax.plot(self.XY[key]['hist']['bin'], self.XY[key]['hist']['fit'], lw=2.0, color='b', label='Fit')
 
 
-    def DoPlots(self, plt, *data):
+    def DoPlots(self, plt, *_plot):
         fig = plt.figure(figsize=(16,10))
         ax1 = fig.add_axes([0.06, 0.55, 0.4, 0.4])
         ax2 = fig.add_axes([0.56, 0.55, 0.4, 0.4])
         ax3 = fig.add_axes([0.06, 0.05, 0.4, 0.4])
         ax4 = fig.add_axes([0.56, 0.05, 0.4, 0.4])
-        if 'J' in data:
+        if 'J' in _plot:
             self.PlotFit(ax1)
             self.PlotData('LogY',ax2,':',lw=0.25, color='c')
             self.PlotHist(ax2)
-        elif 'R' in data:
+        elif 'R' in _plot:
             self.PlotRFit(ax1)
             self.PlotR(ax2)
         self.PlotVtrans(ax4)
-        self.PlotG(ax3)
+        if 'NDC' in _plot:
+            self.PlotNDC(ax3)
+        elif 'G' in _plot:
+            self.PlotG(ax3)
         if self.opts.write:
             fig.savefig(os.path.join(self.opts.out_dir,self.opts.outfile+"_fig.png"), format="png")
         #self.PlotData('FN', ax3, 'x', ms=2)

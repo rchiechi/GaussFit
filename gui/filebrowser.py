@@ -146,19 +146,27 @@ class ChooseFiles(Frame):
         if self.opts.outfile:
             self.OutputFileName.insert(0,self.opts.outfile)
     
-        Label(self.RightOptionsFrame, text="What to plot:").grid(column=0,row=rowidx+2,sticky=W)
+        Label(self.RightOptionsFrame, text="Data to plot:").grid(column=0,row=rowidx+2,sticky=W)
         self.OptionsPlotsString = StringVar()
         self.OptionsPlotsString.set(','.join(self.opts.plots))
         self.OptionPlots = OptionMenu(self.RightOptionsFrame, self.OptionsPlotsString,'J','R',
                                  command=self.checkOptions)
         self.OptionPlots.grid(column=0,row=rowidx+3,sticky=W)
     
-        Label(self.RightOptionsFrame, text="Derivative for heatmap:").grid(column=0,row=rowidx+4,sticky=W)
+        Label(self.RightOptionsFrame, text="Histogram to plot:").grid(column=0,row=rowidx+4,sticky=W)
+        self.OptionsHistPlotsString = StringVar()
+        self.OptionsHistPlotsString.set(','.join(self.opts.histplots))
+        self.OptionHistPlots = OptionMenu(self.RightOptionsFrame, self.OptionsHistPlotsString,'NDC','G',
+                                 command=self.checkOptions)
+        self.OptionHistPlots.grid(column=0,row=rowidx+5,sticky=W)
+    
+    
+        Label(self.RightOptionsFrame, text="Derivative for heatmap:").grid(column=0,row=rowidx+6,sticky=W)
         self.OptionsHeatmapdString = StringVar()
         self.OptionsHeatmapdString.set(self.opts.heatmapd)
         self.OptionHeatmapd = OptionMenu(self.RightOptionsFrame, self.OptionsHeatmapdString,'0','1','2',
                                  command=self.checkOptions)
-        self.OptionHeatmapd.grid(column=0,row=rowidx+5,sticky=W)
+        self.OptionHeatmapd.grid(column=0,row=rowidx+7,sticky=W)
 
         lbls = [
             {'name': 'Columns', 'text': "Columns to parse:",
@@ -167,7 +175,9 @@ class ChooseFiles(Frame):
              'tooltip': "Check the values of d2J/dV2 between |vcutoff| and Vmin/Vmax for line-shape filtering. Set to -1 for Vmin/Vmax."},
             {'name': 'Smooth', 'text': "Smoothing parameter:",
              'tooltip': "The cutoff value for the residual squares (the difference between experimental data points and the fit). The default is 1e-12. Set to 0 to disable smoothing."},
-            {'name': 'Gminmax', 'text': "Y-scale for histogram:",
+            {'name': 'Gminmax', 'text': "Y-scale for G heatmap:",
+                 'tooltip': "Set Ymin,Ymax for the heapmap plot (lower-left of plot output)."},
+            {'name': 'NDCminmax', 'text': "Y-scale for NDC heatmap:",
                  'tooltip': "Set Ymin,Ymax for the heapmap plot (lower-left of plot output)."},
             {'name': 'Bins', 'text': "Bins for J/R Histograms:",
              'tooltip': "Set binning for histograms of J and R."},
@@ -339,8 +349,11 @@ class ChooseFiles(Frame):
             getattr(self,'Entry'+n[0]).insert(0,getattr(self.opts,n[0].lower()))
     
         self.opts.plots = self.OptionsPlotsString.get().split(',')
+        self.opts.plots += self.OptionsHistPlotsString.get().split(',')
+        self.opts.histplots = self.OptionsHistPlotsString.get().split(',')
         self.opts.heatmapd = int(self.OptionsHeatmapdString.get())
         self.checkGminmaxEntry(event)
+        self.checkNDCminmaxEntry(event)
         self.checkOutputFileName(event) 
         self.checkColumnEntry(event)
         self.checkVcutoff(event)
@@ -382,5 +395,15 @@ class ChooseFiles(Frame):
             pass
         self.EntryGminmax.delete(0, END)
         self.EntryGminmax.insert(0, ",".join( (str(self.opts.mlow), str(self.opts.mhi)) ))
+
+    def checkNDCminmaxEntry(self, event):
+        try:
+            x, y = self.EntryNDCminmax.get().split(",")
+            self.opts.ndc_mlow, self.opts.ndc_mhi = int(x), int(y)
+        except ValueError as msg:
+            pass
+        self.EntryNDCminmax.delete(0, END)
+        self.EntryNDCminmax.insert(0, ",".join( (str(self.opts.ndc_mlow), str(self.opts.ndc_mhi)) ))
+
 
 
