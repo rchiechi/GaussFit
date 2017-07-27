@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 '''
-Copyright (C) 2016 Ryan Chiechi <r.c.chiechi@rug.nl>
+Copyright (C) 2017 Ryan Chiechi <r.c.chiechi@rug.nl>
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -117,8 +117,10 @@ class Parse():
         except IndexError:
             print("Error outputting Ghistrograms")
         try:
-            writer.WriteGMatrix()
-            writer.WriteGNUplot('Gplot', ['parula.pal']) 
+            writer.WriteGMatrix('GMatrix')
+            writer.WriteGNUplot('GMatrix', ['parula.pal']) 
+            writer.WriteGMatrix('NDCMatrix')
+            writer.WriteGNUplot('NDCMatrix') 
         except IndexError:
             print("Error outputting GMatrix")
         writer.logger.info("Done!")

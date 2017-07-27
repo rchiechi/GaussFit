@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 '''
-Copyright (C) 2015 Ryan Chiechi <r.c.chiechi@rug.nl>
+Copyright (C) 2017 Ryan Chiechi <r.c.chiechi@rug.nl>
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -294,7 +294,7 @@ class Writer():
                     writer.writerow(row)
                 writer.writerow([])
 
-    def WriteGMatrix(self):
+    def WriteGMatrixold(self):
         '''Output for a matlab-style colormap maxtrix'''
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_GMatrix.txt")
         with open(fn, 'w', newline='') as csvfile:
@@ -329,6 +329,52 @@ class Writer():
                 #writer.writerow( ['%0.1f'%Y[i][0]]+zi )
                 writer.writerow(zi)
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_GMatrix_Labels.txt")
+        with open(fn, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile, dialect='JV')
+            headers = []
+            for x in X[0]:
+                headers += ["%0.4f"%x]
+            writer.writerow(headers)
+            headers = []
+            for i in range(0,len(Y)):
+                headers += ['%0.4f'%Y[i][0]]
+            writer.writerow(headers)
+
+    def WriteGMatrix(self, label):
+        '''Output for a matlab-style colormap maxtrix'''
+        if label == 'GMatrix':
+            Hists = self.GHists
+        elif label == 'NDCMatrix':
+            Hists = self.NDCMatrix
+        else:
+            return
+
+        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_%s.txt" % label)
+        with open(fn, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile, dialect='JV')
+            x,y,z = [],[],[]
+            for i in range(0, len(Hists[list(Hists.keys())[0]]['hist']['bin'])):
+                for v in Hists:
+                    x.append(v)
+                    y.append(Hists[v]['hist']['bin'][i])
+                    z.append(Hists[v]['hist']['freq'][i])
+            x,y,z = np.array(x),np.array(y),np.array(z)
+            xmin,xmax = x.min(),x.max()
+            ymin,ymax = self.opts.mlow, self.opts.mhi
+            xi=np.linspace(xmin,xmax,200)
+            yi=np.linspace(ymin,ymax,200)
+            X,Y= np.meshgrid(xi,yi)
+            Z = griddata((x, y), z, (X, Y),fill_value=0,method='cubic')
+            
+            for i in range(0,len(Z)):
+                zi = []
+                for z in Z[i]:
+                    if z < 0:
+                        zi.append(0)
+                    else:
+                        zi.append(z)
+                writer.writerow(zi)
+        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_%s_Labels.txt" % label)
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             headers = []
