@@ -85,9 +85,13 @@ parser.add_argument('-S','--smooth', type=float, default=0,
 		help="Cutoff for residuals when smoothing splines for dJ/dV 0 to disable. 1e-4 for artifacts, 1e-12 for smooth plots.")
 parser.add_argument('-v','--vcutoff', type=float, default=-1, 
 		help="Voltage (absolute value) cut-off for dJ/dV skipping routine (-1 for Vmin/Vmax)")
-parser.add_argument('-a','--lower', metavar='LOWER', dest='mlow', type=float, default=-6, 
+parser.add_argument('--Glower', metavar='GLOWER', dest='mlow', type=float, default=-6, 
 		help="Lower cutoff value for conductance heat map plot.")
-parser.add_argument('-z','--upper', metavar='UPPER', dest='mhi', type=float, default=0, 
+parser.add_argument('--Gupper', metavar='GUPPER', dest='mhi', type=float, default=0, 
+		help="Upper cutoff value for conductance heat map plot.")
+parser.add_argument('--NDClower', metavar='NDCLOWER', dest='ndc_mlow', type=float, default=0.05, 
+		help="Lower cutoff value for normalized differential conductance heat map plot.")
+parser.add_argument('--NDCupper', metavar='NDCUPPER', dest='ndc_mhi', type=float, default=5, 
 		help="Upper cutoff value for conductance heat map plot.")
 parser.add_argument('--heatmapbins', default=25, type=int, 
 		help="Number of bins for the conductance heatmap plot.")

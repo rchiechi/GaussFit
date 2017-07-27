@@ -345,7 +345,7 @@ class Writer():
         if label == 'GMatrix':
             Hists = self.GHists
         elif label == 'NDCMatrix':
-            Hists = self.NDCMatrix
+            Hists = self.NDCHists
         else:
             return
 
@@ -360,7 +360,12 @@ class Writer():
                     z.append(Hists[v]['hist']['freq'][i])
             x,y,z = np.array(x),np.array(y),np.array(z)
             xmin,xmax = x.min(),x.max()
-            ymin,ymax = self.opts.mlow, self.opts.mhi
+            if label == 'GMatrix':
+                ymin,ymax = self.opts.mlow, self.opts.mhi
+            elif label == 'NDCMatrix':
+                ymin,ymax = self.opts.ndc_mlow, self.opts.ndc_mhi
+            else:
+                ymin,ymax = y.min(),y.max()
             xi=np.linspace(xmin,xmax,200)
             yi=np.linspace(ymin,ymax,200)
             X,Y= np.meshgrid(xi,yi)

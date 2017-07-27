@@ -608,7 +608,7 @@ class Parse():
             Y = Y[Y <= self.opts.compliance]
             yrange = (Y.min()-1, Y.max()+1)
         if label == "R": Y = Y[Y <= self.opts.maxr]
-        if label=='DJDV': nbins = self.opts.heatmapbins
+        if label=='DJDV' or label=='NDC': nbins = self.opts.heatmapbins
         else: nbins = self.opts.bins
         if len(Y) < 10:
             self.logger.warn("Histogram with only %d points.", len(Y))
