@@ -103,10 +103,10 @@ parser.add_argument('-N','--nobs', type=int, default=0,
 		help="Number of observations for statistical tests on J (but not Gmean!).")
 parser.add_argument('--maxfev', type=int, default=10000, 
 		help="Maximum interations for fitting histograms.")
-parser.add_argument('--plots', type=str, nargs='*', default=['J'], 
-		help="What to plot: J,R.")
-parser.add_argument('--histplots', type=str, nargs='*', default=['NDC'], 
-		help="What to plot: NDC,G.")
+parser.add_argument('--plots', type=str, default='J', choices=['J','R'], 
+		help="Log data to plot.")
+parser.add_argument('--histplots', type=str, default='NDC', choices=['NDC','G'], 
+		help="Derivative data to plot.")
 parser.add_argument('-T','--threads', type=int,default=8, 
 		help="Use n threads for parsing for marginal speed boost.")
 parser.add_argument('--autonobs', default=False, action='store_true', 

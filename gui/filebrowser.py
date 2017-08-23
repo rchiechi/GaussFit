@@ -261,7 +261,7 @@ class ChooseFiles(Frame):
                 self.logger.info("Generating plots...")
                 try:
                         import matplotlib.pyplot as plt
-                        plotter.DoPlots(plt,*self.opts.plots)
+                        plotter.DoPlots(plt)
                         plt.show(block=False)
                 except ImportError as msg:
                         self.logger.error("Cannot import matplotlib! %s", str(msg), exc_info=False)

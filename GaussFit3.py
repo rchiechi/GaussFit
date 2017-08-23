@@ -41,7 +41,7 @@ def Go(opts):
             plotter = Plotter(parser)
             try:
                     import matplotlib.pyplot as plt
-                    plotter.DoPlots(plt,*opts.plots)
+                    plotter.DoPlots(plt)
                     plt.show()
             except ImportError as msg:
                     print("Cannot import matplotlib! %s", str(msg), exc_info=False)

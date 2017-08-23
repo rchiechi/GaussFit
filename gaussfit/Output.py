@@ -618,23 +618,23 @@ class Plotter():
         ax.plot(self.XY[key]['hist']['bin'], self.XY[key]['hist']['fit'], lw=2.0, color='b', label='Fit')
 
 
-    def DoPlots(self, plt, *_plot):
+    def DoPlots(self, plt):
         fig = plt.figure(figsize=(16,10))
         ax1 = fig.add_axes([0.06, 0.55, 0.4, 0.4])
         ax2 = fig.add_axes([0.56, 0.55, 0.4, 0.4])
         ax3 = fig.add_axes([0.06, 0.05, 0.4, 0.4])
         ax4 = fig.add_axes([0.56, 0.05, 0.4, 0.4])
-        if 'J' in _plot:
+        if self.opts.plots == 'J':
             self.PlotFit(ax1)
             self.PlotData('LogY',ax2,':',lw=0.25, color='c')
             self.PlotHist(ax2)
-        elif 'R' in _plot:
+        elif self.opts.plots == 'R':
             self.PlotRFit(ax1)
             self.PlotR(ax2)
         self.PlotVtrans(ax4)
-        if 'NDC' in _plot:
+        if self.opts.histplots == 'NDC':
             self.PlotNDC(ax3)
-        elif 'G' in _plot:
+        elif self.opts.histplots == 'G':
             self.PlotG(ax3)
         if self.opts.write:
             fig.savefig(os.path.join(self.opts.out_dir,self.opts.outfile+"_fig.png"), format="png")
