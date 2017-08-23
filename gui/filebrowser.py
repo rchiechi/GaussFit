@@ -56,7 +56,7 @@ class ChooseFiles(Frame):
         self.master.tk_setPalette(background=GREY,
             activeBackground=GREY)
         self.master.title("RCCLab EGaIn Data Parser")
-        self.master.geometry('850x750+250-250')
+        self.master.geometry('900x800+250-250')
         self.pack(fill=BOTH)
         self.__createWidgets()
         self.ToFront()
@@ -148,14 +148,14 @@ class ChooseFiles(Frame):
     
         Label(self.RightOptionsFrame, text="Data to plot:").grid(column=0,row=rowidx+2,sticky=W)
         self.OptionsPlotsString = StringVar()
-        self.OptionsPlotsString.set(','.join(self.opts.plots))
+        self.OptionsPlotsString.set(self.opts.plots)
         self.OptionPlots = OptionMenu(self.RightOptionsFrame, self.OptionsPlotsString,'J','R',
                                  command=self.checkOptions)
         self.OptionPlots.grid(column=0,row=rowidx+3,sticky=W)
     
         Label(self.RightOptionsFrame, text="Histogram to plot:").grid(column=0,row=rowidx+4,sticky=W)
         self.OptionsHistPlotsString = StringVar()
-        self.OptionsHistPlotsString.set(','.join(self.opts.histplots))
+        self.OptionsHistPlotsString.set(self.opts.histplots)
         self.OptionHistPlots = OptionMenu(self.RightOptionsFrame, self.OptionsHistPlotsString,'NDC','G',
                                  command=self.checkOptions)
         self.OptionHistPlots.grid(column=0,row=rowidx+5,sticky=W)
@@ -348,9 +348,8 @@ class ChooseFiles(Frame):
             getattr(self,'Entry'+n[0]).delete(0,END)
             getattr(self,'Entry'+n[0]).insert(0,getattr(self.opts,n[0].lower()))
     
-        self.opts.plots = self.OptionsPlotsString.get().split(',')
-        self.opts.plots += self.OptionsHistPlotsString.get().split(',')
-        self.opts.histplots = self.OptionsHistPlotsString.get().split(',')
+        self.opts.plots = self.OptionsPlotsString.get()
+        self.opts.histplots = self.OptionsHistPlotsString.get()
         self.opts.heatmapd = int(self.OptionsHeatmapdString.get())
         self.checkGminmaxEntry(event)
         self.checkNDCminmaxEntry(event)
