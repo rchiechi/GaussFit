@@ -98,6 +98,7 @@ class Parse():
         writer.WriteGNUplot('Vtransplot')
         writer.WriteFN()
         writer.WriteGauss()
+        writer.WriteFilteredGauss()
         writer.WriteGNUplot('JVplot')
         writer.WriteGNUplot('NDCplot')
         writer.WriteData()
@@ -110,6 +111,7 @@ class Parse():
         writer.WriteGNUplot('Rplot')
         try:
             writer.WriteHistograms()
+            writer.WriteFilteredHistograms()
             writer.WriteGNUplot('JVhistplot')
         except IndexError as msg:
             print("Error outputting histrograms %s" % str(msg))
@@ -212,6 +214,14 @@ class Parse():
             self.logger.error('Cannot compute statistics from these traces.')
             self.loghandler.flush()
             return # Bail if we can't parse traces
+        
+        xy = []
+        for x, group in self.df.groupby('V'): 
+            xy.append( (x,group) )
+        
+        self.logger.info("* * * * * * Computing Lag  * * * * * * * * *")
+        self.loghandler.flush()
+        lag = self.dolag(xy)
         self.logger.info("* * * * * * Computing dY/dX  * * * * * * * *")
         self.loghandler.flush()
         self.dodjdv()
@@ -220,16 +230,14 @@ class Parse():
         self.findmin()
         self.logger.info("* * * * * * Computing |R|  * * * * * * * * *")
         self.loghandler.flush()
-        xy,R = self.dorect()
-        self.logger.info("* * * * * * Computing Lag  * * * * * * * * *")
-        self.loghandler.flush()
-        lag = self.dolag(xy)
+        R = self.dorect(xy)
         self.logger.info("* * * * * * Computing Gaussian  * * * * * * * * *")
         self.loghandler.flush()
         for x, group in xy:
             self.XY[x] = { "Y":group['J'], 
                    "LogY":group['logJ'], 
                    "hist":self.__dohistogram(group['logJ'],"J"), 
+                   "filtered_hist":self.__dohistogram(lag[x]['filtered'],"J"),
                    "lag":lag[x]['lagplot'], 
                    "FN": group['FN'],
                    "R": R[x] }
@@ -431,7 +439,7 @@ class Parse():
         self.loghandler.flush()
         self.DJDV, self.GHists, self.NDC, self.NDCHists, self.filtered = spls, splhists, spls_norm, spl_normhists, filtered
 
-    def dorect(self):
+    def dorect(self,xy):
         ''' 
         Divide each value of Y at +V by Y at -V
         and build a histogram of rectification, R
@@ -439,10 +447,8 @@ class Parse():
         '''
         r = OrderedDict()
         R = OrderedDict()
-        xy = []
-        for x, group in self.df.groupby('V'): 
+        for x, group in xy:
             r[x] = []
-            xy.append( (x,group) )
         clipped = 0
         for trace in self.avg.index.levels[0]:
             for x in self.avg.loc[trace].index[self.avg.loc[trace].index >= 0]:
@@ -475,7 +481,7 @@ class Parse():
             else: rstr = '|R|'
             self.logger.info("%s values of %s exceed maxR (%s)" % (clipped, rstr, self.opts.maxr))
         self.logger.info("R complete.")
-        return xy,R
+        return R
 
     def findmin(self):
         '''
@@ -583,9 +589,17 @@ class Parse():
             self.logger.debug("Distance from lag: %s" % min_distance)
             if min_distance > self.opts.lagcutoff:
                 self.logger.warn("Found a high degree of scatter in lag plot (%0.4f)" % min_distance)
+            tossed = 0
             for i in range(0,len(distances)):
                 if distances[i] < self.opts.lagcutoff:
-                    _filtered += [ _lag[0][i], _lag[1][i] ]
+                    _filtered.append(_lag[0][i])
+                    _filtered.append(_lag[1][i])
+                else:
+                    tossed += 1
+            if not len(_filtered):
+                self.logger.warn("Lag filter excluded all data at %s V" % x)
+            if tossed > 0:
+                self.logger.info("Lag filtered excluded %s data points at %s V" % (tossed, x) )
             lag[x]['lagplot'] = np.array(_lag)
             lag[x]['filtered'] = np.array(_filtered)
         return lag
