@@ -115,6 +115,8 @@ parser.add_argument('--heatmapd',  type=int, default=1,
 		     help="Derivative order of heatmap plot (0, 1, 2) default: 1.")
 parser.add_argument('--tracebyfile', default=False, action='store_true', 
 		help="Each input file contains one trace.")
+parser.add_argument('--lagcutoff', default=0.001, 
+		help="Minimum euclidian distance from line to be considered as scatter.")
 
 
 

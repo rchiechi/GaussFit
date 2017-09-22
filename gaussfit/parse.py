@@ -221,13 +221,16 @@ class Parse():
         self.logger.info("* * * * * * Computing |R|  * * * * * * * * *")
         self.loghandler.flush()
         xy,R = self.dorect()
-        self.logger.info("* * * * * * Computing lag and Gaussian  * * * * * * * * *")
+        self.logger.info("* * * * * * Computing Lag  * * * * * * * * *")
+        self.loghandler.flush()
+        lag = self.dolag(xy)
+        self.logger.info("* * * * * * Computing Gaussian  * * * * * * * * *")
         self.loghandler.flush()
         for x, group in xy:
             self.XY[x] = { "Y":group['J'], 
                    "LogY":group['logJ'], 
                    "hist":self.__dohistogram(group['logJ'],"J"), 
-                   "lag":self.dolag(group['logJ']), 
+                   "lag":lag[x]['lagplot'], 
                    "FN": group['FN'],
                    "R": R[x] }
         self.logger.info("* * * * * * * * * * * * * * * * * * * * * * ")
@@ -562,20 +565,30 @@ class Parse():
         pos_min_x = np.array(list(filter(np.isfinite,pos_min_x)))
         self.FN["neg"], self.FN["pos"] = self.__dohistogram(neg_min_x, "Vtrans(-)", True), self.__dohistogram(pos_min_x, "Vtrans(+)", True)
 
-    def dolag(self,Y):
+    def dolag(self,xy):
         '''
         Make a lag plot of Y
         '''
-        lag = [[],[]]
-        for i in range(0, (len(Y)-len(Y)%2), 2):
-            lag[0].append(Y[i])
-            lag[1].append(Y[i+1])
-        distances = self.getdistances( self.__dolinefit(lag[0],lag[1]), lag[0], lag[1] )
-        min_distance = min(distances)
-        self.logger.debug("Distance from lag: %s" % min_distance)
-        if min_distance > 0.001:
-            self.logger.warn("Found a high degree of scatter in lag plot (%0.4f)" % min_distance)
-        return np.array(lag)
+        lag = {}
+        for x, group in xy:
+            lag[x]={'lagplot':np.array([],[]),'filtered':np.array([])}
+            Y = group['logJ']
+            _lag = [[],[]]
+            _filtered = []
+            for i in range(0, (len(Y)-len(Y)%2), 2):
+                _lag[0].append(Y[i])
+                _lag[1].append(Y[i+1])
+            distances = self.getdistances( self.__dolinefit(_lag[0],_lag[1]), _lag[0], _lag[1] )
+            min_distance = min(distances)
+            self.logger.debug("Distance from lag: %s" % min_distance)
+            if min_distance > self.opts.lagcutoff:
+                self.logger.warn("Found a high degree of scatter in lag plot (%0.4f)" % min_distance)
+            for i in range(0,len(distances)):
+                if distances[i] < self.opts.lagcutoff:
+                    _filtered += [ _lag[0][i], _lag[1][i] ]
+            lag[x]['lagplot'] = np.array(_lag)
+            lag[x]['filtered'] = np.array(_filtered)
+        return lag
 
     def getdistances(self, coeff, X, Y):
         _a = [[],[]]
@@ -587,8 +600,12 @@ class Parse():
         B = np.array(_b)
         distances = []
         for p in np.rot90(B):
+            _d = []
             for q in np.rot90(A):
-                distances.append( np.sqrt( (p[0]-q[0])**2 + (p[1]-q[1])**2 ) )
+                _d.append( np.sqrt( (p[0]-q[0])**2 + (p[1]-q[1])**2 ) )
+            distances.append(min(_d))
+        # Distances are appended from rot90 arrays, which reverse the order of the 2D array _lag
+        distances = distances[::-1]
         return distances
 
 
