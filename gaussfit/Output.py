@@ -320,7 +320,7 @@ class Writer():
             writer = csv.writer(csvfile, dialect='JV')
             labels = []
             for x in self.XY:
-                labels += ["J1 @ %0.2fV"%x,"J2 @ %0.2fV"%x]
+                labels += ["Log|J1| @ %0.2fV"%x,"Log|J2| @ %0.2fV"%x]
             writer.writerow(labels)
             for i in range(0,lenrow):
                 row = []

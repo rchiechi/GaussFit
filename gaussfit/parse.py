@@ -24,7 +24,7 @@ try:
     import pandas as pd
     from scipy.optimize import curve_fit,OptimizeWarning
     import scipy.interpolate 
-    from scipy.stats import gmean,norm,skew,skewtest,kurtosis,kurtosistest
+    from scipy.stats import gmean,norm,linregress,skew,skewtest,kurtosis,kurtosistest
     import scipy.misc 
     import numpy as np
     # SciPy throws a useless warning for noisy J/V traces
@@ -132,6 +132,7 @@ class Parse():
         '''Walk through input files and parse
         them into attributes '''
         frames = {}
+        fns.sort()
         if type(fns) == type(str()):
             fns = [fns]
         self.logger.debug('Parsing %s' % ', '.join(fns))
@@ -195,7 +196,7 @@ class Parse():
         except ZeroDivisionError:
             self.logger.warn("Error computing FN (check your input data).")
             self.df['FN'] = np.array([x*0 for x in range(0, len(self.df['V']))])
-        self.df.J.replace(0.0,value=10e-16,inplace=True)
+        self.df.J.replace(0.0,value=1e-16,inplace=True)
         self.df['logJ'] = np.log10(abs(self.df.J)) # Cannot log10 zero
         self.logger.info('%s values of log|J| above compliance (%s)' % 
                 (len(self.df['logJ'][self.df['logJ']>self.opts.compliance]),self.opts.compliance))
@@ -322,7 +323,6 @@ class Parse():
                         trace.append(row[0])
                     elif len(trace) == 2:
                         traces.append(trace)
-                        #print(self.df[trace[0]:trace[1]+1])
                         trace = [row[0]]
             ntraces = len(traces)
         if not __checktraces(traces):
@@ -339,14 +339,8 @@ class Parse():
             for x,group in fbtrace.groupby('V'):
                 idx.append(x)
                 avg['J'].append(self.signedgmean(group['J']))
-                #avg['J'].append(np.mean(group['J']))
-                #if not self.opts.nomin:
-                #    fn = np.mean(group['FN'][group['FN'] <= self.opts.compliance])
-                    #NOTE signedgmean was very slow at one point so I disabled it
-                    #fn = self.signedgmean(group['FN'][group['FN'] <= self.opts.compliance])
-                #else:
                 fn = np.mean(group['FN'])
-                    #fn = self.signedgmean(group['FN'])
+                #fn = self.signedgmean(group['FN'])
                 avg['FN'].append(fn)
             frames[col] = pd.DataFrame(avg,index=idx)
         try:
@@ -584,11 +578,15 @@ class Parse():
             for i in range(0, (len(Y)-len(Y)%2), 2):
                 _lag[0].append(Y[i])
                 _lag[1].append(Y[i+1])
-            distances = self.getdistances( self.__dolinefit(_lag[0],_lag[1]), _lag[0], _lag[1] )
+            m, b, r, p, std_err = linregress(_lag[0],_lag[1])
+            #self.logger.debug("R-squared: %s" % (r**2))
+            distances = self.getdistances( (m,b), _lag[0], _lag[1] )
             min_distance = min(distances)
             self.logger.debug("Distance from lag: %s" % min_distance)
             if min_distance > self.opts.lagcutoff:
                 self.logger.warn("Found a high degree of scatter in lag plot (%0.4f)" % min_distance)
+            if r**2 < 0.9:
+                self.logger.warn("Poor line-fit to lag plot (R-squared: %s)" % (r**2))
             tossed = 0
             for i in range(0,len(distances)):
                 if distances[i] < self.opts.lagcutoff:
@@ -613,13 +611,12 @@ class Parse():
         A = np.array(_a)
         B = np.array(_b)
         distances = []
-        for p in np.rot90(B):
+        # rotate three times to get J-pairs in order
+        for p in np.rot90(B,k=3):
             _d = []
-            for q in np.rot90(A):
+            for q in np.rot90(A,k=3):
                 _d.append( np.sqrt( (p[0]-q[0])**2 + (p[1]-q[1])**2 ) )
             distances.append(min(_d))
-        # Distances are appended from rot90 arrays, which reverse the order of the 2D array _lag
-        distances = distances[::-1]
         return distances
 
 
@@ -698,6 +695,7 @@ class Parse():
         p0 = [1., Ym, Ys]
         bin_centers = (bins[:-1] + bins[1:])/2
         coeff = p0
+        covar = None
         hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
         try:
             with self.lock:
@@ -715,26 +713,16 @@ class Parse():
             #coeff=p0
 
         #hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
-
+        
+        #if covar != None:
+        #    self.logger.debug('Covariance: %s ' % (np.sqrt(np.diag(covar))) )
+        
         skewstat, skewpval = skewtest(freq)
         kurtstat, kurtpval = kurtosistest(freq)
         return {"bin":bin_centers, "freq":freq, "mean":coeff[1], "std":coeff[2], \
                 "var":coeff[2], "bins":bins, "fit":hist_fit, "Gmean":Ym, "Gstd":Ys,\
                 "skew":skew(freq), "kurtosis":kurtosis(freq), "skewstat":skewstat, "skewpval":skewpval,
                 "kurtstat":kurtstat, "kurtpval":kurtpval}
-
-    def __dolinefit(self, X,Y):
-        p0 = [1.,1.]
-        coeff = p0
-        try:
-            with self.lock:
-                coeff, covar = curve_fit(self.linear, X, Y, p0=p0, maxfev=self.opts.maxfev)
-        except RuntimeError as msg:
-            if self.opts.maxfev > 100:
-                self.logger.warning("|%s| Fit did not converge", label, exc_info=False)
-        except ValueError as msg:
-            self.logger.warning("|%s| Skipping data with ridiculous numbers in it (%s)", label, str(msg), exc_info=False )
-        return coeff
 
     def wait(self):
         '''
