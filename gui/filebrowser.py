@@ -56,7 +56,7 @@ class ChooseFiles(Frame):
         self.master.tk_setPalette(background=GREY,
             activeBackground=GREY)
         self.master.title("RCCLab EGaIn Data Parser")
-        self.master.geometry('900x800+250-250')
+        self.master.geometry('900x850+250-250')
         self.pack(fill=BOTH)
         self.__createWidgets()
         self.ToFront()
@@ -173,6 +173,8 @@ class ChooseFiles(Frame):
              'tooltip': 'Columns from input data to parse as X/Y data.'},
             {'name': 'Vcutoff', 'text': "Cuttoff for d2J/dV2:",
              'tooltip': "Check the values of d2J/dV2 between |vcutoff| and Vmin/Vmax for line-shape filtering. Set to -1 for Vmin/Vmax."},
+            {'name': 'Lagcutoff', 'text': "Cuttoff for lag plot filter:",
+             'tooltip': "Throw out J-values whose euclidian distance from a linear fit of the lag plot exceed this value for computing filtered histograms."},
             {'name': 'Smooth', 'text': "Smoothing parameter:",
              'tooltip': "The cutoff value for the residual squares (the difference between experimental data points and the fit). The default is 1e-12. Set to 0 to disable smoothing."},
             {'name': 'Gminmax', 'text': "Y-scale for G heatmap:",
@@ -193,6 +195,7 @@ class ChooseFiles(Frame):
             entry.bind("<Return>", self.checkOptions)
             entry.bind("<Leave>", self.checkOptions)
             entry.bind("<Enter>", self.checkOptions)
+            entry.bind("<Tab>", self.checkOptions)
             entry.grid(column=0,row=i+1)
             createToolTip(entry, l['tooltip'])
             setattr(self, 'Entry'+l['name'], entry)
@@ -355,9 +358,10 @@ class ChooseFiles(Frame):
         self.checkNDCminmaxEntry(event)
         self.checkOutputFileName(event) 
         self.checkColumnEntry(event)
-        self.checkVcutoff(event)
+        self.checkVcutoffEntry(event)
+        self.checkLagcutoffEntry(event)
 
-    def checkVcutoff(self,event):
+    def checkVcutoffEntry(self,event):
         try:
             vcutoff = float(self.EntryVcutoff.get())
             if vcutoff != -1:
@@ -372,6 +376,15 @@ class ChooseFiles(Frame):
         else:
             self.EntryVcutoff.insert(0,"Vmax")
 
+    def checkLagcutoffEntry(self,event):
+        try:
+            lagcutoff = float(self.EntryLagcutoff.get())
+            self.opts.lagcutoff = abs(lagcutoff)
+        except ValueError as msg:
+            self.opts.lagcutoff = 0.01
+
+        self.EntryLagcutoff.delete(0, END)
+        self.EntryLagcutoff.insert(0,self.opts.lagcutoff)
 
     def checkOutputFileName(self, event):
         self.opts.outfile = self.OutputFileName.get()
