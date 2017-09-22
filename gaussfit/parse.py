@@ -221,6 +221,8 @@ class Parse():
         self.logger.info("* * * * * * Computing |R|  * * * * * * * * *")
         self.loghandler.flush()
         xy,R = self.dorect()
+        self.logger.info("* * * * * * Computing lag and Gaussian  * * * * * * * * *")
+        self.loghandler.flush()
         for x, group in xy:
             self.XY[x] = { "Y":group['J'], 
                    "LogY":group['logJ'], 
@@ -568,7 +570,27 @@ class Parse():
         for i in range(0, (len(Y)-len(Y)%2), 2):
             lag[0].append(Y[i])
             lag[1].append(Y[i+1])
+        distances = self.getdistances( self.__dolinefit(lag[0],lag[1]), lag[0], lag[1] )
+        min_distance = min(distances)
+        self.logger.debug("Distance from lag: %s" % min_distance)
+        if min_distance > 0.001:
+            self.logger.warn("Found a high degree of scatter in lag plot (%0.4f)" % min_distance)
         return np.array(lag)
+
+    def getdistances(self, coeff, X, Y):
+        _a = [[],[]]
+        _b = [X,Y]
+        for x in np.linspace(min(X), max(X), 500):
+            _a[0].append(x)
+            _a[1].append(self.linear(x,*coeff))
+        A = np.array(_a)
+        B = np.array(_b)
+        distances = []
+        for p in np.rot90(B):
+            for q in np.rot90(A):
+                distances.append( np.sqrt( (p[0]-q[0])**2 + (p[1]-q[1])**2 ) )
+        return distances
+
 
     def signedgmean(self,Y):
         '''
@@ -587,6 +609,14 @@ class Parse():
         A, mu, sigma = p
         return A*np.exp(-(x-mu)**2/(2.*sigma**2))
     
+
+    def linear(self, x, *p):
+        '''
+        Return a line
+        '''
+        m,b = p
+        return (m*x)+b
+
     def lorenz(self, x, *p):
         '''
         Return a lorenzian function
@@ -662,6 +692,18 @@ class Parse():
                 "skew":skew(freq), "kurtosis":kurtosis(freq), "skewstat":skewstat, "skewpval":skewpval,
                 "kurtstat":kurtstat, "kurtpval":kurtpval}
 
+    def __dolinefit(self, X,Y):
+        p0 = [1.,1.]
+        coeff = p0
+        try:
+            with self.lock:
+                coeff, covar = curve_fit(self.linear, X, Y, p0=p0, maxfev=self.opts.maxfev)
+        except RuntimeError as msg:
+            if self.opts.maxfev > 100:
+                self.logger.warning("|%s| Fit did not converge", label, exc_info=False)
+        except ValueError as msg:
+            self.logger.warning("|%s| Skipping data with ridiculous numbers in it (%s)", label, str(msg), exc_info=False )
+        return coeff
 
     def wait(self):
         '''
