@@ -272,6 +272,22 @@ class Writer():
             for l in self.filtered:
                 writer.writerow(l)
 
+    def WriteLag(self):
+        fn = fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_lag.txt")
+        lenrow = len( self.XY[list(self.XY)[0]]['lag'][0] )
+        with open(fn, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile, dialect='JV')
+            labels = []
+            for x in self.XY:
+                labels += ["J1 @ %0.2fV"%x,"J2 @ %0.2fV"%x]
+            writer.writerow(labels)
+            for i in range(0,lenrow):
+                row = []
+                for x in self.XY:
+                    row.append(self.XY[x]['lag'][0][i])
+                    row.append(self.XY[x]['lag'][1][i])
+                writer.writerow(row) 
+
     def WriteRData(self):
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Rdata.txt")
         with open(fn,'w', newline='') as csvfile:

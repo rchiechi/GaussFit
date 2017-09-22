@@ -22,11 +22,23 @@ Description:
 '''
 from gaussfit import *
 from gaussfit.Output import Writer,Plotter
+import cProfile
 #from gaussfit.args import Opts
 #from gaussfit.parse import Parse
 
-#TODO colorama
+def do_cprofile(func):
+    def profiled_func(*args, **kwargs):
+        profile = cProfile.Profile()
+        try:
+            profile.enable()
+            result = func(*args, **kwargs)
+            profile.disable()
+            return result
+        finally:
+            profile.print_stats()
+    return profiled_func
 
+#@do_cprofile
 def Go(opts):
     '''
     Call this function to execute the parsing engine
@@ -47,8 +59,10 @@ def Go(opts):
                     print("Cannot import matplotlib! %s", str(msg), exc_info=False)
 
 opts = Opts
-if opts.GUI:
-        from gui import filebrowser
-        gui = filebrowser.ChooseFiles(opts)
-else:
-        Go(opts)
+
+if __name__ == "__main__":
+    if opts.GUI:
+            from gui import filebrowser
+            gui = filebrowser.ChooseFiles(opts)
+    else:
+            Go(opts)

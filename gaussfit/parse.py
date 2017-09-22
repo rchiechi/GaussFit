@@ -105,6 +105,7 @@ class Parse():
         writer.WriteNDC()
         writer.WriteFiltered()
         writer.WriteData(True)
+        writer.WriteLag()
         writer.WriteRData()
         writer.WriteGNUplot('Rplot')
         try:
@@ -224,6 +225,7 @@ class Parse():
             self.XY[x] = { "Y":group['J'], 
                    "LogY":group['logJ'], 
                    "hist":self.__dohistogram(group['logJ'],"J"), 
+                   "lag":self.dolag(group['logJ']), 
                    "FN": group['FN'],
                    "R": R[x] }
         self.logger.info("* * * * * * * * * * * * * * * * * * * * * * ")
@@ -557,6 +559,16 @@ class Parse():
         neg_min_x = np.array(list(filter(np.isfinite,neg_min_x)))
         pos_min_x = np.array(list(filter(np.isfinite,pos_min_x)))
         self.FN["neg"], self.FN["pos"] = self.__dohistogram(neg_min_x, "Vtrans(-)", True), self.__dohistogram(pos_min_x, "Vtrans(+)", True)
+
+    def dolag(self,Y):
+        '''
+        Make a lag plot of Y
+        '''
+        lag = [[],[]]
+        for i in range(0, (len(Y)-len(Y)%2), 2):
+            lag[0].append(Y[i])
+            lag[1].append(Y[i+1])
+        return np.array(lag)
 
     def signedgmean(self,Y):
         '''
