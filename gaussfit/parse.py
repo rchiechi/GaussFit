@@ -571,7 +571,7 @@ class Parse():
         '''
         lag = {}
         for x, group in xy:
-            lag[x]={'lagplot':np.array([],[]),'filtered':np.array([])}
+            lag[x]={'lagplot':np.array([[],[]]),'filtered':np.array([])}
             Y = group['logJ']
             _lag = [[],[]]
             _filtered = []
