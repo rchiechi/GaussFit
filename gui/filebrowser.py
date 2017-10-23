@@ -411,7 +411,7 @@ class ChooseFiles(Frame):
     def checkNDCminmaxEntry(self, event):
         try:
             x, y = self.EntryNDCminmax.get().split(",")
-            self.opts.ndc_mlow, self.opts.ndc_mhi = int(x), int(y)
+            self.opts.ndc_mlow, self.opts.ndc_mhi = float(x), float(y)
         except ValueError as msg:
             pass
         self.EntryNDCminmax.delete(0, END)
