@@ -72,8 +72,9 @@ class Writer():
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             headers = []
-            for x in self.XY: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x, \
-                    "Skew (%0.4f)"%x, "Kurtosis (%0.4f)"%x, "Skew test (%0.4f)"%x, "Skew pvalue (%0.4f)"%x]
+            #for x in self.XY: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x, \
+            #        "Skew (%0.4f)"%x, "Kurtosis (%0.4f)"%x, "Skew test (%0.4f)"%x, "Skew pvalue (%0.4f)"%x]
+            for x in self.XY: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x] 
             writer.writerow(headers)
             for i in range(0, len( self.XY[list(self.XY.keys())[0]]['hist']['bin'] ) ):
                 row = []
@@ -163,8 +164,9 @@ class Writer():
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             headers = []
-            for x in self.XY: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x, \
-                    "Skew (%0.4f)"%x, "Kurtosis (%0.4f)"%x, "Skew test (%0.4f)"%x, "Skew pvalue (%0.4f)"%x]
+            #for x in self.XY: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x, \
+            #        "Skew (%0.4f)"%x, "Kurtosis (%0.4f)"%x, "Skew test (%0.4f)"%x, "Skew pvalue (%0.4f)"%x]
+            for x in self.XY: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
             writer.writerow(headers)
             for i in range(0, len( self.XY[list(self.XY.keys())[0]]['filtered_hist']['bin'] ) ):
                 row = []
