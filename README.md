@@ -5,8 +5,9 @@ This is a set of python scripts to parse I/V data, perform statistical analyses,
 Most functions and options are available via a `tkinter` gui that you can call with `GaussFit.py -G`. The outputs of `GaussFit.py` have been tested extensively and, while the code is a mess, the results can be considered reliable provided all warning messages are heeded.
 
 The `Stats.py` part is very much a work in progress, but it should, at the very least compute p-values using each file as a degree of freedom.
-The `autonobs` command will try to guess time intervals and use those as degrees of freedom. The commands for `GaussFit.py` and `Stats.py`
-are identical (with a few special options for `Stats.py`); launching with `-G` will get you a GUI in either case.
+The `autonobs` command will try to guess time intervals and use those as degrees of freedom, but it relies on metadata in the input files and has only been tested with output containing this metadata in a very specific format. 
+
+The commands for `GaussFit.py` and `Stats.py` are identical (with a few special options for `Stats.py`); launching with `-G` will get you a GUI in either case.
 
 Although we have done some testing of the statsticaly functions, do not rely on this software without using some robust, external test of the veracity of the output!
 
