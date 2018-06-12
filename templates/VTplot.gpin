@@ -1,0 +1,20 @@
+DBLUE='#3300FF'
+
+BFN='%s'
+
+#set terminal pdfcairo color enhanced font "Arial,24"
+set terminal wxt enhanced font "Arial,12"
+
+set output BFN."_VT.pdf"
+
+unset key
+set pointsize 1
+set ylabel "|V^2/J| (arb. unit.)" offset 1,0
+set xlabel "Potential (V)" offset 0,0.5
+
+set format y '%%0.1f'
+
+plot BFN."_VT.txt" using 1:2 notitle with lines lc rgb DBLUE lw 2 
+
+pause -1
+exit

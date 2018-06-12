@@ -235,8 +235,8 @@ class Writer():
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             writer.writerow(["Potential (V)","Log|J|","Standard Devaition","Standard Error of the Mean"])
-            Y = []
-            Yerr = []
+            #Y = []
+            #Yerr = []
             for x in self.XY:
                 writer.writerow(['%f'%x,'%f'%self.XY[x]['filtered_hist']['mean'],'%f'%self.XY[x]['filtered_hist']['std'],\
                         '%f'% (self.XY[x]['filtered_hist']['std']/np.sqrt(len(self.opts.in_files))) ])
@@ -246,8 +246,8 @@ class Writer():
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             writer.writerow(["Potential (V)","Log|J|","Standard Devaition","Standard Error of the Mean"])
-            Y = []
-            Yerr = []
+            #Y = []
+            #Yerr = []
             for x in self.XY:
                 writer.writerow(['%f'%x,'%f'%self.XY[x]['hist']['mean'],'%f'%self.XY[x]['hist']['std'],\
                         '%f'% (self.XY[x]['hist']['std']/np.sqrt(len(self.opts.in_files))) ])
@@ -258,16 +258,16 @@ class Writer():
                 writer.writerow(["Potential (V)","log |R|","Standard Deviation"])
             else:
                 writer.writerow(["Potential (V)","|R|","Standard Deviation"])
-            Y = []
-            Yerr = []
+            #Y = []
+            #Yerr = []
             for x in self.XY:
                 writer.writerow(['%f'%x,'%f'%self.XY[x]['R']['hist']['mean'],'%f'%self.XY[x]['R']['hist']['std']])
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_logdJdVGauss.txt")
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             writer.writerow(["Potential (V)","Log|dJ/dV|","Standard Devaition"])
-            Y = []
-            Yerr = []
+            #Y = []
+            #Yerr = []
             for x in self.GHists:
                 writer.writerow(['%f'%x,'%f'%self.GHists[x]['hist']['mean'],'%f'%self.GHists[x]['hist']['std']])
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_NDCGauss.txt")
@@ -279,7 +279,13 @@ class Writer():
             for x in self.GHists:
                 writer.writerow(['%f'%x,'%f'%self.NDCHists[x]['hist']['mean'],'%f'%self.NDCHists[x]['hist']['std']])
 
-
+    def WriteVT(self):
+        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_VT.txt")
+        with open(fn, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile, dialect='JV')
+            writer.writerow(["Potential (V)","|V^2/J|"])
+            for x in self.XY:
+                writer.writerow(['%f'%x,'%f'%self.XY[x]['VT']])
 
     def WriteData(self, log=False):
         if log: key,label ='LogY','LogJ'

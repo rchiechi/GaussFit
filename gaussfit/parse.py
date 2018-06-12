@@ -107,6 +107,8 @@ class Parse():
         writer.WriteVtrans()
         writer.WriteGNUplot('Vtransplot')
         writer.WriteFN()
+        writer.WriteVT()
+        writer.WriteGNUplot('VTplot')
         writer.WriteGauss()
         writer.WriteFilteredGauss()
         writer.WriteGNUplot('JVplot')
@@ -249,9 +251,13 @@ class Parse():
                    "LogY":group['logJ'], 
                    "hist":self.__dohistogram(group['logJ'],"J"), 
                    "filtered_hist":self.__dohistogram(lag[x]['filtered'],"J"),
-                   "lag":lag[x]['lagplot'], 
+                   "lag":lag[x]['lagplot'],
                    "FN": group['FN'],
                    "R": R[x] }
+        self.logger.info("* * * * * * Computing |V^2/J|  * * * * * * * * *")
+        self.loghandler.flush()
+        for x in self.XY:
+            self.XY[x]['VT'] = abs(x**2/ 10**self.XY[x]['hist']['mean'] )
         self.logger.info("* * * * * * * * * * * * * * * * * * * * * * ")
         self.loghandler.flush()
         self.PrintFN()
