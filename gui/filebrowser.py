@@ -382,7 +382,7 @@ class ChooseFiles(Frame):
             lagcutoff = float(self.EntryLagcutoff.get())
             self.opts.lagcutoff = abs(lagcutoff)
         except ValueError as msg:
-            self.opts.lagcutoff = 0.01
+            self.opts.lagcutoff = 0.1
 
         self.EntryLagcutoff.delete(0, END)
         self.EntryLagcutoff.insert(0,self.opts.lagcutoff)
