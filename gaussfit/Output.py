@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 '''
-Copyright (C) 2017 Ryan Chiechi <r.c.chiechi@rug.nl>
+Copyright (C) 2018 Ryan Chiechi <r.c.chiechi@rug.nl>
+Description:
+    
+    This absolute mess outputs parsed data into text files and plots. If
+    you make changes, do so with care!
+
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or

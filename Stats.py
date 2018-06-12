@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 '''
-Copyright (C) 2016 Ryan Chiechi <r.c.chiechi@rug.nl>
+Copyright (C) 2018 Ryan Chiechi <r.c.chiechi@rug.nl>
 Description:
         This program parses raw current-voltage data obtained from
         molecular tunneling junctions. It is specifically designed

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 '''
-Copyright (C) 2016 Ryan Chiechi <r.c.chiechi@rug.nl>
+Copyright (C) 2018 Ryan Chiechi <r.c.chiechi@rug.nl>
 Description:
         Parse all of the command line arguments for GaussFit.py
         and Stats.py

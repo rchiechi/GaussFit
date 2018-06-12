@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 '''
-Copyright (C) 2015 Ryan Chiechi <r.c.chiechi@rug.nl>
+Copyright (C) 2018 Ryan Chiechi <r.c.chiechi@rug.nl>
 Description:
-        This program parses raw current-voltage data obtained from
-        molecular tunneling junctions. It is specifically designed
-        with EGaIn in mind, but may be applicable to other systems.
+
+    This is an experimental feature for performing statistical analyses on
+    conductance data desiged specifically for EGaIn and other large-area
+    measurements. It is NOT reliable and should only be used in conjunction
+    with robust statistical methods to test the veracity of the output.
+
 
     This program is free software: you can colors.REDistribute it and/or modify
     it under the terms of the GNU General Public License as published by

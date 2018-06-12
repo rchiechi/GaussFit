@@ -1,6 +1,16 @@
 #!/usr/bin/env python3
 '''
-Copyright (C) 2017 Ryan Chiechi <r.c.chiechi@rug.nl>
+Copyright (C) 2018 Ryan Chiechi <r.c.chiechi@rug.nl>
+Description:
+
+    This is the main parsing logic for GaussFit. It was built up over
+    years of trial and error with total disregard for best practices
+    and is therefore a mess. However, if the warning messages are heeded,
+    this software can be trusted to parse J/V data from EGaIn or CP-AFM
+    reliably, as it has been tested on thousands of junctions, the results
+    of have been published and they are in agreement with the litaure and
+    have, to some extent, been reproduced independently.
+    
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
