@@ -415,9 +415,11 @@ class Parse():
                 ndc = d[1] * (x/spl(x))
                 spls_norm[x].append( ndc )
                 ndc_tot += 1
-                if 0.0 < ndc < 10.0:
+                if 0.0 < ndc < 10.0: 
+                    # ndc values beyond this range can safely be considered artifacts of the numerical derivative
                     spl_normhists[x]['spl'].append( ndc )
                 else:
+                    # but we keep track of how many data points we toss as a sanity check
                     ndc_cut += 1
             if err:
                 self.logger.error("Error while computing derivative: %s" % str(err))
