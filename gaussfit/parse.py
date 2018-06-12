@@ -250,7 +250,7 @@ class Parse():
             self.XY[x] = { "Y":group['J'], 
                    "LogY":group['logJ'], 
                    "hist":self.__dohistogram(group['logJ'],"J"), 
-                   "filtered_hist":self.__dohistogram(lag[x]['filtered'],"J"),
+                   "filtered_hist":self.__dohistogram(lag[x]['filtered'],"lag"),
                    "lag":lag[x]['lagplot'],
                    "FN": group['FN'],
                    "R": R[x] }
@@ -687,9 +687,10 @@ class Parse():
             self.logger.error("Error ranging data for histogram: %s" % str(msg))
             yrange = (0,0)
 
-        if label == "J": 
+        if label == "J" or label == "lag": 
             Y = Y[Y <= self.opts.compliance]
-            yrange = (Y.min()-1, Y.max()+1)
+            if yrange != (0,0):
+                yrange = (Y.min()-1, Y.max()+1)
         if label == "R": Y = Y[Y <= self.opts.maxr]
         if label=='DJDV' or label=='NDC': nbins = self.opts.heatmapbins
         else: nbins = self.opts.bins

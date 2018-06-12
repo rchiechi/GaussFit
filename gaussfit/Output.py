@@ -338,8 +338,11 @@ class Writer():
             for i in range(0,lenrow):
                 row = []
                 for x in self.XY:
-                    row.append(self.XY[x]['lag'][0][i])
-                    row.append(self.XY[x]['lag'][1][i])
+                    try:
+                        row.append(self.XY[x]['lag'][0][i])
+                        row.append(self.XY[x]['lag'][1][i])
+                    except IndexError:
+                        continue
                 writer.writerow(row) 
 
     def WriteRData(self):
