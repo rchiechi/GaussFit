@@ -48,3 +48,6 @@ To do both:
 ```
 GaussFit.py -o <output name> -p (-G) <files>
 ```
+
+### Issues
+We are not software developers. We offer this software as-is for anyone interested in parsing large amounts of *I/V* data from large-area tunneling junctions, but it is tested quite specifically on EGaIn and CP-AFM data. If you have problems, you are on your own.
