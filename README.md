@@ -1,7 +1,7 @@
 # GaussFit
 
 ## Synopsis
-This is a set of python scripts to parse I/V data, perform statistical analyses, generate plots and output parsed data as CSV files.
+This is a set of python scripts to parse raw I/V data, perform statistical analyses, generate plots and output parsed data as CSV files.
 Most functions and options are available via a `tkinter` gui that you can call with `GaussFit.py -G`. The outputs of `GaussFit.py` have been tested extensively and, while the code is a mess, the results can be considered reliable provided all warning messages are heeded.
 
 The `Stats.py` part is very much a work in progress, but it should, at the very least compute p-values using each file as a degree of freedom.
@@ -12,12 +12,19 @@ The commands for `GaussFit.py` and `Stats.py` are identical (with a few special 
 Although we have done some testing of the statsticaly functions, do not rely on this software without using some robust, external test of the veracity of the output!
 
 ### Input file format
-GaussFit will try to guess the range of your *I/V* sweeps, but it works best with `0 -> + -> 0 -> – ->0` (i.e., three zeros per trace). The default assumes an input file format that is specific to our setups, but you can specify which columns to parse. (Though it will always refer to the x-axis as voltage and the y-axis as current-density.)
+GaussFit will try to guess the range of your *I/V* sweeps, but it works best with `0 -> + -> 0 -> – ->0` (i.e., three zeros per trace). The default assumes an input file format that is specific to our setups, but you can specify which columns to parse. (Though it will always refer to the x-axis as voltage and the y-axis as current-density when it generates plots.) It will try to determine if the input data contains `0 -> + -> 0 - -> 0` traces or just linear sweeps (which it will call "AFM data"). It assembles full forward-reverse sweeps for computing rectification ratios, lag plots, computing `DI/DV` plots etc. and will warn if there are leftover data. It will also warn if the data are excessively noisy or flat by complaining about "non-tunneling traces". The defaults for the spline fits used to compute the first and second derivatives work well for our input data, but if your data have small (>0.1 V) step-sizes, you should tweak the settings.
+
+### Outputs
+GaussFit writes everything to text files in the "parsed" sub-directory for auditing. It displays plots of data using `matplotlib` as well as `gnuplot` input files. All transformations and calculations are performed on individual `I/V` sweeps before fitting to a Gaussian. Given a sufficiently large dataset, it can interpolate transition voltage values because they are derived from histograms of spline fits, but those should be compared against the standard  method, which is only capable of finding transition voltages corresponding to real input bias values.
 
 
 ### Caveats
 Input files containing *I/V* sweeps with different voltage step-sizes will cause problems with Gaussian fits unless you have a ton of data. Say you have 1,000 traces with 0.5 V steps and 100 with 0.25 V steps. You will end up with 1,100 points in the histogram at each 0.5 V
 interval and only 100 at each 0.25 V interval, thus the reliatbility of the fits (and size of the error bars) will vary considerably.
+
+Currently GaussFit only fits single Gaussian (or Lorentzian) functions. Thus, bimodal data need to be separated beforehand to avoid variances.
+
+GaussFit assumes that each input file contains data from one junction, thus, it takes the number of input files as the default number of degrees of freedom for all statistical calculations.
 
 Many of the functions, such as computing differential conductance and rectification ratios, depend on the ability to separate the data into individual *I/V* sweeps. This dependence can cause problems with hysteretic data. We start our *I/V* sweeps at 0 V and then sweep to the maxima and back, meaning that each full sweep is two *I/V* curves. The software should be able to pick up individual traces for any sweeps that begin and end at the same bias, but will almost certainly fail to parse anything else.
 
