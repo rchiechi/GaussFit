@@ -76,7 +76,7 @@ class Writer():
             fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Traces.txt")
             self.avg.to_csv(fn,sep=self.opts.delim)
         except AttributeError:
-            logger.warn("No averaged data do summarize")
+            logger.warn("No averaged data to summarize")
             
     def WriteHistograms(self):
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms.txt")
