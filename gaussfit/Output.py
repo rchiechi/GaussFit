@@ -2,7 +2,7 @@
 '''
 Copyright (C) 2018 Ryan Chiechi <r.c.chiechi@rug.nl>
 Description:
-    
+
     This absolute mess outputs parsed data into text files and plots. If
     you make changes, do so with care!
 
@@ -38,7 +38,7 @@ try:
     from scipy.interpolate import griddata
 except ImportError as msg:
     pass #We catch numpy import errors in Parser.py
-warnings.filterwarnings('ignore','.*comparison.*',FutureWarning)    
+warnings.filterwarnings('ignore','.*comparison.*',FutureWarning)
 
 class Writer():
     '''The main Writer class for creating text files of parsed data.'''
@@ -64,7 +64,7 @@ class Writer():
             t = str(vars(self.opts))
             t = t.replace(",","\n").replace("[","\n[")
             fh.write(t)
-            fh.write(extra+"\n")    
+            fh.write(extra+"\n")
 
     def WriteSummary(self):
         try:
@@ -77,7 +77,7 @@ class Writer():
             self.avg.to_csv(fn,sep=self.opts.delim)
         except AttributeError:
             logger.warn("No averaged data to summarize")
-            
+
     def WriteHistograms(self):
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms.txt")
         with open(fn, 'w', newline='') as csvfile:
@@ -85,11 +85,11 @@ class Writer():
             headers = []
             #for x in self.XY: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x, \
             #        "Skew (%0.4f)"%x, "Kurtosis (%0.4f)"%x, "Skew test (%0.4f)"%x, "Skew pvalue (%0.4f)"%x]
-            for x in self.XY: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x] 
+            for x in self.XY: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
             writer.writerow(headers)
             for i in range(0, len( self.XY[list(self.XY.keys())[0]]['hist']['bin'] ) ):
                 row = []
-                for x in self.XY: row += ["%0.4f"%self.XY[x]['hist']['bin'][i], 
+                for x in self.XY: row += ["%0.4f"%self.XY[x]['hist']['bin'][i],
                              "%s"%self.XY[x]['hist']['freq'][i],
                              "%0.4f"%self.XY[x]['hist']['fit'][i]]
                 writer.writerow(row)
@@ -99,7 +99,7 @@ class Writer():
             writer = csv.writer(csvfile, dialect='JV')
             headers = ["Voltage", "Skew", "Kurtosis", "Skew zscore", "Skew pvalue", "Kurtosis zscore", "Kurtosis pvalue"]
             writer.writerow(headers)
-            for x in self.XY: 
+            for x in self.XY:
                 row = ["%0.4f"%x,
                          "%0.4f"%self.XY[x]['hist']['skew'],
                          "%0.4f"%self.XY[x]['hist']['kurtosis'],
@@ -108,7 +108,7 @@ class Writer():
                          "%0.4f"%self.XY[x]['hist']['kurtstat'],
                          "%0.4f"%self.XY[x]['hist']['kurtpval']]
                 writer.writerow(row)
-          
+
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RHistograms.txt")
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
@@ -130,7 +130,7 @@ class Writer():
             writer = csv.writer(csvfile, dialect='JV')
             headers = ["Voltage", "Skew", "Kurtosis", "Skew zscore", "Skew pvalue", "Kurtosis zscore", "Kurtosis pvalue"]
             writer.writerow(headers)
-            for x in self.XY: 
+            for x in self.XY:
                 row = ["%0.4f"%x,
                          "%0.4f"%self.XY[x]['R']['hist']['skew'],
                          "%0.4f"%self.XY[x]['R']['hist']['kurtosis'],
@@ -139,7 +139,7 @@ class Writer():
                          "%0.4f"%self.XY[x]['R']['hist']['kurtstat'],
                          "%0.4f"%self.XY[x]['R']['hist']['kurtpval']]
                 writer.writerow(row)
-          
+
 
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_LogdJdVHistograms.txt")
         with open(fn, 'w', newline='') as csvfile:
@@ -149,7 +149,7 @@ class Writer():
             writer.writerow(headers)
             for i in range(0, len( self.GHists[list(self.GHists.keys())[0]]['hist']['bin'] ) ):
                 row = []
-                for x in self.GHists: row += ["%0.4f"%self.GHists[x]['hist']['bin'][i], 
+                for x in self.GHists: row += ["%0.4f"%self.GHists[x]['hist']['bin'][i],
                                  "%s"%self.GHists[x]['hist']['freq'][i],
                              "%0.4f"%self.GHists[x]['hist']['fit'][i]]
                 writer.writerow(row)
@@ -159,7 +159,7 @@ class Writer():
             writer = csv.writer(csvfile, dialect='JV')
             headers = ["Voltage", "Skew", "Kurtosis", "Skew zscore", "Skew pvalue", "Kurtosis zscore", "Kurtosis pvalue"]
             writer.writerow(headers)
-            for x in self.GHists: 
+            for x in self.GHists:
                 row = ["%0.4f"%x,
                          "%0.4f"%self.GHists[x]['hist']['skew'],
                          "%0.4f"%self.GHists[x]['hist']['kurtosis'],
@@ -181,7 +181,7 @@ class Writer():
             writer.writerow(headers)
             for i in range(0, len( self.XY[list(self.XY.keys())[0]]['filtered_hist']['bin'] ) ):
                 row = []
-                for x in self.XY: row += ["%0.4f"%self.XY[x]['filtered_hist']['bin'][i], 
+                for x in self.XY: row += ["%0.4f"%self.XY[x]['filtered_hist']['bin'][i],
                              "%s"%self.XY[x]['filtered_hist']['freq'][i],
                              "%0.4f"%self.XY[x]['filtered_hist']['fit'][i]]
                 writer.writerow(row)
@@ -191,7 +191,7 @@ class Writer():
             writer = csv.writer(csvfile, dialect='JV')
             headers = ["Voltage", "Skew", "Kurtosis", "Skew zscore", "Skew pvalue", "Kurtosis zscore", "Kurtosis pvalue"]
             writer.writerow(headers)
-            for x in self.XY: 
+            for x in self.XY:
                 row = ["%0.4f"%x,
                          "%0.4f"%self.XY[x]['filtered_hist']['skew'],
                          "%0.4f"%self.XY[x]['filtered_hist']['kurtosis'],
@@ -213,10 +213,13 @@ class Writer():
                     data[self.FN[key]['bin'][i]] = (self.FN[key]['freq'][i],self.FN[key]['fit'][i])
                 for x in sorted(data.keys()):
                     writer.writerow(['%0.4f'%x,'%d'%data[x][0],'%0.2f'%data[x][1]])
-        
+
         fn = os.path.join(self.opts.out_dir, self.opts.outfile+"_Vtrans_stats.txt")
         with open(fn, 'w') as fh:
             for key in ('pos', 'neg'):
+                if key not in self.FN:
+                    logger.warn("%s not found in Fowler Nordhem data, skipping output." % key)
+                    continue
                 fh.write('--- %s ---\n' % key)
                 fh.write('Skew: %s\n' % self.FN[key]['skew'])
                 fh.write('Skew z-score: %s\n' % self.FN[key]['skewstat'])
@@ -225,7 +228,7 @@ class Writer():
                 fh.write('Kurtosis z-score test: %s\n' % self.FN[key]['kurtstat'])
                 fh.write('Kurtosis p-val: %s\n' % self.FN[key]['kurtpval'])
 
-    
+
     def WriteFN(self):
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_FN.txt")
         with open(fn, 'w', newline='') as csvfile:
@@ -235,7 +238,7 @@ class Writer():
                 if x == 0.0:
                     continue
                 writer.writerow(['%0.4f' % (1/x)] + list(self.XY[x]['FN']))
-    
+
     def WriteFilteredGauss(self):
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_filteredGauss.txt")
         with open(fn, 'w', newline='') as csvfile:
@@ -246,7 +249,7 @@ class Writer():
             for x in self.XY:
                 writer.writerow(['%f'%x,'%f'%self.XY[x]['filtered_hist']['mean'],'%f'%self.XY[x]['filtered_hist']['std'],\
                         '%f'% (self.XY[x]['filtered_hist']['std']/np.sqrt(len(self.opts.in_files))) ])
-    
+
     def WriteGauss(self):
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Gauss.txt")
         with open(fn, 'w', newline='') as csvfile:
@@ -349,7 +352,7 @@ class Writer():
                         row.append(self.XY[x]['lag'][1][i])
                     except IndexError:
                         continue
-                writer.writerow(row) 
+                writer.writerow(row)
 
     def WriteRData(self):
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Rdata.txt")
@@ -391,12 +394,12 @@ class Writer():
 #            yi=np.linspace(ymin,ymax,200)
 #            X,Y= np.meshgrid(xi,yi)
 #            Z = griddata((x, y), z, (X, Y),fill_value=0,method='cubic')
-#            
+#
 #            #headers = ['MatrixData']
 #            #for x in X[0]:
 #            #   headers += ["%0.1f"%x]
 #            #writer.writerow(headers)
-#            
+#
 #            for i in range(0,len(Z)):
 #                zi = []
 #                for z in Z[i]:
@@ -449,7 +452,7 @@ class Writer():
             yi=np.linspace(ymin,ymax,200)
             X,Y= np.meshgrid(xi,yi)
             Z = griddata((x, y), z, (X, Y),fill_value=0,method='cubic')
-            
+
             for i in range(0,len(Z)):
                 zi = []
                 for z in Z[i]:
@@ -514,12 +517,12 @@ class Writer():
         fh.close()
         for fn in tocopy:
             copyfile(os.path.join(tdir,fn), \
-                    os.path.join(self.opts.out_dir,fn))     
+                    os.path.join(self.opts.out_dir,fn))
 
-            
-            
+
+
 class Plotter():
-    '''This is the main Plotter class for generating 
+    '''This is the main Plotter class for generating
     plots using matplotlib.'''
     def __init__(self,parser):
         self.parser = parser
@@ -563,7 +566,7 @@ class Plotter():
         ax.axis([xax.min(), xax.max(), allY.min(),allY.max()])
 
     def PlotR(self, ax):
-        if self.opts.logr: 
+        if self.opts.logr:
             ax.set_title("Semilog Plot of |R|")
             ax.set_ylabel(r'log|R|')
         else:
@@ -585,7 +588,7 @@ class Plotter():
         ax.plot(self.XY[key]['R']['hist']['bin'], self.XY[key]['R']['hist']['fit'], lw=2.0, color='b', label='Fit')
 
 
-    
+
     def PlotDJDV(self,ax):
         xax = list(self.DJDV.keys())
         xax.sort()
@@ -730,11 +733,11 @@ class StatPlotter:
         self.cutoff = 0.01
 
     def PlotGmeanData(self, key, ax, sym, **kw):
-        
-        xmin = np.asarray(self.dataset[key][0]).min() 
-        xmax = np.asarray(self.dataset[key][0]).max() 
-        ymin = np.asarray(self.dataset[key][1]).min() 
-        ymax = np.asarray(self.dataset[key][1]).max() 
+
+        xmin = np.asarray(self.dataset[key][0]).min()
+        xmax = np.asarray(self.dataset[key][0]).max()
+        ymin = np.asarray(self.dataset[key][1]).min()
+        ymax = np.asarray(self.dataset[key][1]).max()
         if ymax < self.cutoff:
             ymax = self.cutoff
         if ymin > self.cutoff:
@@ -745,18 +748,18 @@ class StatPlotter:
         ax.set_title("P-values for %s (Gmean)" % key)
         ax.set_xlabel("Potenial (V)")
         ax.set_ylabel('p-value')
-        
+
         ax.plot(self.dataset[key][0],self.dataset[key][1], sym, **kw)
         ax.axis([xmin,xmax,ymin,ymax])
 
         self.PlotCutoff(xmin, xmax, ax)
 
     def PlotJData(self, key, ax, sym, **kw):
-        
-        xmin = np.asarray(self.dataset[key][0]).min() 
-        xmax = np.asarray(self.dataset[key][0]).max() 
-        ymin = np.asarray(self.dataset[key][3]).min() 
-        ymax = np.asarray(self.dataset[key][3]).max() 
+
+        xmin = np.asarray(self.dataset[key][0]).min()
+        xmax = np.asarray(self.dataset[key][0]).max()
+        ymin = np.asarray(self.dataset[key][3]).min()
+        ymax = np.asarray(self.dataset[key][3]).max()
         if ymax < self.cutoff:
             ymax = self.cutoff
         if ymin > self.cutoff:
@@ -767,7 +770,7 @@ class StatPlotter:
         ax.set_title("P-values for %s (mean using N)" % key)
         ax.set_xlabel("Potenial (V)")
         ax.set_ylabel('p-value')
-        
+
         ax.plot(self.dataset[key][0],self.dataset[key][3], sym, **kw)
         ax.axis([xmin,xmax,ymin,ymax])
 
@@ -816,4 +819,3 @@ def WriteStats(out_dir, outfile, dataset, bfn, labels=[]):
             for i in range(0,len(dataset)):
                 row.append(dataset[i][n])
             writer.writerow(row)
-
