@@ -10,7 +10,7 @@ Description:
     reliably, as it has been tested on thousands of junctions, the results
     of have been published and they are in agreement with the litaure and
     have, to some extent, been reproduced independently.
-    
+
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -28,14 +28,14 @@ Description:
 import sys,os,logging,warnings,threading,time
 from collections import OrderedDict
 from gaussfit.colors import *
-#import concurrent.futures 
+#import concurrent.futures
 
 try:
     import pandas as pd
     from scipy.optimize import curve_fit,OptimizeWarning
-    import scipy.interpolate 
+    import scipy.interpolate
     from scipy.stats import gmean,norm,linregress,skew,skewtest,kurtosis,kurtosistest
-    import scipy.misc 
+    import scipy.misc
     import numpy as np
     # SciPy throws a useless warning for noisy J/V traces
     warnings.filterwarnings('ignore','.*Covariance of the parameters.*',OptimizeWarning)
@@ -133,9 +133,9 @@ class Parse():
             print("Error outputting Ghistrograms")
         try:
             writer.WriteGMatrix('GMatrix')
-            writer.WriteGNUplot('GMatrix', ['parula.pal']) 
+            writer.WriteGNUplot('GMatrix', ['parula.pal'])
             writer.WriteGMatrix('NDCMatrix')
-            writer.WriteGNUplot('NDCMatrix') 
+            writer.WriteGNUplot('NDCMatrix')
         except IndexError:
             print("Error outputting GMatrix")
         writer.logger.info("Done!")
@@ -175,7 +175,7 @@ class Parse():
             #        X.append(row[1][0])
             #        Y.append(y)
             #self.df = pd.DataFrame({'V':X,'J':Y})
-       
+
         if not frames:
             self.logger.error("No files to parse!")
             sys.exit()
@@ -210,28 +210,28 @@ class Parse():
             self.df['FN'] = np.array([x*0 for x in range(0, len(self.df['V']))])
         self.df.J.replace(0.0,value=1e-16,inplace=True)
         self.df['logJ'] = np.log10(abs(self.df.J)) # Cannot log10 zero
-        self.logger.info('%s values of log|J| above compliance (%s)' % 
+        self.logger.info('%s values of log|J| above compliance (%s)' %
                 (len(self.df['logJ'][self.df['logJ']>self.opts.compliance]),self.opts.compliance))
-        
+
         #The default log handler only emits when you call flush() after setDelay() called
         self.loghandler.setDelay()
-      
+
         # In the event that we want to call parsing method by hand
         # we stop here when just self.df is complete
-        if not parse: return 
+        if not parse: return
 
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.findTraces()
         self.loghandler.flush()
-        if self.error: 
+        if self.error:
             self.logger.error('Cannot compute statistics from these traces.')
             self.loghandler.flush()
             return # Bail if we can't parse traces
-        
+
         xy = []
-        for x, group in self.df.groupby('V'): 
+        for x, group in self.df.groupby('V'):
             xy.append( (x,group) )
-        
+
         self.logger.info("* * * * * * Computing Lag  * * * * * * * * *")
         self.loghandler.flush()
         lag = self.dolag(xy)
@@ -247,9 +247,9 @@ class Parse():
         self.logger.info("* * * * * * Computing Gaussian  * * * * * * * * *")
         self.loghandler.flush()
         for x, group in xy:
-            self.XY[x] = { "Y":group['J'], 
-                   "LogY":group['logJ'], 
-                   "hist":self.__dohistogram(group['logJ'],"J"), 
+            self.XY[x] = { "Y":group['J'],
+                   "LogY":group['logJ'],
+                   "hist":self.__dohistogram(group['logJ'],"J"),
                    "filtered_hist":self.__dohistogram(lag[x]['filtered'],"lag"),
                    "lag":lag[x]['lagplot'],
                    "FN": group['FN'],
@@ -298,7 +298,7 @@ class Parse():
                 self.logger.debug("Trace: %s -> %s" % (self.df.V[trace[0]],self.df.V[trace[-1]]) )
             self.logger.info("Traces look good.")
             return True
-        self.loghandler.flush() 
+        self.loghandler.flush()
         traces = []
         ntraces = 0
 
@@ -371,12 +371,12 @@ class Parse():
 
     def dodjdv(self):
         '''
-        Fit a spline function to X/Y data, 
+        Fit a spline function to X/Y data,
         compute dY/dX and normalize.
         '''
         linx = np.linspace(self.df.V.min(), self.df.V.max(), 200)
         if self.opts.vcutoff > 0:
-            self.logger.debug('Using %s cutoff for dj/dv' % self.opts.vcutoff) 
+            self.logger.debug('Using %s cutoff for dj/dv' % self.opts.vcutoff)
             vfilterneg,vfilterpos = np.linspace(-1*self.opts.vcutoff,0,200), np.linspace(0,self.opts.vcutoff.max(),200)
         else:
             vfilterneg,vfilterpos = np.linspace(self.df.V.min(),0,200), np.linspace(0,self.df.V.max(),200)
@@ -391,7 +391,7 @@ class Parse():
         spl_normhists = OrderedDict()
         ndc_cut, ndc_tot = 0,0
         filtered = [('Potential', 'Fit', 'Y')]
-        for x in linx: 
+        for x in linx:
             spls[x] = []
             splhists[x] = {'spl':[],'hist':{}}
             spls_norm[x] = []
@@ -403,17 +403,20 @@ class Parse():
             except Exception as msg:
                 self.logger.error('Error in derivative calulation: %s' % str(msg))
                 continue
-
-            spldd = dd(vfilterpos) #Compute d2J/dV2
-            spldd += -1*dd(vfilterneg) #Compute d2J/dV2
+            try:
+                spldd = dd(vfilterpos) #Compute d2J/dV2
+                spldd += -1*dd(vfilterneg) #Compute d2J/dV2
+            except ValueError as msg:
+                self.logger.error('Error computing second derivative: %s' % str(msg))
+                continue
             if len(spldd[spldd<0]):
                     # record in the index where dY/dX is < 0 within vcutoff range
-                    self.ohmic.append(trace)  
+                    self.ohmic.append(trace)
                     if self.opts.skipohmic:
                         continue
             else:
                 for row in self.avg.loc[trace].iterrows():
-                    # filtered is a list containing only "clean" traces         
+                    # filtered is a list containing only "clean" traces
                     filtered.append( (row[0], spl(row[0]), row[1].J) )
             err = None
             for x in spls:
@@ -431,7 +434,7 @@ class Parse():
                 ndc = d[1] * (x/spl(x))
                 spls_norm[x].append( ndc )
                 ndc_tot += 1
-                if 0.0 < ndc < 10.0: 
+                if 0.0 < ndc < 10.0:
                     # ndc values beyond this range can safely be considered artifacts of the numerical derivative
                     spl_normhists[x]['spl'].append( ndc )
                 else:
@@ -440,7 +443,7 @@ class Parse():
             if err:
                 self.logger.error("Error while computing derivative: %s" % str(err))
 
-        self.logger.info("Non-tunneling traces: %s (out of %0d)" % 
+        self.logger.info("Non-tunneling traces: %s (out of %0d)" %
                     ( len(self.ohmic), len(self.avg.index.levels[0]) ) )
         self.logger.info("NDC values not between 0 and 10: %s (%0.2f%%)" % (ndc_cut, (ndc_cut/ndc_tot)*100) )
         self.loghandler.flush()
@@ -452,7 +455,7 @@ class Parse():
         self.DJDV, self.GHists, self.NDC, self.NDCHists, self.filtered = spls, splhists, spls_norm, spl_normhists, filtered
 
     def dorect(self,xy):
-        ''' 
+        '''
         Divide each value of Y at +V by Y at -V
         and build a histogram of rectification, R
         also construct the unique Voltage list
@@ -509,12 +512,12 @@ class Parse():
         tossed = 0
         if self.opts.skipohmic:
             # Vtrans has no physical meaning for curves with negative derivatives
-            self.logger.info("Skipping %s (out of %s) non-tunneling traces for Vtrans calculation." % 
+            self.logger.info("Skipping %s (out of %s) non-tunneling traces for Vtrans calculation." %
                     ( len(self.ohmic), (len(self.avg.index.levels[0]))))
-        
+
         for trace in self.avg.index.levels[0]:
             if self.opts.skipohmic and trace in self.ohmic:
-                tossed += 1    
+                tossed += 1
                 continue
             try:
                 if not self.opts.interpolateminfn:
@@ -544,7 +547,7 @@ class Parse():
                         continue
 
                     self.logger.debug('Finding minimum of interpolated FN plot.')
-                    splpos = scipy.interpolate.interp1d( np.array(self.avg.loc[trace].index[self.avg.loc[trace].index > 0]), 
+                    splpos = scipy.interpolate.interp1d( np.array(self.avg.loc[trace].index[self.avg.loc[trace].index > 0]),
                                                        self.avg.loc[trace]['FN'][self.avg.loc[trace].index > 0].values,kind='linear',fill_value='extrapolate')
                     splneg = scipy.interpolate.interp1d( np.array(self.avg.loc[trace].index[self.avg.loc[trace].index < 0]),
                                                        self.avg.loc[trace]['FN'][self.avg.loc[trace].index < 0 ].values ,kind='linear',fill_value='extrapolate')
@@ -654,7 +657,7 @@ class Parse():
         '''
         A, mu, sigma = p
         return A*np.exp(-(x-mu)**2/(2.*sigma**2))
-    
+
 
     def linear(self, x, *p):
         '''
@@ -675,19 +678,19 @@ class Parse():
         Return a histogram of Y-values and a gaussian
         fit of the histogram, excluding values that
         exceed either the compliance limit (for current
-        or current-density) or the ceiling for R. We 
+        or current-density) or the ceiling for R. We
         would like to include all data in the histogram,
         but outliers sometimes confuse the fitting
         routine, which defeats the purpose of machine-fitting
         '''
-        
+
         try:
             yrange = (Y.min(),Y.max())
         except ValueError as msg:
             self.logger.error("Error ranging data for histogram: %s" % str(msg))
             yrange = (0,0)
 
-        if label == "J" or label == "lag": 
+        if label == "J" or label == "lag":
             Y = Y[Y <= self.opts.compliance]
             if yrange != (0,0):
                 yrange = (Y.min()-1, Y.max()+1)
@@ -704,8 +707,8 @@ class Parse():
             self.logger.warning("Encountered this error while constructing histogram: %s", str(msg), exc_info=False)
             bins=np.array([0.,0.,0.,0.])
             freq=np.array([0.,0.,0.,0.])
-        
-        if len(Y):  
+
+        if len(Y):
             Ym = self.signedgmean(Y)
             Ys = abs(Y.std())
         else:
@@ -732,10 +735,10 @@ class Parse():
             #coeff=p0
 
         #hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
-        
+
         #if covar != None:
         #    self.logger.debug('Covariance: %s ' % (np.sqrt(np.diag(covar))) )
-        
+
         skewstat, skewpval = skewtest(freq)
         kurtstat, kurtpval = kurtosistest(freq)
         return {"bin":bin_centers, "freq":freq, "mean":coeff[1], "std":coeff[2], \
@@ -745,7 +748,7 @@ class Parse():
 
     def wait(self):
         '''
-        Wait at most 60 seconds for either an error to occur or 
+        Wait at most 60 seconds for either an error to occur or
         for the parser to complete.
         '''
         self.logger.debug("Waiting for parser to complete.")
