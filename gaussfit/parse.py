@@ -104,7 +104,11 @@ class Parse():
         writer.logger.info("Writing files...")
         writer.WriteParseInfo()
         writer.WriteSummary()
-        writer.WriteVtrans()
+        #TODO Vtrans looses its mind if you only parse positive or negative biases
+        try:
+            writer.WriteVtrans()
+        except ValueError:
+            print("Vtrans data are too broken to output ¯\_(ツ)_/¯")
         writer.WriteGNUplot('Vtransplot')
         writer.WriteFN()
         writer.WriteVT()
@@ -445,7 +449,8 @@ class Parse():
 
         self.logger.info("Non-tunneling traces: %s (out of %0d)" %
                     ( len(self.ohmic), len(self.avg.index.levels[0]) ) )
-        self.logger.info("NDC values not between 0 and 10: %s (%0.2f%%)" % (ndc_cut, (ndc_cut/ndc_tot)*100) )
+        if ndc_tot:
+            self.logger.info("NDC values not between 0 and 10: %s (%0.2f%%)" % (ndc_cut, (ndc_cut/ndc_tot)*100) )
         self.loghandler.flush()
         for x in splhists:
             splhists[x]['hist'] = self.__dohistogram(np.array(splhists[x]['spl']), label='DJDV')

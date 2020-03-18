@@ -203,6 +203,9 @@ class Writer():
 
     def WriteVtrans(self):
         for key in ('pos', 'neg'):
+            if key not in self.FN:
+                logger.warn("%s not found in Fowler Nordheim data, skipping output." % key)
+                continue
             fn = os.path.join(self.opts.out_dir, self.opts.outfile+"_Vtrans_"+key+".txt")
             with open(fn, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile, dialect='JV')
@@ -218,7 +221,7 @@ class Writer():
         with open(fn, 'w') as fh:
             for key in ('pos', 'neg'):
                 if key not in self.FN:
-                    logger.warn("%s not found in Fowler Nordhem data, skipping output." % key)
+                    logger.warn("%s not found in Fowler Nordheim data, skipping output." % key)
                     continue
                 fh.write('--- %s ---\n' % key)
                 fh.write('Skew: %s\n' % self.FN[key]['skew'])
