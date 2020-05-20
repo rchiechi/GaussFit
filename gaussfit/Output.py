@@ -109,6 +109,17 @@ class Writer():
                          "%0.4f"%self.XY[x]['hist']['kurtpval']]
                 writer.writerow(row)
 
+        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Gmean.txt")
+        with open(fn, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile, dialect='JV')
+            headers = ["Voltage", "Geometric Mean", "Std Deviation"]
+            writer.writerow(headers)
+            for x in self.XY:
+                row = ["%0.4f"%x,
+                         "%0.4f"%self.XY[x]['hist']['Gmean'],
+                         "%0.4f"%self.XY[x]['hist']['Gstd']
+                writer.writerow(row)
+
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RHistograms.txt")
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
