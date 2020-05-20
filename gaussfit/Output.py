@@ -117,7 +117,7 @@ class Writer():
             for x in self.XY:
                 row = ["%0.4f"%x,
                          "%0.4f"%self.XY[x]['hist']['Gmean'],
-                         "%0.4f"%self.XY[x]['hist']['Gstd']
+                         "%0.4f"%self.XY[x]['hist']['Gstd']]
                 writer.writerow(row)
 
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RHistograms.txt")
