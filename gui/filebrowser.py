@@ -53,7 +53,7 @@ class ChooseFiles(Frame):
             self.last_input_path = os.path.expanduser('~')
         self.opts = opts
         self.gothreads = []
-        
+
         self.master.tk_setPalette(background=GREY,
             activeBackground=GREY)
         self.master.title("RCCLab EGaIn Data Parser")
@@ -64,7 +64,7 @@ class ChooseFiles(Frame):
         self.mainloop()
 
     def __createWidgets(self):
-            
+
         self.ButtonFrame = Frame(self)
         self.LeftOptionsFrame = Frame(self)
         self.LoggingFrame = Frame(self)
@@ -72,9 +72,9 @@ class ChooseFiles(Frame):
 
 
         self.FileListBoxFrame = Frame(self)
-    
+
         yScroll = Scrollbar(self.LoggingFrame, orient=VERTICAL)
-        self.Logging = Text(self.LoggingFrame, height=20, width=0,  
+        self.Logging = Text(self.LoggingFrame, height=20, width=0,
                 bg=BLACK, fg=WHITE, yscrollcommand=yScroll.set)
         yScroll['command'] = self.Logging.yview
         self.Logging.pack(side=LEFT,fill=BOTH,expand=True)
@@ -98,7 +98,7 @@ class ChooseFiles(Frame):
         self.updateFileListBox()
 
     def __createButtons(self):
-            
+
         buttons = [
                {'name':'Quit','text':'QUIT','command':'Quit','side':BOTTOM},
                {'name':'SpawnInputDialog','text':'Add Input Files','side':LEFT},
@@ -113,7 +113,7 @@ class ChooseFiles(Frame):
             button.pack(side=b['side'])
             setattr(self,'Button'+b['name'],button)
 
-        
+
     def __createOptions(self):
         self.checks = [
               {'name':'plot','text':'Plot','row':1,'tooltip':"Show summary plots after parsing."},
@@ -134,7 +134,7 @@ class ChooseFiles(Frame):
             setattr(self,'Check_'+c['name'],check)
             if getattr(self.opts,c['name']):
                 getattr(self,c['name']).set(1)
-        
+
         rowidx = len(self.checks)+1
 
         Label(self.RightOptionsFrame, text="Output file base name:").grid(column=0,row=rowidx)
@@ -143,25 +143,25 @@ class ChooseFiles(Frame):
         for n in ('<Return>','<Leave>','<Enter>'):
             self.OutputFileName.bind(n, self.checkOutputFileName)
         self.OutputFileName.grid(column=0,row=rowidx+1)
-        
+
         if self.opts.outfile:
             self.OutputFileName.insert(0,self.opts.outfile)
-    
+
         Label(self.RightOptionsFrame, text="Data to plot:").grid(column=0,row=rowidx+2,sticky=W)
         self.OptionsPlotsString = StringVar()
         self.OptionsPlotsString.set(self.opts.plots)
         self.OptionPlots = OptionMenu(self.RightOptionsFrame, self.OptionsPlotsString,'J','R',
                                  command=self.checkOptions)
         self.OptionPlots.grid(column=0,row=rowidx+3,sticky=W)
-    
+
         Label(self.RightOptionsFrame, text="Histogram to plot:").grid(column=0,row=rowidx+4,sticky=W)
         self.OptionsHistPlotsString = StringVar()
         self.OptionsHistPlotsString.set(self.opts.histplots)
         self.OptionHistPlots = OptionMenu(self.RightOptionsFrame, self.OptionsHistPlotsString,'NDC','G',
                                  command=self.checkOptions)
         self.OptionHistPlots.grid(column=0,row=rowidx+5,sticky=W)
-    
-    
+
+
         Label(self.RightOptionsFrame, text="Derivative for heatmap:").grid(column=0,row=rowidx+6,sticky=W)
         self.OptionsHeatmapdString = StringVar()
         self.OptionsHeatmapdString.set(self.opts.heatmapd)
@@ -187,11 +187,11 @@ class ChooseFiles(Frame):
             {'name': 'Heatmapbins', 'text': "Bins for G Histograms:",
              'tooltip': "Set binning for heatmap histograms."}
             ]
-        
+
         i = 0
         for l in lbls:
             Label(self.LeftOptionsFrame, text=l['text']).grid(column=0,row=i)
-            entry = Entry(self.LeftOptionsFrame, width=8, 
+            entry = Entry(self.LeftOptionsFrame, width=8,
                     validate='focus', validatecommand=self.checkOptions)
             entry.bind("<Return>", self.checkOptions)
             entry.bind("<Leave>", self.checkOptions)
@@ -218,11 +218,11 @@ class ChooseFiles(Frame):
         xScroll = Scrollbar(self.FileListBoxFrame, orient=HORIZONTAL)
         xScroll.pack(side=BOTTOM,fill=X)
         self.filelist = StringVar()
-        self.FileListBox = Listbox(self.FileListBoxFrame, listvariable=self.filelist, selectmode=EXTENDED, 
+        self.FileListBox = Listbox(self.FileListBoxFrame, listvariable=self.filelist, selectmode=EXTENDED,
                         height = 20, width = 0, relief=RAISED, bd=1,
                             bg=WHITE,
                                                         #font=Font(size=10),
-                            xscrollcommand=xScroll.set, 
+                            xscrollcommand=xScroll.set,
                             yscrollcommand=yScroll.set)
         xScroll['command'] = self.FileListBox.xview
         yScroll['command'] = self.FileListBox.yview
@@ -253,11 +253,11 @@ class ChooseFiles(Frame):
             for c in self.gothreads:
                 if c.is_alive():
                     self.ButtonParse.after('500',self.Parse)
-                    return  
+                    return
             self.logger.info("Parse complete!")
             gothread = self.gothreads.pop()
             self.ButtonParse['state']=NORMAL
-            if self.opts.write and not gothread.parser.error: 
+            if self.opts.write and not gothread.parser.error:
                 writer = Writer(gothread.parser)
                 Parse.doOutput(writer)
             if self.opts.plot and not gothread.parser.error:
@@ -269,7 +269,7 @@ class ChooseFiles(Frame):
                         plt.show(block=False)
                 except ImportError as msg:
                         self.logger.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
-        else: 
+        else:
             if len(self.opts.in_files):
                 parser = Parse(self.opts,handler=self.handler)
                 self.gothreads.append(ParseThread(self.opts,parser))
@@ -287,15 +287,15 @@ class ChooseFiles(Frame):
             for s in selected:
                 if self.opts.in_files[i].replace(" ","_") == s:
                     todel.append(i)
-        
+
         for i in range(0, len(self.opts.in_files)):
             if i not in todel:
                        filelist.append(self.opts.in_files[i])
         self.opts.in_files = filelist
         self.updateFileListBox()
         self.FileListBox.selection_clear(0,END)
-        
-            
+
+
     def SpawnInputDialogClick(self):
         self.checkOptions()
         self.opts.in_files += filedialog.askopenfilename(title="Files to parse", multiple=True, \
@@ -312,7 +312,7 @@ class ChooseFiles(Frame):
 
     def updateFileListBox(self):
         self.filelist.set(" ".join([x.replace(" ","_") for x in self.opts.in_files]))
-            
+
     def SpawnOutputDialogClick(self):
         outdir = filedialog.askdirectory(title="Select Output File(s)", initialdir=self.opts.out_dir)
         if os.path.exists(outdir):
@@ -325,14 +325,22 @@ class ChooseFiles(Frame):
     def checkOptions(self, event=None):
         for c in self.checks:
             setattr(self.opts,c['name'],self.boolmap[getattr(self,c['name']).get()])
-            
+
+
+        if self.OptionsHistPlotsString.get() == 'NDC':
+            self.OptionHeatmapd["state"]=DISABLED
+            self.opts.heatmapd=1
+            self.OptionsHeatmapdString.set('1')
+        else:
+            self.OptionHeatmapd["state"]=NORMAL
+
         if not self.opts.write:
             self.opts.plot = True
             self.plot.set(1)
             self.Check_plot["state"]=DISABLED
         else:
             self.Check_plot["state"]=NORMAL
-        
+
         for n in (('Smooth',1e-12),('Bins',50),('Heatmapbins',25)):
             try:
                 var = getattr(self,'Entry'+n[0]).get()
@@ -351,13 +359,13 @@ class ChooseFiles(Frame):
                 setattr(self.opts,n[0].lower(),var)
             getattr(self,'Entry'+n[0]).delete(0,END)
             getattr(self,'Entry'+n[0]).insert(0,getattr(self.opts,n[0].lower()))
-    
+
         self.opts.plots = self.OptionsPlotsString.get()
         self.opts.histplots = self.OptionsHistPlotsString.get()
         self.opts.heatmapd = int(self.OptionsHeatmapdString.get())
         self.checkGminmaxEntry(event)
         self.checkNDCminmaxEntry(event)
-        self.checkOutputFileName(event) 
+        self.checkOutputFileName(event)
         self.checkColumnEntry(event)
         self.checkVcutoffEntry(event)
         self.checkLagcutoffEntry(event)
@@ -367,7 +375,7 @@ class ChooseFiles(Frame):
             vcutoff = float(self.EntryVcutoff.get())
             if vcutoff != -1:
                 vcutoff = abs(vcutoff)
-            self.opts.vcutoff = vcutoff  
+            self.opts.vcutoff = vcutoff
         except ValueError:
             self.opts.vcutoff = -1
 
@@ -417,6 +425,3 @@ class ChooseFiles(Frame):
             pass
         self.EntryNDCminmax.delete(0, END)
         self.EntryNDCminmax.insert(0, ",".join( (str(self.opts.ndc_mlow), str(self.opts.ndc_mhi)) ))
-
-
-
