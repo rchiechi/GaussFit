@@ -67,6 +67,7 @@ class Writer():
             fh.write(extra+"\n")
 
     def WriteSummary(self):
+        '''Write a summary of the traces that were parsed.'''
         try:
             fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Summary.txt")
             self.df.to_csv(fn,sep=self.opts.delim)
@@ -79,6 +80,8 @@ class Writer():
             logger.warn("No averaged data to summarize")
 
     def WriteHistograms(self):
+        '''Write all of the underlying histograms and associated statistics used to compute
+           Gaussian mean and variance of J, R and Vtrans from the raw input data.'''
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms.txt")
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
@@ -182,6 +185,9 @@ class Writer():
 
 
     def WriteFilteredHistograms(self):
+        '''Write the underlying histograms and associated statistics used to compute the
+           Gaussian mean and variance from filtered input data according to the filtering
+           cutoffs specified by the user.'''
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_filteredHistograms.txt")
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
@@ -213,6 +219,7 @@ class Writer():
                 writer.writerow(row)
 
     def WriteVtrans(self):
+        '''Write the Vtrans data and associated statistics.'''
         for key in ('pos', 'neg'):
             if key not in self.FN:
                 logger.warn("%s not found in Fowler Nordheim data, skipping output." % key)
@@ -244,6 +251,7 @@ class Writer():
 
 
     def WriteFN(self):
+        '''Write Fowler-Nordheim plots of input data.'''
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_FN.txt")
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
@@ -254,6 +262,8 @@ class Writer():
                 writer.writerow(['%0.4f' % (1/x)] + list(self.XY[x]['FN']))
 
     def WriteFilteredGauss(self):
+        '''Write the Gaussian-derived J/V data derived from the filtered input data
+           according to the cutoffs specified by the user.'''
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_filteredGauss.txt")
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
@@ -265,6 +275,7 @@ class Writer():
                         '%f'% (self.XY[x]['filtered_hist']['std']/np.sqrt(len(self.opts.in_files))) ])
 
     def WriteGauss(self):
+        '''Write the Gaussian-derived data for J, R and the differential conductance data.'''
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Gauss.txt")
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
@@ -303,6 +314,7 @@ class Writer():
                 writer.writerow(['%f'%x,'%f'%self.NDCHists[x]['hist']['mean'],'%f'%self.NDCHists[x]['hist']['std']])
 
     def WriteVT(self):
+        '''Write the transition voltage data plotted against potential (not 1/V).'''
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_VT.txt")
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
@@ -311,6 +323,7 @@ class Writer():
                 writer.writerow(['%f'%x,'%f'%self.XY[x]['VT']])
 
     def WriteData(self, log=False):
+        '''Write LogJ or LogY (where Y is the generic Y-axis data) plotted against potential.'''
         if log: key,label ='LogY','LogJ'
         else:   key, label ='Y','J'
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt")
@@ -321,6 +334,7 @@ class Writer():
                 writer.writerow(["%0.4f"%x]+list(self.XY[x][key]))
 
     def WriteDJDV(self):
+        '''Write the derivative dJ/dV plotted against potential.'''
         label = 'DJDV'
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt")
         with open(fn,'w', newline='') as csvfile:
@@ -332,6 +346,7 @@ class Writer():
                 writer.writerow(["%0.4f"%x]+self.DJDV[x])
 
     def WriteNDC(self):
+        '''Write the normalized differential conductance plotted against potenial.'''
         label = 'NDC'
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt")
         with open(fn,'w', newline='') as csvfile:
@@ -343,6 +358,7 @@ class Writer():
                 writer.writerow(["%0.4f"%x]+self.NDC[x])
 
     def WriteFiltered(self):
+        '''Write the filtered J/V data using the input cutoffs provided by the user.'''
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_filtered.txt")
         with open(fn,'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
@@ -350,6 +366,7 @@ class Writer():
                 writer.writerow(l)
 
     def WriteLag(self):
+        '''Write the lag plots of the J/V data.'''
         fn = fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_lag.txt")
         lenrow = len( self.XY[list(self.XY)[0]]['lag'][0] )
         with open(fn, 'w', newline='') as csvfile:
@@ -369,6 +386,7 @@ class Writer():
                 writer.writerow(row)
 
     def WriteRData(self):
+        '''Write the rectification plotted against potential.'''
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Rdata.txt")
         with open(fn,'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
@@ -377,7 +395,7 @@ class Writer():
                 writer.writerow(["%0.4f"%x]+list(self.XY[x]['R']))
 
     def WriteGHistogram(self):
-        '''Output for a contour plot of conductance'''
+        '''Write a contour plot of conductance.'''
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_GHistogram.txt")
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
@@ -437,7 +455,7 @@ class Writer():
 #            writer.writerow(headers)
 
     def WriteGMatrix(self, label):
-        '''Output for a matlab-style colormap maxtrix'''
+        '''Write a matlab-style colormap maxtrix of G or NDC.'''
         if label == 'GMatrix':
             Hists = self.GHists
         elif label == 'NDCMatrix':
@@ -488,7 +506,7 @@ class Writer():
             writer.writerow(headers)
 
     def WriteGeneric(self, dataset, bfn, labels=[]):
-        '''Output for a generic set of data expecting an n-dimensional array'''
+        '''Write a generic set of data expecting an n-dimensional array'''
 
         if len(labels) and len(labels) != len(dataset):
             logger.error("Length of column labels does not match number of data columns for WriteGeneric!")
@@ -514,6 +532,7 @@ class Writer():
 
 
     def WriteGNUplot(self, gpinbn, tocopy=[]):
+        '''Write GNUPlot sciprts for plotting the ASCII files output by the other writers.'''
         absdir = os.path.dirname(os.path.abspath(__file__))
         tdir = os.path.join(absdir,'../templates/')
         gpintp = os.path.join(tdir,gpinbn+'.gpin')
