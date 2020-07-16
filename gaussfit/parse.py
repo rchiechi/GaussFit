@@ -212,11 +212,6 @@ class Parse():
         except ZeroDivisionError:
             self.logger.warn("Error computing FN (check your input data).")
             self.df['FN'] = np.array([x*0 for x in range(0, len(self.df['V']))])
-        try:
-            self.df['notFN'] = abs(self.df.V**2/self.df.J)
-        except ZeroDivisionError:
-            self.logger.warn("Error computing not-FN (check your input data).")
-            self.df['notFN'] = np.array([x*0 for x in range(0, len(self.df['V']))])
         self.df.J.replace(0.0,value=1e-16,inplace=True)
         self.df['logJ'] = np.log10(abs(self.df.J)) # Cannot log10 zero
         self.logger.info('%s values of log|J| above compliance (%s)' %

@@ -261,17 +261,6 @@ class Writer():
                     continue
                 writer.writerow(['%0.4f' % (1/x)] + list(self.XY[x]['FN']))
 
-    def WritenotFN(self):
-        '''Write not-Fowler-Nordheim plots of input data.'''
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_notFN.txt")
-        with open(fn, 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile, dialect='JV')
-            writer.writerow(['V'] + ['Y_%d'%x for x in range(1,len( self.XY[list(self.XY.keys())[0]]['FN'] )+1)])
-            for x in self.XY:
-                if x == 0.0:
-                    continue
-                writer.writerow(['%0.4f' % (x)] + list(self.XY[x]['notFN']))
-
     def WriteFilteredGauss(self):
         '''Write the Gaussian-derived J/V data derived from the filtered input data
            according to the cutoffs specified by the user.'''
