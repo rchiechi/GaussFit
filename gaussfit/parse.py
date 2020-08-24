@@ -159,6 +159,9 @@ class Parse():
                     frames[f] = pd.read_csv(f,sep=self.opts.delim,usecols=(self.opts.Xcol,self.opts.Ycol),names=('V','J'),header=0)
                 except OSError as msg:
                     self.logger.warn("Skipping %s because %s" % (f,str(msg)))
+                except pd.errors.ParserError as msg:
+                    self.logger.warn("Skipping malformatted %s because %s" % (f,str(msg)))
+
         else:
             self.logger.info("Parsing all columns of data.")
             for f in fns:

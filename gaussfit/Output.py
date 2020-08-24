@@ -252,10 +252,6 @@ class Writer():
 
     def WriteFN(self):
         '''Write Fowler-Nordheim plots of input data.'''
-        if len( self.XY[list(self.XY.keys())[0]]['FN'] ) < 2:
-            logger.warn("No FN data to write.")
-            return
-
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_FN.txt")
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
