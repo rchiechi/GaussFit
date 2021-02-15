@@ -262,7 +262,8 @@ class Parse():
                    "filtered_hist":self.__dohistogram(lag[x]['filtered'],"lag"),
                    "lag":lag[x]['lagplot'],
                    "FN": group['FN'],
-                   "R": R[x] }
+                   "R": R[x]
+                    }
         self.logger.info("* * * * * * Computing |V^2/J|  * * * * * * * * *")
         self.loghandler.flush()
         for x in self.XY:
@@ -388,6 +389,7 @@ class Parse():
         Break out each trace by segments of
         0V -> Vmax, 0V -> Vim.
         '''
+        # NOTE this is a crude hack because I forgot how Pandas works
         if self.opts.tracebyfile:
             self.logger.error("Cannot generate segments from non-EGaIn dataset.")
             return
