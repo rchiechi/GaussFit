@@ -225,15 +225,26 @@ class Writer():
         fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_SegmentedHistograms.txt")
         with open(fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
-            headers = []
-            #for x in self.XY: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x, \
-            #        "Skew (%0.4f)"%x, "Kurtosis (%0.4f)"%x, "Skew test (%0.4f)"%x, "Skew pvalue (%0.4f)"%x]
-            for x in self.XY: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
+            headers = ["Potential (V)"]
+            for trace in self.XY[list(self.XY.keys())[0]]['segmented']:
+                headers += ["Log|J|","Standard Devaition","Standard Error of the Mean"]
             writer.writerow(headers)
-            for i in range(0, len( self.XY[list(self.XY.keys())[0]]['hist']['bin'] ) ):
+            #writer.writerow(["Potential (V)","Log|J|","Standard Devaition","Standard Error of the Mean"])
+            #Y = []
+            #Yerr = []
+            for x in self.XY:
                 row = []
-                for x in self.XY: row += ["%0.4f"%self.XY[x]['hist']['bin'][i],
-                             "%s"%self.XY[x]['hist']['freq'][i],
+                for trace in self.XY[x]['segmented']:
+                    _mean = []
+                    _std = []
+                    _var = []
+                    for segment in self.XY[x]['segmented'][trace]:
+                        _mean.append(self.XY[x]['segmented'][trace][segment]['mean'])
+                        _std.append(self.XY[x]['segmented'][trace][segment]['std'])
+                        _var.append(_std[-1]/np.sqrt(len(self.opts.in_files)))
+                    for _i in range(0, len(_mean)):
+                        row += ['%f'%_mean[_i],'%f'%_std[_i],'%f'%_var[_i] ]
+                writer.writerow(['%f'%x]+row)
 
 
     def WriteVtrans(self):

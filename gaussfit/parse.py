@@ -115,6 +115,7 @@ class Parse():
         writer.WriteVT()
         writer.WriteGNUplot('VTplot')
         writer.WriteGauss()
+        writer.WriteSegmentedHistograms()
         writer.WriteFilteredGauss()
         writer.WriteGNUplot('JVplot')
         writer.WriteGNUplot('NDCplot')
@@ -262,7 +263,8 @@ class Parse():
                    "filtered_hist":self.__dohistogram(lag[x]['filtered'],"lag"),
                    "lag":lag[x]['lagplot'],
                    "FN": group['FN'],
-                   "R": R[x]
+                   "R": R[x],
+                   "segmented": self.segments[x]
                     }
         self.logger.info("* * * * * * Computing |V^2/J|  * * * * * * * * *")
         self.loghandler.flush()
@@ -395,6 +397,14 @@ class Parse():
             return
         segments = {}
         self.logger.info("Breaking out traces by segments of 0V -> Vmin/max.")
+        # traces = []
+        # for t in zip(*(iter(self.df[self.df.V == 0.00].V.index),) * 3):
+        #     # Make an iterator that aggregates elements from each of the iterables.
+        #     # Zip is an iterator of tuples, where the i-th tuple contains the i-th element
+        #     # from each of the argument sequences or iterables
+        #     traces.append( (t[0], t[2]) )
+        # for col in range(0,len(traces)):
+        #     fbtrace = self.df[traces[col][0]:traces[col][1]].sort_values('V')
 
         for _fn in self.df.index.levels[0]:
             # if len(self.df.loc[_fn]['V']) % 4 == 0:
@@ -450,17 +460,19 @@ class Parse():
         for _seg in segments:
             for _trace in segments[_seg]:
                 for _V in segments[_seg][_trace]:
-                    if _trace not in segmenthists:
-                        segmenthists[_trace] = {}
-                    if _V not in segmenthists[_trace]:
-                        segmenthists[_trace][_V] = {}
-                    segmenthists[_seg][_trace][_V] = self.__dohistogram(np.array(segments[_seg][_trace][_V]), label='Segmented')
+                    if _V not in segmenthists:
+                        segmenthists[_V] = {}
+                    if _trace not in segmenthists[_V]:
+                        segmenthists[_V][_trace] = {}
+                    if _seg not in segmenthists[_V][_trace]:
+                        segmenthists[_V][_trace][_seg] = {}
+                    segmenthists[_V][_trace][_seg] = self.__dohistogram(np.array(segments[_seg][_trace][_V]), label='Segmented')
 
 
         #splhists[x]['hist'] = self.__dohistogram(np.array(splhists[x]['spl']), label='DJDV')
 
 
-        self.segments = segmnethists
+        self.segments = segmenthists
 
 
 
