@@ -229,10 +229,12 @@ class Parse():
         # we stop here when just self.df is complete
         if not parse: return
         self.logger.info("* * * * * * Finding segments   * * * * * * * *")
+        self.loghandler.flush()
         self.findSegments()
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
-        self.findTraces()
         self.loghandler.flush()
+        self.findTraces()
+
         if self.error:
             self.logger.error('Cannot compute statistics from these traces.')
             self.loghandler.flush()
@@ -389,12 +391,14 @@ class Parse():
     def findSegments(self):
         '''
         Break out each trace by segments of
-        0V -> Vmax, 0V -> Vim.
+        0V -> Vmax, 0V -> Vmin.
         '''
         # NOTE this is a crude hack because I forgot how Pandas works
         if self.opts.tracebyfile:
             self.logger.error("Cannot generate segments from non-EGaIn dataset.")
             return
+        if self.df.V.value_counts()[0] % 3 != 0:
+            self.logger.warn("Dataset does not seem to have four segments.")
         segments = {}
         self.logger.info("Breaking out traces by segments of 0V -> Vmin/max.")
         # traces = []
@@ -417,11 +421,33 @@ class Parse():
 
             _seg = 0
             _trace = 0
+            _last_V = 0
             _zeros = 0
+            _n_traces = int(self.df.V.value_counts()[0] / 3)
+            V_min = self.df.loc[_fn]['V'].min()
+            V_max = self.df.loc[_fn]['V'].max()
             for _i in self.df.loc[_fn].index:
 
                 J = self.df.loc[_fn]['logJ'][_i]
                 V = self.df.loc[_fn]['V'][_i]
+
+                if V > 0 and V > _last_V:
+                    _seg = 0
+                    # 0 -> V_max
+                elif V > 0 and V <= _last_V:
+                    _seg = 1
+                    # V_max -> 0
+                elif V < 0 and V < _last_V:
+                    _seg = 2
+                    # 0 -> V_min
+                elif V < 0 and V >= _last_V:
+                    _seg = 3
+                elif int(V) == 0:
+                    _zeros += 1
+
+                if _zeros == 3:
+                    _trace += 1
+                    _zeros = 0
 
                 if _seg not in segments:
                     segments[_seg] = {}
@@ -433,47 +459,33 @@ class Parse():
                     # print(segments)
                     segments[_seg][_trace][V] = []
                     #print("New V %s" % V)
+                    # V_min -> 0
 
+                _last_V = V
                 segments[_seg][_trace][V].append(J)
-                #print(segments[0].keys())
-                if V == 0.0:
-                    _zeros += 1
-                #if _i % 4 == 0:
-                if _zeros == 2:
-                    _seg += 1
-                if _seg == 4:
-                    _seg = 0
-                    _trace += 1
-                    _zeros = 0
-        # try:
-        #     self.segments = pd.concat(segments)
-        # except ValueError:
-        #     self.error = True
-        #     self.segments = {}}
-        #     self.logger.error('Unable to parse segments.')
-        if len(segments.keys()) > 4:
+
+        if len(segments.keys()) != 4:
             self.error = True
-            self.logger.warning('Parsed more than four segments from an EGaIn dataset!')
+            self.logger.warning('Parsed %i segments from an EGaIn dataset!' % len(segments.keys()))
+        else:
+            self.logger.info('Found %s segments.' % len(segments.keys()))
 
-
+        # print(segments.keys())
         segmenthists = {}
         for _seg in segments:
+            # print('Seg %s' % _seg)
             for _trace in segments[_seg]:
+                # print('Trace: %s' % _trace)
                 for _V in segments[_seg][_trace]:
                     if _V not in segmenthists:
                         segmenthists[_V] = {}
-                    if _trace not in segmenthists[_V]:
-                        segmenthists[_V][_trace] = {}
-                    if _seg not in segmenthists[_V][_trace]:
-                        segmenthists[_V][_trace][_seg] = {}
-                    segmenthists[_V][_trace][_seg] = self.__dohistogram(np.array(segments[_seg][_trace][_V]), label='Segmented')
-
-
-        #splhists[x]['hist'] = self.__dohistogram(np.array(splhists[x]['spl']), label='DJDV')
-
+                    if _seg not in segmenthists[_V]:
+                        segmenthists[_V][_seg] = {}
+                    # if _trace not in segmenthists[_V][_seg]:
+                    #      segmenthists[_V][_seg][_trace] = {}
+                    segmenthists[_V][_seg][_trace] = self.__dohistogram(np.array(segments[_seg][_trace][_V]), label='Segmented')
 
         self.segments = segmenthists
-
 
 
     def dodjdv(self):
