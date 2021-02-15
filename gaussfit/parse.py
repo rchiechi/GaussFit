@@ -77,6 +77,7 @@ class Parse():
     filtered = []
     R = {}
     traces = {}
+    segments = {}
 
     def __init__(self,opts,handler=None,lock=None):
         self.opts = opts
@@ -321,11 +322,14 @@ class Parse():
                 ntraces = int(self.df.V.value_counts()[0]/3) # Three zeros in every trace!
                 self.logger.info("This looks like an EGaIn dataset.")
                 for t in zip(*(iter(self.df[self.df.V == 0.00].V.index),) * 3):
-                    #traces.append( (t[0], (t[2][0],t[2][1]+1) ) )
+                    # Make an iterator that aggregates elements from each of the iterables.
+                    # Zip is an iterator of tuples, where the i-th tuple contains the i-th element
+                    # from each of the argument sequences or iterables
                     traces.append( (t[0], t[2]) )
 
-            except ValueError:
+            except ValueError as msg:
                 self.logger.warn("Did not find three-zero (EGaIn) traces!")
+                self.logger.debug(str(msg))
         if not ntraces:
             self.logger.warn("This does not look like an EGaIn dataset.")
             try:
@@ -336,6 +340,7 @@ class Parse():
                 self.logger.warn("Did not find three-zero (EGaIn) traces!")
 
         if not ntraces or not __checktraces(traces):
+            # traces contains indices where traces (start, stop) in self.df.
             self.logger.warn("Recomputing traces based on repeat values")
             traces = []
             Vinit = self.df.V[0]
@@ -375,6 +380,44 @@ class Parse():
         if ntraces == 1:
             self.error = True
             self.logger.warning('Only parsed one trace!')
+        self.findSegments(traces)
+
+    def findSegments(self, traces):
+        '''
+        Break out each trace by segments of
+        0V -> Vmax, 0V -> Vim.
+        '''
+        if self.opts.tracebyfile:
+            self.logger.warn("Cannot generate segments from non-EGaIn dataset.")
+            return
+
+        self.logger.info("Breaking out traces by segments of 0V -> Vmin/max.")
+        _segment = 0
+        for col in range(0,len(traces)):
+            fbtrace = self.df[traces[col][0]:traces[col][1]]
+            print(fbtrace)
+            sys.exit()
+
+            fbtrace = self.df[traces[col][0]:traces[col][1]].sort_values('V')
+            avg = OrderedDict({'J':[],'FN':[]})
+            idx = []
+            for x,group in fbtrace.groupby('V'):
+                idx.append(x)
+                avg['J'].append(self.signedgmean(group['J']))
+                fn = np.mean(group['FN'])
+                #fn = self.signedgmean(group['FN'])
+                avg['FN'].append(fn)
+            frames[col] = pd.DataFrame(avg,index=idx)
+        try:
+            self.avg = pd.concat(frames)
+        except ValueError:
+            self.error = True
+            self.avg = pd.DataFrame()
+            self.logger.error('Unable to parse traces.')
+        if ntraces == 1:
+            self.error = True
+            self.logger.warning('Only parsed one trace!')
+        self.findSegments(traces)
 
     def dodjdv(self):
         '''
