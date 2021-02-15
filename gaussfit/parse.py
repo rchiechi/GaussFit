@@ -227,7 +227,8 @@ class Parse():
         # In the event that we want to call parsing method by hand
         # we stop here when just self.df is complete
         if not parse: return
-
+        self.logger.info("* * * * * * Finding segments   * * * * * * * *")
+        self.findSegments()
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.findTraces()
         self.loghandler.flush()
@@ -380,9 +381,9 @@ class Parse():
         if ntraces == 1:
             self.error = True
             self.logger.warning('Only parsed one trace!')
-        self.findSegments(traces)
 
-    def findSegments(self, traces):
+
+    def findSegments(self):
         '''
         Break out each trace by segments of
         0V -> Vmax, 0V -> Vim.
@@ -392,32 +393,10 @@ class Parse():
             return
 
         self.logger.info("Breaking out traces by segments of 0V -> Vmin/max.")
-        _segment = 0
-        for col in range(0,len(traces)):
-            fbtrace = self.df[traces[col][0]:traces[col][1]]
-            print(fbtrace)
-            sys.exit()
+        print(self.df.index.levels)
+        print(self.df.index)
+        sys.exit()
 
-            fbtrace = self.df[traces[col][0]:traces[col][1]].sort_values('V')
-            avg = OrderedDict({'J':[],'FN':[]})
-            idx = []
-            for x,group in fbtrace.groupby('V'):
-                idx.append(x)
-                avg['J'].append(self.signedgmean(group['J']))
-                fn = np.mean(group['FN'])
-                #fn = self.signedgmean(group['FN'])
-                avg['FN'].append(fn)
-            frames[col] = pd.DataFrame(avg,index=idx)
-        try:
-            self.avg = pd.concat(frames)
-        except ValueError:
-            self.error = True
-            self.avg = pd.DataFrame()
-            self.logger.error('Unable to parse traces.')
-        if ntraces == 1:
-            self.error = True
-            self.logger.warning('Only parsed one trace!')
-        self.findSegments(traces)
 
     def dodjdv(self):
         '''
