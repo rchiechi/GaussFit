@@ -393,8 +393,11 @@ class Parse():
             return
 
         self.logger.info("Breaking out traces by segments of 0V -> Vmin/max.")
-        print(self.df.index.levels)
-        print(self.df.index)
+
+        for _df in self.df.index.levels[0]:
+            for trace in _df:
+                print("%s, %s" % (trace.V,trace.LogJ)
+
         sys.exit()
 
 
