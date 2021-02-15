@@ -396,7 +396,7 @@ class Parse():
 
         for _df in self.df.index.levels[0]:
             for trace in _df:
-                prnt(trace)
+                print(trace)
                 print("%s, %s" % (_df[trace].V,_df[trace].LogJ))
 
         sys.exit()
