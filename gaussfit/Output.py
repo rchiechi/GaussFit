@@ -255,7 +255,7 @@ class Writer():
     def WriteVtrans(self):
         '''Write the Vtrans data and associated statistics.'''
         for key in ('pos', 'neg'):
-            if key not in self.fn:
+            if key not in self._fn:
                 logger.warning("%s not found in Fowler Nordheim data, skipping output." , key)
                 continue
             _fn = os.path.join(self.opts.out_dir, self.opts.outfile+"_Vtrans_"+key+".txt")
