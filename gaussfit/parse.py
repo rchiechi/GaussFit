@@ -160,9 +160,9 @@ class Parse():
                 try:
                     frames[f] = pd.read_csv(f,sep=self.opts.delim,usecols=(self.opts.Xcol,self.opts.Ycol),names=('V','J'),header=0)
                 except OSError as msg:
-                    self.logger.warn("Skipping %s because %s" % (f,str(msg)))
+                    self.logger.warn("Skipping %s because %s", f,str(msg) )
                 except pd.errors.ParserError as msg:
-                    self.logger.warn("Skipping malformatted %s because %s" % (f,str(msg)))
+                    self.logger.warn("Skipping malformatted %s because %s", f,str(msg))
 
         else:
             self.logger.info("Parsing all columns of data.")
@@ -171,10 +171,10 @@ class Parse():
                     _df = pd.read_csv(f,sep=self.opts.delim,index_col=self.opts.Xcol,header=0)
                     i = 0
                     for col in _df:
-                        frames['%s_%.2d' % (f,str(i))] = pd.dataframe({'V':_df.index,'J':_df[col]})
+                        frames['%s_%.2d' % (f,i)] = pd.dataframe({'V':_df.index,'J':_df[col]})
                         i += 1
                 except OSError as msg:
-                    self.logger.warn("Skipping %s because %s" % (f,str(msg)))
+                    self.logger.warning("Skipping %s because %s" % (f,str(msg)))
 
             #self.df = pd.concat((pd.read_csv(f,sep=self.opts.delim,
             #    header=None,skiprows=1) for f in fns),ignore_index=True)
@@ -227,7 +227,8 @@ class Parse():
 
         # In the event that we want to call parsing method by hand
         # we stop here when just self.df is complete
-        if not parse: return
+        if not parse:
+            return
         self.logger.info("* * * * * * Finding segments   * * * * * * * *")
         self.loghandler.flush()
         self.findSegments()
@@ -416,12 +417,12 @@ class Parse():
             #     self.logger.warn("J/V sweep not divislbe by 4, cannot segment.")
             #
             if self.df.loc[_fn]['V'][0] != 0.0:
-                self.logger.warn("J/V didn't start at 0V for %s" % _fn)
+                self.logger.warn("J/V didn't start at 0V for %s", _fn)
 
             _seg = 0
             _trace = 0
             _last_V = 0
-            _zeros = 0
+            # _zeros = 0
             _n_traces = int(self.df.V.value_counts()[0] / 3)
             # V_min = self.df.loc[_fn]['V'].min()
             # V_max = self.df.loc[_fn]['V'].max()
@@ -430,23 +431,23 @@ class Parse():
                 V = self.df.loc[_fn]['V'][_i]
 
                 if _trace > _n_traces:
-                    logger.warn("Parsing trace %s, when there should only be %s" % (_trace, _n_traces))
+                    self.logger.warn("Parsing trace %s, when there should only be %s" , _trace, _n_traces)
 
-                if V > 0 and V > _last_V:
+                if 0 < V > _last_V:
                     if _seg == 3:
                         _trace += 1
                     _seg = 0
                     # 0 -> V_max
-                elif V > 0 and V <= _last_V:
+                elif 0 < V <= _last_V:
                     _seg = 1
                     # V_max -> 0
-                elif V < 0 and V < _last_V:
+                elif 0 > V < _last_V:
                     _seg = 2
                     # 0 -> V_min
-                elif V < 0 and V >= _last_V:
+                elif 0 > V >= _last_V:
                     _seg = 3
-                elif int(V) == 0:
-                    _zeros += 1
+                # elif int(V) == 0:
+                #     _zeros += 1
 
                 # if _zeros == 3:
                 #     _trace += 1
@@ -479,7 +480,7 @@ class Parse():
             if _seg not in segmenthists:
                 segmenthists[_seg] = {}
             for _trace in segments[_seg]:
-                self.logger.debug('Segment: %s, Trace: %s' % (_seg,_trace))
+                self.logger.debug('Segment: %s, Trace: %s' , _seg,_trace)
                 if _trace not in segmenthists[_seg]:
                     segmenthists[_seg][_trace] = {}
                 for _V in segments[_seg][_trace]:

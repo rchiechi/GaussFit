@@ -51,9 +51,9 @@ class Writer():
 
     def __getattr__(self, name):
         try:
-                return getattr(self.parser, name) # 'inheret' the methods of self.parser
-        except AttributeError as e:
-                raise AttributeError("Writer object has no attribute '%s'" % name)
+            return getattr(self.parser, name) # 'inheret' the methods of self.parser
+        except AttributeError:
+            raise AttributeError("Writer object has no attribute '%s'" % name)
 
     def WriteParseInfo(self,extra=''):
         '''Write some summary information about the parameters
@@ -229,42 +229,24 @@ class Writer():
             with open(fn, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile, dialect='JV')
                 headers = ["Potential (V)"]
-            for trace in self.segments[segment]:
-                headers += ["Log|J|","Standard Devaition","Standard Error of the Mean"]
-                for x in self.segments[segment][trace]:
-                    _hist = self.segments[segment][trace][x]
-                    if x not in rows:
-                        rows[x] = []
-                    rows[x].append("%0.4f"%_hist['mean'])
-                    rows[x].append("%0.4f"%_hist['std'])
-                    rows[x].append("%0.4f"%_hist['std']/np.sqrt(len(self.opts.in_files)))
-            writer.writerow(headers)
-            for x in rows:
-                writer.writerow(["%0.4f"%x]+row[x])
+                _maxtrace = 0
+                for trace in self.segments[segment]:
+                    _maxtrace += 1
+                    headers += ["Log|J|","Standard Devaition","Standard Error of the Mean"]
+                    for x in self.segments[segment][trace]:
+                        _hist = self.segments[segment][trace][x]
+                        if x not in rows:
+                            rows[x] = []
+                        rows[x].append("%0.4f"%_hist['mean'])
+                        rows[x].append("%0.4f"%_hist['std'])
+                        _sem = float(_hist['std'])/np.sqrt(len(self.opts.in_files))
+                        rows[x].append("%0.4f"%_sem)
 
-
-        # for segment in (0,1,2,3):
-        #     fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms_Segment_%s.txt" % str(segment+1))
-        #     with open(fn, 'w', newline='') as csvfile:
-        #         writer = csv.writer(csvfile, dialect='JV')
-        #         headers = ["Potential (V)"]
-        #         for x in self.XY:
-        #             if len(list(self.XY.keys())):
-        #                 for trace in self.XY[x]['segmented'][segment]:
-        #                     headers += ["Log|J|","Standard Devaition","Standard Error of the Mean"]
-        #                 break
-        #         writer.writerow(headers)
-        #         for x in self.XY:
-        #             row = []
-        #             if segment not in self.XY[x]['segmented']:
-        #                 # segments 0,1 V > 0; segments 2,3 V < 0
-        #                 continue
-        #
-        #             for trace in self.XY[x]['segmented'][segment]:
-        #                 row.append(self.XY[x]['segmented'][segment][trace]['mean'])
-        #                 row.append(self.XY[x]['segmented'][segment][trace]['std'])
-        #                 row.append(row[-1]/np.sqrt(len(self.opts.in_files)))
-        #             writer.writerow(['%f'%x]+row)
+                writer.writerow(headers)
+                for x in rows:
+                    while len(rows[x]) < _maxtrace:
+                        rows[x] += ['-','-','-']
+                    writer.writerow(["%0.4f"%x]+rows[x])
 
 
     def WriteVtrans(self):
