@@ -227,7 +227,7 @@ class Writer():
         #TODO set num_segments in opts
         for segment in self.segments:
             rows = {}
-            _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms_Segment_%s.txt" % str(segment+1))
+            _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Gauss_Segment_%s.txt" % str(segment+1))
             with open(_fn, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile, dialect='JV')
                 headers = ["Potential (V)"]
@@ -584,8 +584,8 @@ class Writer():
         _fh.write(txt)
         _fh.close()
         for _fn in tocopy:
-            copyfile(os.path.join(tdir,), _fn\
-                    os.path.join(self.opts.out_dir,))
+            copyfile(os.path.join(tdir,_fn), \
+                    os.path.join(self.opts.out_dir,_fn))
 
 
 
@@ -879,8 +879,8 @@ def WriteStats(out_dir, outfile, dataset, bfn, labels=[]):
         if len(d) != lencola:
             logger.error("Length of columns differs for WriteGeneric!")
             return
-     = os.path.join(out_dir,outfile+"_"+bfn+".txt")
-    with open(, 'w', newline='') as csvfile:
+    _fn = os.path.join(out_dir,outfile+"_"+bfn+".txt")
+    with open(_fn , 'w', newline='') as csvfile:
         writer = csv.writer(csvfile, dialect='JV')
         if len(labels):
             writer.writerow(labels)
