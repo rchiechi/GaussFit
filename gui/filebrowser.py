@@ -290,7 +290,7 @@ class ChooseFiles(Frame):
 
         for i in range(0, len(self.opts.in_files)):
             if i not in todel:
-                       filelist.append(self.opts.in_files[i])
+               filelist.append(self.opts.in_files[i])
         self.opts.in_files = filelist
         self.updateFileListBox()
         self.FileListBox.selection_clear(0,END)
@@ -298,9 +298,12 @@ class ChooseFiles(Frame):
 
     def SpawnInputDialogClick(self):
         self.checkOptions()
-        self.opts.in_files += filedialog.askopenfilename(title="Files to parse", multiple=True, \
-                        initialdir=self.last_input_path,\
-                         filetypes=[('Data files','*_data.txt'),('Text files','*.txt'),('All files', '*')])
+        self.opts.in_files += filedialog.askopenfilename(
+            title="Files to parse",
+            multiple=True,
+            initialdir=self.last_input_path,
+            filetypes=[('Data files','*_data.txt'),
+                        ('Text files','*.txt'),('All files', '*')])
         if len(self.opts.in_files):
             self.last_input_path = os.path.split(self.opts.in_files[0])[0]
             self.updateFileListBox()
