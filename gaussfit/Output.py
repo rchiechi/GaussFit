@@ -27,6 +27,7 @@ import datetime
 import csv
 from shutil import copyfile
 import logging
+# import matplotlib.pyplot as plt
 from gaussfit.colors import GREEN, TEAL, YELLOW, WHITE
 
 logger = logging.getLogger('output')
@@ -273,7 +274,7 @@ class Writer():
         with open(_fn, 'w') as _fh:
             for key in ('pos', 'neg'):
                 if key not in self.FN:
-                    logger.warn("%s not found in Fowler Nordheim data, skipping output." % key)
+                    logger.warning("%s not found in Fowler Nordheim data, skipping output." , key)
                     continue
                 _fh.write('--- %s ---\n' % key)
                 _fh.write('Skew: %s\n' % self.FN[key]['skew'])
@@ -577,7 +578,7 @@ class Writer():
             logger.warning("Could not read template file %s" , gpintp)
             return
         ssub = []
-        for i in range(0,nsub):
+        for _ in range(nsub):
             ssub.append(self.opts.outfile)
         txt = open(gpintp, 'rt').read() % tuple(ssub)
         _fh = open(os.path.join(self.opts.out_dir,self.opts.outfile+'_'+gpinbn+'.gpin'), 'wt')
@@ -595,15 +596,16 @@ class Plotter():
     plots using matplotlib.
     '''
 
-    def __init__(self,parser):
+    def __init__(self,parser,plt):
         self.parser = parser
         self.opts = self.parser.opts
-
+        self.plt = plt
+        
     def __getattr__(self, name):
         try:
-                return getattr(self.parser, name)
-        except AttributeError as e:
-                raise AttributeError("Plotter object has no attribute '%s'" % name)
+            return getattr(self.parser, name)
+        except AttributeError as msg:
+            raise AttributeError("Plotter object has no attribute '%s'" % name) from msg
 
     def PlotData(self, key, ax, sym, **kw):
         xax = np.array(list(self.XY))
@@ -613,7 +615,8 @@ class Plotter():
             ax.set_xlabel(r'$V^{-1}$')
             ax.set_ylabel(r'$\mathregular{ln(\frac{J}{V^2})}$')
         if key == 'Y':
-            if self.opts.compliance != np.inf: ax.set_ylim( (-1*self.opts.compliance, self.opts.compliance) )
+            if self.opts.compliance != np.inf:
+                ax.set_ylim( (-1*self.opts.compliance, self.opts.compliance) )
             ax.set_title("Initial Data")
             ax.set_xlabel("Potenial (V)")
             ax.set_ylabel(r'Current Density ($A cm^{-2}$)')
@@ -680,7 +683,7 @@ class Plotter():
                 break
 
     def PlotG(self,ax):
-        import matplotlib.pyplot as plt
+        # import matplotlib.pyplot as plt
         ax.set_title("Conductance Plot")
         ax.set_xlabel("Potential (V)")
         if self.opts.heatmapd == 0:
@@ -713,11 +716,11 @@ class Plotter():
         X,Y= np.meshgrid(xi,yi)
         Z = griddata((x, y), z, (X, Y),method='nearest')
         ax.axis([xmin, xmax, ymin, ymax])
-        ax.pcolormesh(X,Y,Z, cmap = plt.get_cmap('rainbow'))
+        ax.pcolormesh(X,Y,Z, cmap = self.plt.get_cmap('rainbow'))
 
 
     def PlotNDC(self,ax):
-        import matplotlib.pyplot as plt
+        # import matplotlib.pyplot as plt
         ax.set_title("NDC Plot")
         ax.set_xlabel("Potential (V)")
         ax.set_title("Heatmap of NDC")
@@ -741,7 +744,7 @@ class Plotter():
         X,Y= np.meshgrid(xi,yi)
         Z = griddata((x, y), z, (X, Y),method='nearest')
         ax.axis([xmin, xmax, ymin, ymax])
-        ax.pcolormesh(X,Y,Z, cmap = plt.get_cmap('rainbow'))
+        ax.pcolormesh(X,Y,Z, cmap = self.plt.get_cmap('rainbow'))
 
 
     def PlotHist(self,ax):
@@ -771,8 +774,8 @@ class Plotter():
         ax.plot(self.XY[key]['hist']['bin'], self.XY[key]['hist']['fit'], lw=2.0, color='b', label='Fit')
 
 
-    def DoPlots(self, plt):
-        fig = plt.figure(figsize=(16,10))
+    def DoPlots(self):
+        fig = self.plt.figure(figsize=(16,10))
         ax1 = fig.add_axes([0.06, 0.55, 0.4, 0.4])
         ax2 = fig.add_axes([0.56, 0.55, 0.4, 0.4])
         ax3 = fig.add_axes([0.06, 0.05, 0.4, 0.4])
@@ -867,8 +870,10 @@ class StatPlotter:
             fig.savefig(self.opts.outfile+"_statfig.png", format="png")
 
 
-def WriteStats(out_dir, outfile, dataset, bfn, labels=[]):
+def WriteStats(out_dir, outfile, dataset, bfn, labels=None):
     '''Output for a generic set of data expecting an n-dimensional array'''
+
+    labels = labels or []
 
     if len(labels) and len(labels) != len(dataset):
         logger.error("Length of column labels does not match number of data columns for WriteGeneric!")
