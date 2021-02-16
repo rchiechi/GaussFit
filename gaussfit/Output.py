@@ -583,8 +583,8 @@ class Writer():
         _fh = open(os.path.join(self.opts.out_dir,self.opts.outfile+'_'+gpinbn+'.gpin'), 'wt')
         _fh.write(txt)
         _fh.close()
-        for  in tocopy:
-            copyfile(os.path.join(tdir,), \
+        for _fn in tocopy:
+            copyfile(os.path.join(tdir,), _fn\
                     os.path.join(self.opts.out_dir,))
 
 
