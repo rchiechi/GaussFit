@@ -221,38 +221,50 @@ class Writer():
     def WriteSegmentedHistograms(self):
         '''Write histograms of values of J broken out by segment to catch
         hysteretic behavior without smearing it out.'''
-        for segment in self.XY[list(self.XY.keys())[0]]['segmented']:
+        #for segment in self.XY[list(self.XY.keys())[0]]['segmented']:
+        #TODO set num_segments in opts
+        for segment in self.segments:
+            rows = {}
             fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms_Segment_%s.txt" % str(segment+1))
             with open(fn, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile, dialect='JV')
                 headers = ["Potential (V)"]
-                for trace in self.XY[list(self.XY.keys())[0]]['segmented'][segment]:
-                    headers += ["Log|J|","Standard Devaition","Standard Error of the Mean"]
-                writer.writerow(headers)
-                #writer.writerow(["Potential (V)","Log|J|","Standard Devaition","Standard Error of the Mean"])
-                #Y = []
-                #Yerr = []
-                for x in self.XY:
-                    row = []
-                    for trace in self.XY[x]['segmented'][segment]:
-                        # row.append('%f'%x)
-                        # for _hist in self.XY[x]['segmented'][trace]:
-                            # row.append(_hist['mean'])
-                            # row.append(_hist['std'])
-                            # row.append(row[-1]/np.sqrt(len(self.opts.in_files)))
-                        row.append(self.XY[x]['segmented'][segment][trace]['mean'])
-                        row.append(self.XY[x]['segmented'][segment][trace]['std'])
-                        row.append(row[-1]/np.sqrt(len(self.opts.in_files)))
-                        # _mean = []
-                        # _std = []
-                        # _var = []
-                        # for segment in self.XY[x]['segmented'][trace]:
-                        #     _mean.append(self.XY[x]['segmented'][trace][segment]['mean'])
-                        #     _std.append(self.XY[x]['segmented'][trace][segment]['std'])
-                        #     _var.append(_std[-1]/np.sqrt(len(self.opts.in_files)))
-                        # for _i in range(0, len(_mean)):
-                        #     row += ['%f'%_mean[_i],'%f'%_std[_i],'%f'%_var[_i] ]
-                    writer.writerow(['%f'%x]+row)
+            for trace in self.segments[segment]:
+                headers += ["Log|J|","Standard Devaition","Standard Error of the Mean"]
+                for x in self.segments[segment][trace]:
+                    _hist = self.segments[segment][trace][x]
+                    if x not in rows:
+                        rows[x] = []
+                    rows[x].append("%0.4f"%_hist['mean'])
+                    rows[x].append("%0.4f"%_hist['std'])
+                    rows[x].append("%0.4f"%_hist['std']/np.sqrt(len(self.opts.in_files)))
+            writer.writerow(headers)
+            for x in rows:
+                writer.writerow(["%0.4f"%x]+row[x])
+
+
+        # for segment in (0,1,2,3):
+        #     fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms_Segment_%s.txt" % str(segment+1))
+        #     with open(fn, 'w', newline='') as csvfile:
+        #         writer = csv.writer(csvfile, dialect='JV')
+        #         headers = ["Potential (V)"]
+        #         for x in self.XY:
+        #             if len(list(self.XY.keys())):
+        #                 for trace in self.XY[x]['segmented'][segment]:
+        #                     headers += ["Log|J|","Standard Devaition","Standard Error of the Mean"]
+        #                 break
+        #         writer.writerow(headers)
+        #         for x in self.XY:
+        #             row = []
+        #             if segment not in self.XY[x]['segmented']:
+        #                 # segments 0,1 V > 0; segments 2,3 V < 0
+        #                 continue
+        #
+        #             for trace in self.XY[x]['segmented'][segment]:
+        #                 row.append(self.XY[x]['segmented'][segment][trace]['mean'])
+        #                 row.append(self.XY[x]['segmented'][segment][trace]['std'])
+        #                 row.append(row[-1]/np.sqrt(len(self.opts.in_files)))
+        #             writer.writerow(['%f'%x]+row)
 
 
     def WriteVtrans(self):

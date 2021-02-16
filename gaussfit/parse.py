@@ -265,8 +265,7 @@ class Parse():
                    "filtered_hist":self.__dohistogram(lag[x]['filtered'],"lag"),
                    "lag":lag[x]['lagplot'],
                    "FN": group['FN'],
-                   "R": R[x],
-                   "segmented": self.segments[x]
+                   "R": R[x]
                     }
         self.logger.info("* * * * * * Computing |V^2/J|  * * * * * * * * *")
         self.loghandler.flush()
@@ -424,14 +423,18 @@ class Parse():
             _last_V = 0
             _zeros = 0
             _n_traces = int(self.df.V.value_counts()[0] / 3)
-            V_min = self.df.loc[_fn]['V'].min()
-            V_max = self.df.loc[_fn]['V'].max()
+            # V_min = self.df.loc[_fn]['V'].min()
+            # V_max = self.df.loc[_fn]['V'].max()
             for _i in self.df.loc[_fn].index:
-
                 J = self.df.loc[_fn]['logJ'][_i]
                 V = self.df.loc[_fn]['V'][_i]
 
+                if _trace > _n_traces:
+                    logger.warn("Parsing trace %s, when there should only be %s" % (_trace, _n_traces))
+
                 if V > 0 and V > _last_V:
+                    if _seg == 3:
+                        _trace += 1
                     _seg = 0
                     # 0 -> V_max
                 elif V > 0 and V <= _last_V:
@@ -445,9 +448,9 @@ class Parse():
                 elif int(V) == 0:
                     _zeros += 1
 
-                if _zeros == 3:
-                    _trace += 1
-                    _zeros = 0
+                # if _zeros == 3:
+                #     _trace += 1
+                #     _zeros = 0
 
                 if _seg not in segments:
                     segments[_seg] = {}
@@ -473,17 +476,16 @@ class Parse():
         # print(segments.keys())
         segmenthists = {}
         for _seg in segments:
-            # print('Seg %s' % _seg)
+            if _seg not in segmenthists:
+                segmenthists[_seg] = {}
             for _trace in segments[_seg]:
-                # print('Trace: %s' % _trace)
+                self.logger.debug('Segment: %s, Trace: %s' % (_seg,_trace))
+                if _trace not in segmenthists[_seg]:
+                    segmenthists[_seg][_trace] = {}
                 for _V in segments[_seg][_trace]:
-                    if _V not in segmenthists:
-                        segmenthists[_V] = {}
-                    if _seg not in segmenthists[_V]:
-                        segmenthists[_V][_seg] = {}
-                    # if _trace not in segmenthists[_V][_seg]:
-                    #      segmenthists[_V][_seg][_trace] = {}
-                    segmenthists[_V][_seg][_trace] = self.__dohistogram(np.array(segments[_seg][_trace][_V]), label='Segmented')
+                    if _V not in segmenthists[_seg][_trace]:
+                        segmenthists[_seg][_trace][_V] = {}
+                    segmenthists[_seg][_trace][_V] = self.__dohistogram(np.array(segments[_seg][_trace][_V]), label='Segmented')
 
         self.segments = segmenthists
 
