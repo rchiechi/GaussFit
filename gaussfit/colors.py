@@ -3,7 +3,7 @@
 __all__ = ["YELLOW", "WHITE", "RED", "TEAL", "GREEN", "BLUE", "RS"]
 
 try:
-    from colorama import init,Fore,Back,Style
+    from colorama import init,Fore,Style
 except ImportError:
     import sys
     print('Error importing colorama module (try pip3 install colorama)')
