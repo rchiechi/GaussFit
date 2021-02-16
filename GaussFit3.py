@@ -20,13 +20,22 @@ Description:
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
-from gaussfit import *
-from gaussfit.Output import Writer,Plotter
 import cProfile
+from gaussfit import Parse, Opts
+from gaussfit.Output import Writer,Plotter
+try:
+    import matplotlib.pyplot as plt
+    CAN_PLOT = True
+except ImportError as msg:
+    print("Cannot import matplotlib! %s", str(msg), exc_info=False)
+    CAN_PLOT = False
 #from gaussfit.args import Opts
 #from gaussfit.parse import Parse
 
 def do_cprofile(func):
+    '''
+    Needed for profiling GaussFit performance
+    '''
     def profiled_func(*args, **kwargs):
         profile = cProfile.Profile()
         try:
@@ -39,30 +48,29 @@ def do_cprofile(func):
     return profiled_func
 
 #@do_cprofile
-def Go(opts):
+def do_gaussfit(opts):
     '''
     Call this function to execute the parsing engine
     i.e., as main()
     '''
     parser = Parse(opts)
     parser.ReadFiles(opts.in_files)
-    if opts.write and not parser.error: 
-            writer = Writer(parser)
-            Parse.doOutput(writer)
+    if opts.write and not parser.error:
+        writer = Writer(parser)
+        Parse.doOutput(writer)
     if opts.plot and not parser.error:
-            plotter = Plotter(parser)
-            try:
-                    import matplotlib.pyplot as plt
-                    plotter.DoPlots(plt)
-                    plt.show()
-            except ImportError as msg:
-                    print("Cannot import matplotlib! %s", str(msg), exc_info=False)
+        if CAN_PLOT:
+            plotter = Plotter(parser,plt)
+            plotter.DoPlots()
+            plt.show()
+        else:
+            print("Unable to show plots without matplotlib.")
 
-opts = Opts
+user_opts = Opts
 
 if __name__ == "__main__":
-    if opts.GUI:
-            from gui import filebrowser
-            gui = filebrowser.ChooseFiles(opts)
+    if user_opts.GUI:
+        from gui import filebrowser
+        gui = filebrowser.ChooseFiles(user_opts)
     else:
-            Go(opts)
+        do_gaussfit(user_opts)
