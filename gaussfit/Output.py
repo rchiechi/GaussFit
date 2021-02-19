@@ -249,7 +249,7 @@ class Writer():
                 for x in rows:
                     while len(rows[x]) < _maxtrace * 3:
                         rows[x] += ['-','-','-']
-                        logger.warning('Filling columns for segment %i, V=%s to match %s traces.' , segment x, _maxtrace)
+                        logger.warning('Filling columns for segment %i, V=%s to match %s traces.', segment, x, _maxtrace)
                     writer.writerow(["%0.4f"%x]+rows[x])
 
 
