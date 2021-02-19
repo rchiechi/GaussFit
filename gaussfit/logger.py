@@ -23,7 +23,7 @@ from collections import Counter,OrderedDict
 
 #TODO Isn't this done with QueueHandler?
 class DelayedHandler(logging.Handler):
-    '''A log handler that buffers messages and 
+    '''A log handler that buffers messages and
     folds repeat messages into one line.'''
 
     buff = []
@@ -51,7 +51,16 @@ class DelayedHandler(logging.Handler):
         self.release()
 
     def flush(self):
-        msgs = Counter(map(self.format,self.buff))
+        try:
+            msgs = Counter(map(self.format,self.buff))
+        except TypeError as msg:
+            self._emit('Error formatting message buffer: %s' % str(msg), 'ERROR')
+            for _buff in self.buff:
+                try:
+                    _buff.getMessage()
+                except TypeError:
+                    self._emit(str(_buff), 'ERROR')
+            self.buff = []
         emitted = []
         for message in self.buff:
             #FIFO
@@ -86,4 +95,3 @@ class GUIHandler(DelayedHandler):
         self.console.insert(self.END, message+"\n") #Inserting the logger message in the widget
         self.console["state"] = self.DISABLED
         self.console.see(self.END)
-
