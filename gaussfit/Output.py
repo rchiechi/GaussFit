@@ -29,6 +29,7 @@ from shutil import copyfile
 import logging
 # import matplotlib.pyplot as plt
 from gaussfit.colors import GREEN, TEAL, YELLOW, WHITE
+from scipy.special import stdtrit
 
 logger = logging.getLogger('output')
 loghandler = logging.StreamHandler()
@@ -42,6 +43,9 @@ try:
 except ImportError as msg:
     pass #We catch numpy import errors in Parser.py
 warnings.filterwarnings('ignore','.*comparison.*',FutureWarning)
+
+#TODO should be user configurable
+ALPHA=0.01
 
 class Writer():
     '''The main Writer class for creating text files of parsed data.'''
@@ -235,7 +239,7 @@ class Writer():
                 _maxtrace = 0
                 for trace in self.segments[segment]:
                     _maxtrace += 1
-                    headers += ["Log|J|","Standard Devaition","Standard Error of the Mean"]
+                    headers += ["Log|J|","Standard Devaition","Standard Error of the Mean", "%s%% confidence interval" % 100*(1-ALPHA) ]
                     for x in self.segments[segment][trace]:
                         _hist = self.segments[segment][trace][x]
                         if x not in rows:
@@ -244,6 +248,9 @@ class Writer():
                         rows[x].append("%0.4f"%_hist['std'])
                         _sem = float(_hist['std'])/np.sqrt(len(self.opts.in_files))
                         rows[x].append("%0.4f"%_sem)
+                        _t_val = _sem * stdtrit( len(self.opts.in_files), 1 - ALPHA )
+                        rows[x].append("%0.4f"% _t_val)
+
 
                 writer.writerow(headers)
                 for x in rows:
@@ -302,24 +309,41 @@ class Writer():
         _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_filteredGauss.txt")
         with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
-            writer.writerow(["Potential (V)","Log|J|","Standard Devaition","Standard Error of the Mean"])
+            writer.writerow(["Potential (V)",
+                            "Log|J|",
+                            "Standard Devaition",
+                            "Standard Error of the Mean",
+                            "%s%% confidence interval" % 100*(1-ALPHA)])
             #Y = []
             #Yerr = []
             for x in self.XY:
-                writer.writerow(['%f'%x,'%f'%self.XY[x]['filtered_hist']['mean'],'%f'%self.XY[x]['filtered_hist']['std'],\
-                        '%f'% (self.XY[x]['filtered_hist']['std']/np.sqrt(len(self.opts.in_files))) ])
+                _sem = self.XY[x]['filtered_hist']['std']/np.sqrt(len(self.opts.in_files))
+                writer.writerow(['%f'%x,
+                                '%0.4f'%self.XY[x]['filtered_hist']['mean'],
+                                '%0.4f'%self.XY[x]['filtered_hist']['std'],
+                                '%0.4f'% _sem,
+                                '%0.4f'% _sem * stdtrit( len(self.opts.in_files), 1 - ALPHA ) ])
 
     def WriteGauss(self):
         '''Write the Gaussian-derived data for J, R and the differential conductance data.'''
         _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Gauss.txt")
         with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
-            writer.writerow(["Potential (V)","Log|J|","Standard Devaition","Standard Error of the Mean"])
+            writer.writerow(["Potential (V)",
+                            "Log|J|",
+                            "Standard Devaition",
+                            "Standard Error of the Mean",
+                            "%s%% confidence interval" % 100*(1-ALPHA)])
             #Y = []
             #Yerr = []
             for x in self.XY:
-                writer.writerow(['%f'%x,'%f'%self.XY[x]['hist']['mean'],'%f'%self.XY[x]['hist']['std'],\
-                        '%f'% (self.XY[x]['hist']['std']/np.sqrt(len(self.opts.in_files))) ])
+                _sem = self.XY[x]['hist']['std']/np.sqrt(len(self.opts.in_files))
+                writer.writerow([
+                        '%0.4f'%x,
+                        '%0.4f'%self.XY[x]['hist']['mean'],
+                        '%0.4f'%self.XY[x]['hist']['std'],
+                        '%0.4f'% _sem,
+                        '%0.4f'% _sem * stdtrit( len(self.opts.in_files), 1 - ALPHA ) ])
         _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RGauss.txt")
         with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
