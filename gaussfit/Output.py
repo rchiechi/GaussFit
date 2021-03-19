@@ -45,7 +45,7 @@ except ImportError as msg:
 warnings.filterwarnings('ignore','.*comparison.*',FutureWarning)
 
 #TODO should be user configurable
-ALPHA=0.01
+ALPHA=0.05
 
 class Writer():
     '''The main Writer class for creating text files of parsed data.'''
