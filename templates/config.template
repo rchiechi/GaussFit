@@ -10,23 +10,37 @@ write:Yes
 interpolateminfn:No
 
 [INTEGERS]
+# Xcolumn to parse
 xcol:1
+# Ycolumn to parse
 ycol:3
+# Bins for histograms
 bins:50
+# Bins for heatmap plots
 heatmapbins:25
+# Derivative to plot in heatmap
 heatmapd:1
+# Max iterations for fitting gaussians
 maxfev:10000
+# Filter log|R| above this value
 maxr:2
+# Upper/lower cutoffs for G heatmap
 mhi:0
 mlow:-6
+# Smoothing for dJ/dV splines (0 to disable)
 smooth:0
+# Threads to spawn
 threads:8
+# |V| cutoff for dJ/DV skipping (-1 for Vmin/Vmax)
 vcutoff:-1
 
 [FLOATS]
+# Alpha for p-cutoff in confidence intervals
 alpha:0.025
+# Upper/lower cutoffs for NDC heatmaps
 ndc_mhi:5.0
 ndc_mlow:0.05
+# Cutoff for lag plot filtering
 lagcutoff:0.1
 
 [STRINGS]
