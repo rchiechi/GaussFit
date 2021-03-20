@@ -96,7 +96,7 @@ class ChooseFiles(Frame):
         self.handler = GUIHandler(self.Logging)
         self.logger.addHandler(self.handler)
         self.logger.setLevel(getattr(logging,self.opts.loglevel.upper()))
-        self.logger.info("Logging...")
+        self.logger.info("Config file:%s", self.opts.configfile)
         self.handler.flush()
         self.updateFileListBox()
 
@@ -178,6 +178,8 @@ class ChooseFiles(Frame):
         self.OptionHeatmapd = OptionMenu(self.RightOptionsFrame, self.OptionsHeatmapdString,'0','1','2',
                                  command=self.checkOptions)
         self.OptionHeatmapd.grid(column=0,row=rowidx+7,sticky=W)
+
+        # Label(self.RightOptionsFrame, text="Config file:%s" % self.opts.configfile).grid(column=0,row=rowidx+8,sticky=W)
 
         lbls = [
             {'name': 'Columns', 'text': "Columns to parse:",
@@ -419,11 +421,11 @@ class ChooseFiles(Frame):
     def checkColumnEntry(self):
         try:
             x, y = self.EntryColumns.get().split(",") #pylint: disable=E1101
-            self.opts.Xcol, self.opts.Ycol = int(x)-1, int(y)-1
+            self.opts.xcol, self.opts.ycol = int(x)-1, int(y)-1
         except ValueError:
             pass
         self.EntryColumns.delete(0, END) #pylint: disable=E1101
-        self.EntryColumns.insert(0, ",".join(( str(self.opts.Xcol+1), str(self.opts.Ycol+1) ))) #pylint: disable=E1101
+        self.EntryColumns.insert(0, ",".join(( str(self.opts.xcol+1), str(self.opts.ycol+1) ))) #pylint: disable=E1101
 
     def checkGminmaxEntry(self):
         try:

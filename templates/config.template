@@ -1,0 +1,40 @@
+# See GaussFit -h for descriptions
+[BOOLEANS]
+# Launch in GUI mode
+gui:Yes
+# Generate plots
+plot:Yes
+# Write output files
+write:Yes
+# Interpolante FN plots for Vtrans
+interpolateminfn:No
+
+[INTEGERS]
+xcol:1
+ycol:3
+bins:50
+heatmapbins:25
+heatmapd:1
+maxfev:10000
+maxr:2
+mhi:0
+mlow:-6
+smooth:0
+threads:8
+vcutoff:-1
+
+[FLOATS]
+alpha:0.025
+ndc_mhi:5.0
+ndc_mlow:0.05
+lagcutoff:0.1
+
+[STRINGS]
+# tab, comma or space
+delim:tab
+# NDC or G
+histplots:NDC
+# debug, warning or info
+loglevel:info
+# J or R
+plots:J

@@ -34,7 +34,7 @@ from gui.colors import *
 class ParseThread(threading.Thread):
     def __init__(self,statparser):
         threading.Thread.__init__(self)
-        self.statparser = statparser 
+        self.statparser = statparser
     def run(self):
         self.statparser.parse()
         return
@@ -63,15 +63,15 @@ class ChooseFiles(Frame):
         self.mainloop()
 
     def __createWidgets(self):
-            
+
         self.FileListBoxFrame = Frame(self)
         self.LeftOptionsFrame = Frame(self)
         self.LoggingFrame = Frame(self)
         self.RightOptionsFrame = Frame(self)
         self.ButtonFrame = Frame(self)
-        
+
         yScroll = Scrollbar(self.LoggingFrame, orient=VERTICAL)
-        self.Logging = Text(self.LoggingFrame, height=20, width=0, 
+        self.Logging = Text(self.LoggingFrame, height=20, width=0,
                 bg=BLACK, fg=WHITE, yscrollcommand=yScroll.set)
         yScroll['command'] = self.Logging.yview
         self.Logging.pack(side=LEFT,fill=BOTH,expand=True)
@@ -87,19 +87,19 @@ class ChooseFiles(Frame):
         self.LeftOptionsFrame.pack(side=LEFT,fill=Y)
         self.RightOptionsFrame.pack(side=RIGHT,fill=Y)
         self.LoggingFrame.pack(side=BOTTOM, fill=BOTH, expand=1)
-        
+
         self.logger = logging.getLogger('parser.gui')
         self.handler = GUIHandler(self.Logging)
         self.logger.addHandler(self.handler)
         self.logger.setLevel(getattr(logging,self.opts.loglevel.upper()))
         self.logger.info("Logging...")
         self.handler.flush()
-        
+
         self.updateFileListBox('A')
         self.updateFileListBox('B')
 
     def __createButtons(self):
-            
+
         buttons = [
                {'name':'Quit','text':'QUIT','command':'Quit','side':BOTTOM},
                {'name':'SpawnInputDialogA','text':'Add Input Files A','side':LEFT},
@@ -115,9 +115,9 @@ class ChooseFiles(Frame):
             button.pack(side=b['side'])
             setattr(self,'Button'+b['name'],button)
 
-        
+
     def __createOptions(self):
-        
+
         self.checks = [
               {'name':'plot','text':'Plot','row':1,'tooltip':"Show summary plots after parsing."},
               {'name':'write','text':'Write','row':2,'tooltip':"Write results to text files after parsing."},
@@ -138,7 +138,7 @@ class ChooseFiles(Frame):
             setattr(self,'Check_'+c['name'],check)
             if getattr(self.opts,c['name']):
                 getattr(self,c['name']).set(1)
-        
+
 
         Label(self.RightOptionsFrame, text="Output file base name:").grid(column=0,row=3)
         self.OutputFileName = Entry(self.RightOptionsFrame, width=20,
@@ -146,10 +146,10 @@ class ChooseFiles(Frame):
         for n in ('<Return>','<Leave>','<Enter>'):
             self.OutputFileName.bind(n, self.checkOutputFileName)
         self.OutputFileName.grid(column=0,row=4)
-        
+
         if self.opts.outfile:
             self.OutputFileName.insert(0,self.opts.outfile)
-        
+
 
         lbls = [
             {'name': 'Columns', 'text': "Columns to parse:",
@@ -161,7 +161,7 @@ class ChooseFiles(Frame):
             {'name': 'Threads', 'text': "Parser threads:",
              'tooltip': "Number of parser threads to start. Provides a small speed boost."}
             ]
-        
+
         i = 0
         for l in lbls:
             Label(self.LeftOptionsFrame, text=l['text']).grid(column=0,row=i)
@@ -184,7 +184,7 @@ class ChooseFiles(Frame):
                 font=Font(size=10,weight="bold"))
         self.FileListBoxFrameLabel.grid(row=0, column=0, columnspan=4)
         self.UpdateFileListBoxFrameLabel()
-        
+
         ab=('A','B')
         col=(0,2)
         for i in range(0,len(ab)):
@@ -193,11 +193,11 @@ class ChooseFiles(Frame):
             xScroll = Scrollbar(self.FileListBoxFrame, orient=HORIZONTAL)
             xScroll.grid(row=2, column=col[i], sticky=E+W)
             setattr(self, 'filelist'+ab[i], StringVar())
-            setattr(self, 'FileListBox'+ab[i], Listbox(self.FileListBoxFrame, listvariable=getattr(self,'filelist'+ab[i]), selectmode=EXTENDED, 
+            setattr(self, 'FileListBox'+ab[i], Listbox(self.FileListBoxFrame, listvariable=getattr(self,'filelist'+ab[i]), selectmode=EXTENDED,
                             height = 20, width = 0, relief=RAISED, bd=1,
                                 bg=WHITE,
                                                                 #font=Font(family="Helvetica",size=10,slant='italic'),
-                                xscrollcommand=xScroll.set, 
+                                xscrollcommand=xScroll.set,
                                 yscrollcommand=yScroll.set))
             getattr(self, 'FileListBox'+ab[i]).grid(row=1, column=col[i], sticky=N+S+E+W)
             xScroll['command'] = getattr(self,'FileListBox'+ab[i]).xview
@@ -229,7 +229,7 @@ class ChooseFiles(Frame):
             for c in self.gothreads:
                 if c.is_alive():
                     self.ButtonParse.after('500',self.Parse)
-                    return  
+                    return
             self.logger.info("Parse complete!")
             gothread = self.gothreads.pop()
             self.ButtonParse['state']=NORMAL
@@ -242,7 +242,7 @@ class ChooseFiles(Frame):
                         plt.show(block=False)
                 except ImportError as msg:
                         self.logger.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
-        else: 
+        else:
             if len(self.opts.setA) and len(self.opts.setB):
                 statparser = Stats(self.opts,handler=GUIHandler(self.Logging))
                 self.gothreads.append(ParseThread(statparser))
@@ -296,7 +296,7 @@ class ChooseFiles(Frame):
     def updateFileListBox(self,ab):
         ab = ab.upper()
         getattr(self, 'filelist'+ab).set(" ".join([x.replace(" ","_") for x in getattr(self.opts, 'set'+ab)]))
-        self.Check_autonobs["state"] = NORMAL   
+        self.Check_autonobs["state"] = NORMAL
         for ab in ('A','B'):
             for f in getattr(self.opts, 'set'+ab):
                 if not os.path.exists(f.replace('_data.txt','')):
@@ -317,7 +317,7 @@ class ChooseFiles(Frame):
     def checkOptions(self, event=None):
         for c in self.checks:
             setattr(self.opts,c['name'],self.boolmap[getattr(self,c['name']).get()])
-        
+
         if not self.opts.write:
             self.opts.plot = True
             self.plot.set(1)
@@ -334,7 +334,7 @@ class ChooseFiles(Frame):
                 setattr(self.opts,n.lower(),var)
             getattr(self,'Entry'+n).delete(0,END)
             getattr(self,'Entry'+n).insert(0,getattr(self.opts,n.lower()))
-        self.checkColumnEntry(event)    
+        self.checkColumnEntry(event)
         self.checkVcutoff(event)
 
     def checkVcutoff(self,event):
@@ -342,7 +342,7 @@ class ChooseFiles(Frame):
             vcutoff = float(self.EntryVcutoff.get())
             if vcutoff != -1:
                 vcutoff = abs(vcutoff)
-            self.opts.vcutoff = vcutoff  
+            self.opts.vcutoff = vcutoff
         except ValueError:
             self.opts.vcutoff = -1
         self.EntryVcutoff.delete(0, END)
@@ -358,11 +358,11 @@ class ChooseFiles(Frame):
     def checkColumnEntry(self, event):
         try:
             x, y = self.EntryColumns.get().split(",")
-            self.opts.Xcol, self.opts.Ycol = int(x)-1, int(y)-1
+            self.opts.xcol, self.opts.ycol = int(x)-1, int(y)-1
         except ValueError as msg:
             pass
         self.EntryColumns.delete(0, END)
-        self.EntryColumns.insert(0, ",".join(( str(self.opts.Xcol+1), str(self.opts.Ycol+1) )))
+        self.EntryColumns.insert(0, ",".join(( str(self.opts.xcol+1), str(self.opts.ycol+1) )))
 
 
 
@@ -379,4 +379,3 @@ class ChooseFiles(Frame):
 #        self.console.insert(END, formattedMessage+"\n") #Inserting the logger message in the widget
 #        self.console["state"] = DISABLED
 #        self.console.see(END)
-    

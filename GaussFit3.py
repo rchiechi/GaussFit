@@ -69,7 +69,7 @@ def do_gaussfit(opts):
 user_opts = Opts
 
 if __name__ == "__main__":
-    if user_opts.GUI:
+    if user_opts.gui:
         from gui import filebrowser
         gui = filebrowser.ChooseFiles(user_opts)
     else:

@@ -21,25 +21,44 @@ Description:
 
 import sys
 import os
-import logging
+# import logging
+import shutil
 import warnings
 import csv
 import argparse
-# import configparser
-from gaussfit.colors import *
+import configparser
+from gaussfit.colors import * #pylint: disable=W0614,W0401
 
 warnings.filterwarnings('ignore','.*divide by zero.*',RuntimeWarning)
 
 try:
-	from scipy.optimize import curve_fit,OptimizeWarning
-	from scipy.interpolate import UnivariateSpline
-	import numpy as np
+    from scipy.optimize import curve_fit,OptimizeWarning  #pylint: disable=W0611
+    from scipy.interpolate import UnivariateSpline #pylint: disable=W0611
+    import numpy as np
+    from appdirs import user_config_dir
 	# SciPy throws a useless warning for noisy J/V traces
-	warnings.filterwarnings('ignore','.*Covariance of the parameters.*',OptimizeWarning)
+    warnings.filterwarnings('ignore','.*Covariance of the parameters.*',OptimizeWarning)
 
 except ImportError as msg:
-	print("\n\t\t%s> > > Error importing numpy/scipy! %s%s%s < < <%s" % (RED,RS,str(msg),RED,RS))
-	sys.exit()
+    print("\n\t\t%s> > > Error importing package %s%s%s < < <%s" % (RED,RS,str(msg),RED,RS))
+    sys.exit()
+
+def doconfig(config_file):
+    '''Parse config file or write a default file.'''
+    if not os.path.exists(config_file):
+        _pwd = os.path.dirname(os.path.realpath(__file__))
+        _tdir = os.path.join(_pwd,'../templates/')
+        shutil.copy2(os.path.join(_tdir,'config.template'), config_file)
+        print("Copied default config file.")
+    _config = configparser.ConfigParser(allow_no_value=False)
+    _config.read(config_file)
+    # if 'BOOLEANS' not in _config:
+    #     _config = configparser.ConfigParser(allow_no_value=False)
+    #     _config.read(os.path.basename(config_file))
+    return _config
+
+_cachedir = user_config_dir(__package__)
+_configfile = os.path.join(_cachedir, __package__+'.conf')
 
 desc='''
 	This program expects all X values in one column and all Y values in another.
@@ -49,16 +68,20 @@ desc='''
 	The maxr parameter is needed to filter out huge values that occur when a junction shorts.
      '''
 
-parser = argparse.ArgumentParser(description=desc,formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser = argparse.ArgumentParser(description=desc,
+                formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+                epilog='%sConfig file:%s%s' % (YELLOW,_configfile,RS))
 
 parser.add_argument('in_files', metavar='Files-to-parse', type=str, nargs='*', default=[],
 		help='Datafiles to parse (GaussFit mode).')
+# parser.add_argument('--configdir', action="store",
+#      default=os.path.join(os.path.expanduser('~'),'.config'),
+#      help="Set the dir to look for the config file.")
 parser.add_argument('-A','--setA', metavar='setA', type=str, nargs='*', default=[],
 		help='Datafiles to parse for set A (Stats mode).')
 parser.add_argument('-B','--setB',  metavar='setB', type=str, nargs='*', default=[],
 		help='Datafiles to parse for set B (Stats mode).')
-
-parser.add_argument('-G','--GUI', action='store_true', default=False,
+parser.add_argument('-G','--gui', action='store_true', default=False,
                 help="Launch the GUI.")
 parser.add_argument('-o','--outfile', metavar="OUTPUT FILE", default="",
                 help="Outputfile (taken from first input)")
@@ -72,9 +95,9 @@ parser.add_argument('-n','--nowrite', dest='write', action='store_false', defaul
                 help="Do not write output files (implies -p).")
 parser.add_argument('-d','--delim', default='tab', choices=('tab', 'comma', 'space'),
 		help="Delimeter in inputfiles.")
-parser.add_argument('-X','--Xcol', type=int, default=1,
+parser.add_argument('-X','--xcol', type=int, default=1,
 		help="Column to treat as X.")
-parser.add_argument('-Y','--Ycol', type=int, default=3,
+parser.add_argument('-Y','--ycol', type=int, default=3,
 		help="Column to treat as Y. Set to 0 to grab all columns except Xcol.")
 parser.add_argument('-b','--bins', default=50, type=int,
                 help='Number of bins for histograms (except heatmap).')
@@ -127,7 +150,32 @@ parser.add_argument('--alpha', type=float, default=0.025,
 
 
 
+# _cachedir = os.path.join(os.path.expanduser('~'),'.config')
+_cachedir = user_config_dir(__package__)
+if not os.path.exists(_cachedir):
+    os.mkdir(_cachedir)
+_configfile = os.path.join(_cachedir, __package__+'.conf')
+config = doconfig(_configfile)
+
+_defaults = {}
+try:
+    for _key in config['BOOLEANS']:
+        _defaults[_key] = config['BOOLEANS'].getboolean(_key)
+    for _key in config['INTEGERS']:
+        _defaults[_key] = config['INTEGERS'].getint(_key)
+    for _key in config['FLOATS']:
+        _defaults[_key] = config['FLOATS'].getfloat(_key)
+    for _key in config['STRINGS']:
+        _defaults[_key] = config['STRINGS'][_key]
+except KeyError as msg:
+    print("%s%s is malformatted (missing: %s).%s" % (
+        RED, _configfile, str(msg), RS ))
+# print(_defaults)
+parser.set_defaults(**_defaults)
 Opts=parser.parse_args()
+
+setattr(Opts, 'configfile', _configfile)
+
 
 if not Opts.write:
 	Opts.plot = True
@@ -137,10 +185,10 @@ if len(Opts.in_files) and not Opts.outfile:
 		Opts.outfile = os.path.basename(Opts.in_files[0])[:-4]
 	else:
 		Opts.outfile = Opts.in_files[0]
-Opts.Xcol -= 1
-Opts.Ycol -= 1
+Opts.xcol -= 1
+Opts.ycol -= 1
 
-if not len(Opts.in_files) and not Opts.GUI and 0 in (len(Opts.setA),len(Opts.setB)):
+if not len(Opts.in_files) and not Opts.gui and 0 in (len(Opts.setA),len(Opts.setB)):
 	parser.print_help()
 	print(RED+"\n\t\t> > > No input files! < < < "+RS)
 	sys.exit()

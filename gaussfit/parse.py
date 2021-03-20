@@ -165,13 +165,13 @@ class Parse():
         if isinstance(fns, str):
             fns = [fns]
         self.logger.debug('Parsing %s', ', '.join(fns))
-        if self.opts.Ycol > 0:
+        if self.opts.ycol > 0:
             self.logger.info("Parsing two columns of data.")
             for f in fns:
                 try:
                     frames[f] = pd.read_csv(f,sep=self.opts.delim,
-                                            usecols=(self.opts.Xcol,
-                                                    self.opts.Ycol),
+                                            usecols=(self.opts.xcol,
+                                                    self.opts.ycol),
                                             names=('V','J'),header=0)
                 except OSError as msg:
                     self.logger.warning("Skipping %s because %s", f,str(msg) )
@@ -182,7 +182,7 @@ class Parse():
             self.logger.info("Parsing all columns of data.")
             for f in fns:
                 try:
-                    _df = pd.read_csv(f,sep=self.opts.delim,index_col=self.opts.Xcol,header=0)
+                    _df = pd.read_csv(f,sep=self.opts.delim,index_col=self.opts.xcol,header=0)
                     i = 0
                     for col in _df:
                         frames['%s_%.2d' % (f,i)] = pd.dataframe({'V':_df.index,'J':_df[col]})
@@ -221,7 +221,7 @@ class Parse():
             self.error = True
             return
         if self.df.J.first_valid_index() is None:
-            self.logger.error("Column %s is empty!", str(self.opts.Ycol+1))
+            self.logger.error("Column %s is empty!", str(self.opts.ycol+1))
             self.error =True
             return
         if self.df.J.hasnans:
