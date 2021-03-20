@@ -106,6 +106,10 @@ class Parse():
         self.logger.addHandler(self.loghandler)
         self.logger.setLevel(getattr(logging,self.opts.loglevel.upper()))
 
+        if not 0 < self.opts.alpha < 1:
+            self.logger.error("Alpha must be between 0 and 1")
+            sys.exit()
+
     @classmethod
     def doOutput(cls,writer):
         ''' Run through all the methods for writing output files.'''

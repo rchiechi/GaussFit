@@ -57,7 +57,7 @@ class ChooseFiles(Frame):
         self.master.tk_setPalette(background=GREY,
             activeBackground=GREY)
         self.master.title("RCCLab EGaIn Data Parser")
-        self.master.geometry('900x850+250-250')
+        self.master.geometry('900x900+250-250')
         self.pack(fill=BOTH)
         self.__createWidgets()
         self.ToFront()
@@ -185,7 +185,9 @@ class ChooseFiles(Frame):
             {'name': 'Bins', 'text': "Bins for J/R Histograms:",
              'tooltip': "Set binning for histograms of J and R."},
             {'name': 'Heatmapbins', 'text': "Bins for G Histograms:",
-             'tooltip': "Set binning for heatmap histograms."}
+             'tooltip': "Set binning for heatmap histograms."},
+             {'name': 'Alpha', 'text': "⍺-value for CI",
+              'tooltip': "The p-cutoff is 1-⍺, e.g., ⍺ = 0.05 => 95% cutoff."},
             ]
 
         i = 0
@@ -372,6 +374,7 @@ class ChooseFiles(Frame):
         self.checkColumnEntry(event)
         self.checkVcutoffEntry(event)
         self.checkLagcutoffEntry(event)
+        self.checkAlphaEntry(event)
 
     def checkVcutoffEntry(self,event):
         try:
@@ -428,3 +431,13 @@ class ChooseFiles(Frame):
             pass
         self.EntryNDCminmax.delete(0, END)
         self.EntryNDCminmax.insert(0, ",".join( (str(self.opts.ndc_mlow), str(self.opts.ndc_mhi)) ))
+
+    def checkAlphaEntry(self, event):
+        try:
+            alpha = float(self.EntryAlpha.get())
+            if 0 < alpha < 1:
+                self.opts.alpha = alpha
+        except ValueError:
+            pass
+        self.EntryAlpha.delete(0, END)
+        self.EntryAlpha.insert(0,self.opts.alpha)
