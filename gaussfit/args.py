@@ -19,8 +19,13 @@ Description:
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-import sys,os,logging,warnings,csv
+import sys
+import os
+import logging
+import warnings
+import csv
 import argparse
+# import configparser
 from gaussfit.colors import *
 
 warnings.filterwarnings('ignore','.*divide by zero.*',RuntimeWarning)
