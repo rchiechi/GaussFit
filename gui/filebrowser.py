@@ -20,17 +20,20 @@ Description:
         You should have received a copy of the GNU General Public License
         along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
-import sys,os,platform,threading,logging
-from gaussfit import *
+import os
+import platform
+import threading
+import logging
+from tkinter import filedialog #some weird bug...
+from tkinter import * #pylint: disable=W0614,W0401
+from tkinter.ttk import * #pylint: disable=W0614,W0401
+from tkinter.font import * #pylint: disable=W0614,W0401
+from gui.colors import * #pylint: disable=W0614,W0401
+from gui.tooltip import * #pylint: disable=W0614,W0401
+
+from gaussfit import * #pylint: disable=W0614,W0401
 from gaussfit.Output import Writer,Plotter
 from gaussfit.logger import GUIHandler
-from tkinter import filedialog #some weird bug...
-from tkinter import *
-from tkinter.ttk import *
-from tkinter.font import *
-from gui.colors import *
-from gui.tooltip import *
-
 
 
 class ParseThread(threading.Thread):
@@ -53,7 +56,7 @@ class ChooseFiles(Frame):
             self.last_input_path = os.path.expanduser('~')
         self.opts = opts
         self.gothreads = []
-
+        self.checks = []
         self.master.tk_setPalette(background=GREY,
             activeBackground=GREY)
         self.master.title("RCCLab EGaIn Data Parser")
@@ -116,13 +119,20 @@ class ChooseFiles(Frame):
 
     def __createOptions(self):
         self.checks = [
-              {'name':'plot','text':'Plot','row':1,'tooltip':"Show summary plots after parsing."},
-              {'name':'write','text':'Write','row':2,'tooltip':"Write results to text files after parsing."},
-              {'name':'skipohmic','text':'Skip bad dJ/dV','row':3,'tooltip':'Skip plots with d2J/dV2 < 0 between Vcutoff and Vmin/Vmax.'},
-              {'name':'interpolateminfn','text':'Interpolate FN','row':4,'tooltip':'Find FN from the minimum of the derivative.'},
-              {'name':'logr','text':'Use log|R|','row':5,'tooltip':'Use log |R| instead of |R| when computing histograms.'},
-              {'name':'lorenzian','text':'Lorenzian','row':6,'tooltip':'Fit a Lorenzian instead of a Gaussian.'},
-              {'name':'tracebyfile','text':'AFM Data','row':7,'tooltip':'Each file contains one (foward/backward) trace.'}
+              {'name':'plot','text':'Plot','row':1,
+                'tooltip':"Show summary plots after parsing."},
+              {'name':'write','text':'Write','row':2,
+                'tooltip':"Write results to text files after parsing."},
+              {'name':'skipohmic','text':'Skip bad dJ/dV','row':3,
+                'tooltip':'Skip plots with d2J/dV2 < 0 between Vcutoff and Vmin/Vmax.'},
+              {'name':'interpolateminfn','text':'Interpolate FN','row':4,
+                'tooltip':'Find FN from the minimum of the derivative.'},
+              {'name':'logr','text':'Use log|R|','row':5,
+                'tooltip':'Use log |R| instead of |R| when computing histograms.'},
+              {'name':'lorenzian','text':'Lorenzian','row':6,
+                'tooltip':'Fit a Lorenzian instead of a Gaussian.'},
+              {'name':'tracebyfile','text':'AFM Data','row':7,
+                'tooltip':'Each file contains one (foward/backward) trace.'}
               ]
 
         for c in self.checks:
@@ -264,21 +274,21 @@ class ChooseFiles(Frame):
                 Parse.doOutput(writer)
             if self.opts.plot and not gothread.parser.error:
                 try:
-                        import matplotlib.pyplot as plt
-                        plotter = Plotter(gothread.parser, plt)
-                        self.logger.info("Generating plots...")
-                        plotter.DoPlots()
-                        plt.show(block=False)
+                    import matplotlib.pyplot as plt #pylint: disable=C0415
+                    plotter = Plotter(gothread.parser, plt)
+                    self.logger.info("Generating plots...")
+                    plotter.DoPlots()
+                    plt.show(block=False)
                 except ImportError as msg:
-                        self.logger.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
+                    self.logger.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
         else:
-            if len(self.opts.in_files):
+            if self.opts.in_files:
                 parser = Parse(self.opts,handler=self.handler)
                 self.gothreads.append(ParseThread(self.opts,parser))
                 self.gothreads[-1].start()
                 self.ButtonParse.after('500',self.Parse) #pylint: disable=E1101
             else:
-                self.logger.warn("No input files!")
+                self.logger.warning("No input files!")
         self.handler.flush()
     def RemoveFileClick(self):
         self.checkOptions()
@@ -292,7 +302,7 @@ class ChooseFiles(Frame):
 
         for i in range(0, len(self.opts.in_files)):
             if i not in todel:
-               filelist.append(self.opts.in_files[i])
+                filelist.append(self.opts.in_files[i])
         self.opts.in_files = filelist
         self.updateFileListBox()
         self.FileListBox.selection_clear(0,END)
@@ -313,24 +323,25 @@ class ChooseFiles(Frame):
                 self.OutputFileName.delete(0,END)
                 self.OutputFileName.insert(0,\
                         os.path.basename(self.opts.in_files[-1]).lower().replace('.txt',''))
-                self.checkOutputFileName(None)
+                self.checkOutputFileName()
 
     def updateFileListBox(self):
         self.filelist.set(" ".join([x.replace(" ","_") for x in self.opts.in_files]))
 
     def SpawnOutputDialogClick(self):
-        outdir = filedialog.askdirectory(title="Select Output File(s)", initialdir=self.opts.out_dir)
+        outdir = filedialog.askdirectory(title="Select Output File(s)",
+                initialdir=self.opts.out_dir)
         if os.path.exists(outdir):
             self.opts.out_dir = outdir
             self.UpdateFileListBoxFrameLabel()
 
     def UpdateFileListBoxFrameLabel(self):
-        self.FileListBoxFrameLabelVar.set("Output to: %s/%s_*.txt"% (self.opts.out_dir, self.opts.outfile) )
+        self.FileListBoxFrameLabelVar.set(
+            "Output to: %s/%s_*.txt"% (self.opts.out_dir, self.opts.outfile) )
 
-    def checkOptions(self, event=None):
+    def checkOptions(self, event=None): #pylint: disable=W0613
         for c in self.checks:
             setattr(self.opts,c['name'],self.boolmap[getattr(self,c['name']).get()])
-
 
         if self.OptionsHistPlotsString.get() == 'NDC':
             self.OptionHeatmapd["state"]=DISABLED
@@ -353,7 +364,7 @@ class ChooseFiles(Frame):
                     var = float(var)
                 else:
                     var = int(var)
-            except ValueError as msg:
+            except ValueError:
                 var = n[1]
             if var == 0:
                 var = int(0)
@@ -368,15 +379,15 @@ class ChooseFiles(Frame):
         self.opts.plots = self.OptionsPlotsString.get()
         self.opts.histplots = self.OptionsHistPlotsString.get()
         self.opts.heatmapd = int(self.OptionsHeatmapdString.get())
-        self.checkGminmaxEntry(event)
-        self.checkNDCminmaxEntry(event)
-        self.checkOutputFileName(event)
-        self.checkColumnEntry(event)
-        self.checkVcutoffEntry(event)
-        self.checkLagcutoffEntry(event)
-        self.checkAlphaEntry(event)
+        self.checkGminmaxEntry()
+        self.checkNDCminmaxEntry()
+        self.checkOutputFileName()
+        self.checkColumnEntry()
+        self.checkVcutoffEntry()
+        self.checkLagcutoffEntry()
+        self.checkAlphaEntry()
 
-    def checkVcutoffEntry(self,event):
+    def checkVcutoffEntry(self):
         try:
             vcutoff = float(self.EntryVcutoff.get()) #pylint: disable=E1101
             if vcutoff != -1:
@@ -391,48 +402,48 @@ class ChooseFiles(Frame):
         else:
             self.EntryVcutoff.insert(0,"Vmax") #pylint: disable=E1101
 
-    def checkLagcutoffEntry(self,event):
+    def checkLagcutoffEntry(self):
         try:
             lagcutoff = float(self.EntryLagcutoff.get()) #pylint: disable=E1101
             self.opts.lagcutoff = abs(lagcutoff)
-        except ValueError as msg:
+        except ValueError:
             self.opts.lagcutoff = 0.1
 
         self.EntryLagcutoff.delete(0, END) #pylint: disable=E1101
         self.EntryLagcutoff.insert(0,self.opts.lagcutoff) #pylint: disable=E1101
 
-    def checkOutputFileName(self, event):
+    def checkOutputFileName(self, event=None):
         self.opts.outfile = self.OutputFileName.get()
         self.UpdateFileListBoxFrameLabel()
 
-    def checkColumnEntry(self, event):
+    def checkColumnEntry(self):
         try:
             x, y = self.EntryColumns.get().split(",") #pylint: disable=E1101
             self.opts.Xcol, self.opts.Ycol = int(x)-1, int(y)-1
-        except ValueError as msg:
+        except ValueError:
             pass
         self.EntryColumns.delete(0, END) #pylint: disable=E1101
         self.EntryColumns.insert(0, ",".join(( str(self.opts.Xcol+1), str(self.opts.Ycol+1) ))) #pylint: disable=E1101
 
-    def checkGminmaxEntry(self, event):
+    def checkGminmaxEntry(self):
         try:
             x, y = self.EntryGminmax.get().split(",") #pylint: disable=E1101
             self.opts.mlow, self.opts.mhi = int(x), int(y)
-        except ValueError as msg:
+        except ValueError:
             pass
         self.EntryGminmax.delete(0, END) #pylint: disable=E1101
         self.EntryGminmax.insert(0, ",".join( (str(self.opts.mlow), str(self.opts.mhi)) )) #pylint: disable=E1101
 
-    def checkNDCminmaxEntry(self, event):
+    def checkNDCminmaxEntry(self):
         try:
             x, y = self.EntryNDCminmax.get().split(",") #pylint: disable=E1101
             self.opts.ndc_mlow, self.opts.ndc_mhi = float(x), float(y)
-        except ValueError as msg:
+        except ValueError:
             pass
         self.EntryNDCminmax.delete(0, END) #pylint: disable=E1101
         self.EntryNDCminmax.insert(0, ",".join( (str(self.opts.ndc_mlow), str(self.opts.ndc_mhi)) )) #pylint: disable=E1101
 
-    def checkAlphaEntry(self, event):
+    def checkAlphaEntry(self):
         try:
             alpha = float(self.EntryAlpha.get()) #pylint: disable=E1101
             if 0 < alpha < 1:
