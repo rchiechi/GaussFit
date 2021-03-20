@@ -56,6 +56,8 @@ class Writer():
             logger.info("Creating %s" , parser.opts.out_dir)
             os.mkdir(parser.opts.out_dir)
 
+        # self.df = len(self.opts.in_files)-1 or 1
+
     def __getattr__(self, name):
         try:
             return getattr(self.parser, name) # 'inheret' the methods of self.parser
@@ -246,9 +248,9 @@ class Writer():
                             rows[x] = []
                         rows[x].append("%0.4f"%_hist['mean'])
                         rows[x].append("%0.4f"%_hist['std'])
-                        _sem = float(_hist['std'])/np.sqrt(len(self.opts.in_files))
+                        _sem = float(_hist['std'])/np.sqrt(len(self.opts.in_files)-1 or 1)
                         rows[x].append("%0.4f"%_sem)
-                        _t_val = _sem * stdtrit( len(self.opts.in_files), 1 - self.opts.alpha )
+                        _t_val = _sem * stdtrit( len(self.opts.in_files)-1 or 1, 1 - self.opts.alpha )
                         rows[x].append("%0.4f"% _t_val)
 
 
@@ -317,12 +319,12 @@ class Writer():
             #Y = []
             #Yerr = []
             for x in self.XY:
-                _sem = self.XY[x]['filtered_hist']['std']/np.sqrt(len(self.opts.in_files))
+                _sem = self.XY[x]['filtered_hist']['std']/np.sqrt(len(self.opts.in_files)-1 or 1)
                 writer.writerow(['%f'%x,
                                 '%0.4f'%self.XY[x]['filtered_hist']['mean'],
                                 '%0.4f'%self.XY[x]['filtered_hist']['std'],
                                 '%0.4f'% _sem,
-                                '%0.4f'% (_sem * stdtrit( len(self.opts.in_files), 1 - self.opts.alpha )) ])
+                                '%0.4f'% (_sem * stdtrit( len(self.opts.in_files)-1 or 1, 1 - self.opts.alpha )) ])
 
     def WriteGauss(self):
         '''Write the Gaussian-derived data for J, R and the differential conductance data.'''
@@ -337,13 +339,13 @@ class Writer():
             #Y = []
             #Yerr = []
             for x in self.XY:
-                _sem = self.XY[x]['hist']['std']/np.sqrt(len(self.opts.in_files))
+                _sem = self.XY[x]['hist']['std']/np.sqrt(len(self.opts.in_files)-1 or 1)
                 writer.writerow([
                         '%0.4f'%x,
                         '%0.4f'%self.XY[x]['hist']['mean'],
                         '%0.4f'%self.XY[x]['hist']['std'],
                         '%0.4f'% _sem,
-                        '%0.4f'% (_sem * stdtrit( len(self.opts.in_files), 1 - self.opts.alpha )) ])
+                        '%0.4f'% (_sem * stdtrit( len(self.opts.in_files)-1 or 1, 1 - self.opts.alpha )) ])
         _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RGauss.txt")
         with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
