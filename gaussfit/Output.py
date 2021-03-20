@@ -44,8 +44,7 @@ except ImportError as msg:
     pass #We catch numpy import errors in Parser.py
 warnings.filterwarnings('ignore','.*comparison.*',FutureWarning)
 
-#TODO should be user configurable
-ALPHA=0.05
+
 
 class Writer():
     '''The main Writer class for creating text files of parsed data.'''
@@ -239,7 +238,7 @@ class Writer():
                 _maxtrace = 0
                 for trace in self.segments[segment]:
                     _maxtrace += 1
-                    headers += ["Log|J|","Standard Devaition","Standard Error of the Mean", "%s%% confidence interval" % (100*(1-ALPHA)) ]
+                    headers += ["Log|J|","Standard Devaition","Standard Error of the Mean", "%s%% confidence interval" % (100*(1-self.opts.alpha)) ]
                     for x in self.segments[segment][trace]:
                         _hist = self.segments[segment][trace][x]
                         if x not in rows:
@@ -248,7 +247,7 @@ class Writer():
                         rows[x].append("%0.4f"%_hist['std'])
                         _sem = float(_hist['std'])/np.sqrt(len(self.opts.in_files))
                         rows[x].append("%0.4f"%_sem)
-                        _t_val = _sem * stdtrit( len(self.opts.in_files), 1 - ALPHA )
+                        _t_val = _sem * stdtrit( len(self.opts.in_files), 1 - self.opts.alpha )
                         rows[x].append("%0.4f"% _t_val)
 
 
@@ -313,7 +312,7 @@ class Writer():
                             "Log|J|",
                             "Standard Devaition",
                             "Standard Error of the Mean",
-                            "%s%% confidence interval" % (100*(1-ALPHA))])
+                            "%s%% confidence interval" % (100*(1-self.opts.alpha))])
             #Y = []
             #Yerr = []
             for x in self.XY:
@@ -322,7 +321,7 @@ class Writer():
                                 '%0.4f'%self.XY[x]['filtered_hist']['mean'],
                                 '%0.4f'%self.XY[x]['filtered_hist']['std'],
                                 '%0.4f'% _sem,
-                                '%0.4f'% (_sem * stdtrit( len(self.opts.in_files), 1 - ALPHA )) ])
+                                '%0.4f'% (_sem * stdtrit( len(self.opts.in_files), 1 - self.opts.alpha )) ])
 
     def WriteGauss(self):
         '''Write the Gaussian-derived data for J, R and the differential conductance data.'''
@@ -333,7 +332,7 @@ class Writer():
                             "Log|J|",
                             "Standard Devaition",
                             "Standard Error of the Mean",
-                            "%s%% confidence interval" % (100*(1 - ALPHA)) ])
+                            "%s%% confidence interval" % (100*(1 - self.opts.alpha)) ])
             #Y = []
             #Yerr = []
             for x in self.XY:
@@ -343,7 +342,7 @@ class Writer():
                         '%0.4f'%self.XY[x]['hist']['mean'],
                         '%0.4f'%self.XY[x]['hist']['std'],
                         '%0.4f'% _sem,
-                        '%0.4f'% (_sem * stdtrit( len(self.opts.in_files), 1 - ALPHA )) ])
+                        '%0.4f'% (_sem * stdtrit( len(self.opts.in_files), 1 - self.opts.alpha )) ])
         _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RGauss.txt")
         with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
