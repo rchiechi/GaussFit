@@ -239,7 +239,7 @@ class Writer():
                 _maxtrace = 0
                 for trace in self.segments[segment]:
                     _maxtrace += 1
-                    headers += ["Log|J|","Standard Devaition","Standard Error of the Mean", "%s%% confidence interval" % 100*(1-ALPHA) ]
+                    headers += ["Log|J|","Standard Devaition","Standard Error of the Mean", "%s%% confidence interval" % (100*(1-ALPHA)) ]
                     for x in self.segments[segment][trace]:
                         _hist = self.segments[segment][trace][x]
                         if x not in rows:
@@ -313,7 +313,7 @@ class Writer():
                             "Log|J|",
                             "Standard Devaition",
                             "Standard Error of the Mean",
-                            "%s%% confidence interval" % 100*(1-ALPHA)])
+                            "%s%% confidence interval" % (100*(1-ALPHA))])
             #Y = []
             #Yerr = []
             for x in self.XY:
@@ -322,7 +322,7 @@ class Writer():
                                 '%0.4f'%self.XY[x]['filtered_hist']['mean'],
                                 '%0.4f'%self.XY[x]['filtered_hist']['std'],
                                 '%0.4f'% _sem,
-                                '%0.4f'% _sem * stdtrit( len(self.opts.in_files), 1 - ALPHA ) ])
+                                '%0.4f'% (_sem * stdtrit( len(self.opts.in_files), 1 - ALPHA )) ])
 
     def WriteGauss(self):
         '''Write the Gaussian-derived data for J, R and the differential conductance data.'''
@@ -333,7 +333,7 @@ class Writer():
                             "Log|J|",
                             "Standard Devaition",
                             "Standard Error of the Mean",
-                            "%s%% confidence interval" % 100*(1-ALPHA)])
+                            "%s%% confidence interval" % (100*(1 - ALPHA)) ])
             #Y = []
             #Yerr = []
             for x in self.XY:
@@ -343,7 +343,7 @@ class Writer():
                         '%0.4f'%self.XY[x]['hist']['mean'],
                         '%0.4f'%self.XY[x]['hist']['std'],
                         '%0.4f'% _sem,
-                        '%0.4f'% _sem * stdtrit( len(self.opts.in_files), 1 - ALPHA ) ])
+                        '%0.4f'% (_sem * stdtrit( len(self.opts.in_files), 1 - ALPHA )) ])
         _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RGauss.txt")
         with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
@@ -367,8 +367,8 @@ class Writer():
         with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             writer.writerow(["Potential (V)","dJ/dV * V/J","Standard Devaition"])
-            Y = []
-            Yerr = []
+            #Y = []
+            #Yerr = []
             for x in self.GHists:
                 writer.writerow(['%f'%x,'%f'%self.NDCHists[x]['hist']['mean'],'%f'%self.NDCHists[x]['hist']['std']])
 
