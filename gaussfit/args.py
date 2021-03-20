@@ -117,7 +117,7 @@ parser.add_argument('--tracebyfile', default=False, action='store_true',
 		help="Each input file contains one trace.")
 parser.add_argument('--lagcutoff', default=0.1, type=float,
 		help="Minimum euclidian distance from line to be considered as scatter.")
-parser.add_argument('--alpha', type=float, default=0.05,
+parser.add_argument('--alpha', type=float, default=0.025,
 		help="Alpha value to use for computing confidence intervals (p-cutoff = 1-Alpha).")
 
 
