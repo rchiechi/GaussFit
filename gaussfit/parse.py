@@ -32,7 +32,7 @@ import warnings
 import threading
 import time
 from collections import OrderedDict
-from gaussfit.colors import *
+from gaussfit.colors import * #pylint: disable=W0401,W0614
 from gaussfit.logger import DelayedHandler
 #import concurrent.futures
 
@@ -120,7 +120,7 @@ class Parse():
         try:
             writer.WriteVtrans()
         except ValueError:
-            print("Vtrans data are too broken to output ¯\_(ツ)_/¯")
+            print("Vtrans data are too broken to output ¯\_(ツ)_/¯") #pylint: disable=W1401
         writer.WriteGNUplot('Vtransplot')
         writer.WriteFN()
         writer.WriteVT()
@@ -670,7 +670,7 @@ class Parse():
                     pos_min_x.append(self.avg.loc[trace]['FN'][ self.avg.loc[trace].index > 0 ].idxmin() )
 
                 else:
-                    err = (False,False)
+                    err = [False,False]
                     self.logger.debug('Finding minimum FN plot from derivative.')
                     splpos = scipy.interpolate.UnivariateSpline(np.array(self.avg.loc[trace].index[self.avg.loc[trace].index > 0]),
                                                             self.avg.loc[trace]['FN'][self.avg.loc[trace].index > 0].values, k=4)

@@ -186,7 +186,7 @@ class ChooseFiles(Frame):
              'tooltip': "Set binning for histograms of J and R."},
             {'name': 'Heatmapbins', 'text': "Bins for G Histograms:",
              'tooltip': "Set binning for heatmap histograms."},
-             {'name': 'Alpha', 'text': "⍺-value for CI",
+             {'name': 'Alpha', 'text': "⍺-value for CI:",
               'tooltip': "The p-cutoff is 1-⍺, e.g., ⍺ = 0.05 => 95% cutoff."},
             ]
 
@@ -251,23 +251,23 @@ class ChooseFiles(Frame):
 
     def Parse(self):
         if len(self.gothreads):
-            self.ButtonParse['state']=DISABLED
+            self.ButtonParse['state']=DISABLED #pylint: disable=E1101
             for c in self.gothreads:
                 if c.is_alive():
-                    self.ButtonParse.after('500',self.Parse)
+                    self.ButtonParse.after('500',self.Parse) #pylint: disable=E1101
                     return
             self.logger.info("Parse complete!")
             gothread = self.gothreads.pop()
-            self.ButtonParse['state']=NORMAL
+            self.ButtonParse['state']=NORMAL #pylint: disable=E1101
             if self.opts.write and not gothread.parser.error:
                 writer = Writer(gothread.parser)
                 Parse.doOutput(writer)
             if self.opts.plot and not gothread.parser.error:
-                plotter = Plotter(gothread.parser)
-                self.logger.info("Generating plots...")
                 try:
                         import matplotlib.pyplot as plt
-                        plotter.DoPlots(plt)
+                        plotter = Plotter(gothread.parser, plt)
+                        self.logger.info("Generating plots...")
+                        plotter.DoPlots()
                         plt.show(block=False)
                 except ImportError as msg:
                         self.logger.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
@@ -276,7 +276,7 @@ class ChooseFiles(Frame):
                 parser = Parse(self.opts,handler=self.handler)
                 self.gothreads.append(ParseThread(self.opts,parser))
                 self.gothreads[-1].start()
-                self.ButtonParse.after('500',self.Parse)
+                self.ButtonParse.after('500',self.Parse) #pylint: disable=E1101
             else:
                 self.logger.warn("No input files!")
         self.handler.flush()
@@ -341,10 +341,10 @@ class ChooseFiles(Frame):
 
         if not self.opts.write:
             self.opts.plot = True
-            self.plot.set(1)
-            self.Check_plot["state"]=DISABLED
+            self.plot.set(1) #pylint: disable=E1101
+            self.Check_plot["state"]=DISABLED #pylint: disable=E1101
         else:
-            self.Check_plot["state"]=NORMAL
+            self.Check_plot["state"]=NORMAL #pylint: disable=E1101
 
         for n in (('Smooth',1e-12),('Bins',50),('Heatmapbins',25)):
             try:
@@ -378,28 +378,28 @@ class ChooseFiles(Frame):
 
     def checkVcutoffEntry(self,event):
         try:
-            vcutoff = float(self.EntryVcutoff.get())
+            vcutoff = float(self.EntryVcutoff.get()) #pylint: disable=E1101
             if vcutoff != -1:
                 vcutoff = abs(vcutoff)
             self.opts.vcutoff = vcutoff
         except ValueError:
             self.opts.vcutoff = -1
 
-        self.EntryVcutoff.delete(0, END)
+        self.EntryVcutoff.delete(0, END) #pylint: disable=E1101
         if self.opts.vcutoff > 0:
-            self.EntryVcutoff.insert(0,self.opts.vcutoff)
+            self.EntryVcutoff.insert(0,self.opts.vcutoff) #pylint: disable=E1101
         else:
-            self.EntryVcutoff.insert(0,"Vmax")
+            self.EntryVcutoff.insert(0,"Vmax") #pylint: disable=E1101
 
     def checkLagcutoffEntry(self,event):
         try:
-            lagcutoff = float(self.EntryLagcutoff.get())
+            lagcutoff = float(self.EntryLagcutoff.get()) #pylint: disable=E1101
             self.opts.lagcutoff = abs(lagcutoff)
         except ValueError as msg:
             self.opts.lagcutoff = 0.1
 
-        self.EntryLagcutoff.delete(0, END)
-        self.EntryLagcutoff.insert(0,self.opts.lagcutoff)
+        self.EntryLagcutoff.delete(0, END) #pylint: disable=E1101
+        self.EntryLagcutoff.insert(0,self.opts.lagcutoff) #pylint: disable=E1101
 
     def checkOutputFileName(self, event):
         self.opts.outfile = self.OutputFileName.get()
@@ -407,37 +407,37 @@ class ChooseFiles(Frame):
 
     def checkColumnEntry(self, event):
         try:
-            x, y = self.EntryColumns.get().split(",")
+            x, y = self.EntryColumns.get().split(",") #pylint: disable=E1101
             self.opts.Xcol, self.opts.Ycol = int(x)-1, int(y)-1
         except ValueError as msg:
             pass
-        self.EntryColumns.delete(0, END)
-        self.EntryColumns.insert(0, ",".join(( str(self.opts.Xcol+1), str(self.opts.Ycol+1) )))
+        self.EntryColumns.delete(0, END) #pylint: disable=E1101
+        self.EntryColumns.insert(0, ",".join(( str(self.opts.Xcol+1), str(self.opts.Ycol+1) ))) #pylint: disable=E1101
 
     def checkGminmaxEntry(self, event):
         try:
-            x, y = self.EntryGminmax.get().split(",")
+            x, y = self.EntryGminmax.get().split(",") #pylint: disable=E1101
             self.opts.mlow, self.opts.mhi = int(x), int(y)
         except ValueError as msg:
             pass
-        self.EntryGminmax.delete(0, END)
-        self.EntryGminmax.insert(0, ",".join( (str(self.opts.mlow), str(self.opts.mhi)) ))
+        self.EntryGminmax.delete(0, END) #pylint: disable=E1101
+        self.EntryGminmax.insert(0, ",".join( (str(self.opts.mlow), str(self.opts.mhi)) )) #pylint: disable=E1101
 
     def checkNDCminmaxEntry(self, event):
         try:
-            x, y = self.EntryNDCminmax.get().split(",")
+            x, y = self.EntryNDCminmax.get().split(",") #pylint: disable=E1101
             self.opts.ndc_mlow, self.opts.ndc_mhi = float(x), float(y)
         except ValueError as msg:
             pass
-        self.EntryNDCminmax.delete(0, END)
-        self.EntryNDCminmax.insert(0, ",".join( (str(self.opts.ndc_mlow), str(self.opts.ndc_mhi)) ))
+        self.EntryNDCminmax.delete(0, END) #pylint: disable=E1101
+        self.EntryNDCminmax.insert(0, ",".join( (str(self.opts.ndc_mlow), str(self.opts.ndc_mhi)) )) #pylint: disable=E1101
 
     def checkAlphaEntry(self, event):
         try:
-            alpha = float(self.EntryAlpha.get())
+            alpha = float(self.EntryAlpha.get()) #pylint: disable=E1101
             if 0 < alpha < 1:
                 self.opts.alpha = alpha
         except ValueError:
             pass
-        self.EntryAlpha.delete(0, END)
-        self.EntryAlpha.insert(0,self.opts.alpha)
+        self.EntryAlpha.delete(0, END) #pylint: disable=E1101
+        self.EntryAlpha.insert(0,self.opts.alpha) #pylint: disable=E1101

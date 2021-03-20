@@ -27,9 +27,10 @@ import datetime
 import csv
 from shutil import copyfile
 import logging
+from scipy.special import stdtrit #pylint: disable=E0611
 # import matplotlib.pyplot as plt
 from gaussfit.colors import GREEN, TEAL, YELLOW, WHITE
-from scipy.special import stdtrit
+
 
 logger = logging.getLogger('output')
 loghandler = logging.StreamHandler()
