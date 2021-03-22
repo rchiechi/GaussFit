@@ -20,12 +20,17 @@ Description:
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-import os,warnings,datetime
+import os
+import warnings
+import datetime
 #TODO Replace csv with pandas
 import csv
 from shutil import copyfile
 import logging
-from gaussfit.colors import *
+from scipy.special import stdtrit #pylint: disable=E0611
+# import matplotlib.pyplot as plt
+from gaussfit.colors import GREEN, TEAL, YELLOW, WHITE
+
 
 logger = logging.getLogger('output')
 loghandler = logging.StreamHandler()
@@ -40,50 +45,54 @@ except ImportError as msg:
     pass #We catch numpy import errors in Parser.py
 warnings.filterwarnings('ignore','.*comparison.*',FutureWarning)
 
+
+
 class Writer():
     '''The main Writer class for creating text files of parsed data.'''
     def __init__(self,parser):
         self.parser = parser
         self.opts = self.parser.opts
         if not os.path.exists(parser.opts.out_dir):
-            logger.info("Creating %s" % parser.opts.out_dir)
+            logger.info("Creating %s" , parser.opts.out_dir)
             os.mkdir(parser.opts.out_dir)
+
+        # self.df = len(self.opts.in_files)-1 or 1
 
     def __getattr__(self, name):
         try:
-                return getattr(self.parser, name) # 'inheret' the methods of self.parser
-        except AttributeError as e:
-                raise AttributeError("Writer object has no attribute '%s'" % name)
+            return getattr(self.parser, name) # 'inheret' the methods of self.parser
+        except AttributeError as msg:
+            raise AttributeError("Writer object has no attribute '%s'" % name) from msg
 
     def WriteParseInfo(self,extra=''):
         '''Write some summary information about the parameters
         used to parse the input data.'''
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_parseinfo.txt")
-        with open(fn, 'a') as fh:
-            fh.write("Parsed: %s\n" % str(datetime.datetime.today().ctime()) )
-            t = str(vars(self.opts))
-            t = t.replace(",","\n").replace("[","\n[")
-            fh.write(t)
-            fh.write(extra+"\n")
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_parseinfo.txt")
+        with open(_fn, 'a') as _fh:
+            _fh.write("Parsed: %s\n" % str(datetime.datetime.today().ctime()) )
+            _t = str(vars(self.opts))
+            _t = _t.replace(",","\n").replace("[","\n[")
+            _fh.write(_t)
+            _fh.write(extra+"\n")
 
     def WriteSummary(self):
         '''Write a summary of the traces that were parsed.'''
         try:
-            fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Summary.txt")
-            self.df.to_csv(fn,sep=self.opts.delim)
+            _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Summary.txt")
+            self.df.to_csv(_fn,sep=self.opts.delim)
         except AttributeError:
-            logger.warn("No derivative data to summarize")
+            logger.warning("No derivative data to summarize")
         try:
-            fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Traces.txt")
-            self.avg.to_csv(fn,sep=self.opts.delim)
+            _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Traces.txt")
+            self.avg.to_csv(_fn,sep=self.opts.delim)
         except AttributeError:
-            logger.warn("No averaged data to summarize")
+            logger.warning("No averaged data to summarize")
 
     def WriteHistograms(self):
         '''Write all of the underlying histograms and associated statistics used to compute
            Gaussian mean and variance of J, R and Vtrans from the raw input data.'''
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms.txt")
-        with open(fn, 'w', newline='') as csvfile:
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms.txt")
+        with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             headers = []
             #for x in self.XY: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x, \
@@ -97,8 +106,8 @@ class Writer():
                              "%0.4f"%self.XY[x]['hist']['fit'][i]]
                 writer.writerow(row)
 
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms_stats.txt")
-        with open(fn, 'w', newline='') as csvfile:
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms_stats.txt")
+        with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             headers = ["Voltage", "Skew", "Kurtosis", "Skew zscore", "Skew pvalue", "Kurtosis zscore", "Kurtosis pvalue"]
             writer.writerow(headers)
@@ -112,8 +121,8 @@ class Writer():
                          "%0.4f"%self.XY[x]['hist']['kurtpval']]
                 writer.writerow(row)
 
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Gmean.txt")
-        with open(fn, 'w', newline='') as csvfile:
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Gmean.txt")
+        with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             headers = ["Voltage", "Geometric Mean", "Std Deviation"]
             writer.writerow(headers)
@@ -123,8 +132,8 @@ class Writer():
                          "%0.4f"%self.XY[x]['hist']['Gstd']]
                 writer.writerow(row)
 
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RHistograms.txt")
-        with open(fn, 'w', newline='') as csvfile:
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RHistograms.txt")
+        with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             headers = []
             if self.opts.logr:
@@ -139,8 +148,8 @@ class Writer():
                                  "%0.4f"%self.XY[x]['R']['hist']['fit'][i]]
                 writer.writerow(row)
 
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RHistograms_stats.txt")
-        with open(fn, 'w', newline='') as csvfile:
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RHistograms_stats.txt")
+        with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             headers = ["Voltage", "Skew", "Kurtosis", "Skew zscore", "Skew pvalue", "Kurtosis zscore", "Kurtosis pvalue"]
             writer.writerow(headers)
@@ -155,8 +164,8 @@ class Writer():
                 writer.writerow(row)
 
 
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_LogdJdVHistograms.txt")
-        with open(fn, 'w', newline='') as csvfile:
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_LogdJdVHistograms.txt")
+        with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             headers = []
             for x in self.XY: headers += ["log |dJ/dV| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
@@ -168,8 +177,8 @@ class Writer():
                              "%0.4f"%self.GHists[x]['hist']['fit'][i]]
                 writer.writerow(row)
 
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_LogdJdVHistograms_stats.txt")
-        with open(fn, 'w', newline='') as csvfile:
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_LogdJdVHistograms_stats.txt")
+        with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             headers = ["Voltage", "Skew", "Kurtosis", "Skew zscore", "Skew pvalue", "Kurtosis zscore", "Kurtosis pvalue"]
             writer.writerow(headers)
@@ -188,8 +197,8 @@ class Writer():
         '''Write the underlying histograms and associated statistics used to compute the
            Gaussian mean and variance from filtered input data according to the filtering
            cutoffs specified by the user.'''
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_filteredHistograms.txt")
-        with open(fn, 'w', newline='') as csvfile:
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_filteredHistograms.txt")
+        with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             headers = []
             #for x in self.XY: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x, \
@@ -203,8 +212,8 @@ class Writer():
                              "%0.4f"%self.XY[x]['filtered_hist']['fit'][i]]
                 writer.writerow(row)
 
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms_stats.txt")
-        with open(fn, 'w', newline='') as csvfile:
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms_stats.txt")
+        with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             headers = ["Voltage", "Skew", "Kurtosis", "Skew zscore", "Skew pvalue", "Kurtosis zscore", "Kurtosis pvalue"]
             writer.writerow(headers)
@@ -218,14 +227,49 @@ class Writer():
                          "%0.4f"%self.XY[x]['filtered_hist']['kurtpval']]
                 writer.writerow(row)
 
+    def WriteSegmentedHistograms(self):
+        '''Write histograms of values of J broken out by segment to catch
+        hysteretic behavior without smearing it out.'''
+        #for segment in self.XY[list(self.XY.keys())[0]]['segmented']:
+        #TODO set num_segments in opts
+        for segment in self.segments:
+            rows = {}
+            _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Gauss_Segment_%s.txt" % str(segment+1))
+            with open(_fn, 'w', newline='') as csvfile:
+                writer = csv.writer(csvfile, dialect='JV')
+                headers = ["Potential (V)"]
+                _maxtrace = 0
+                for trace in self.segments[segment]:
+                    _maxtrace += 1
+                    headers += ["Log|J|","Standard Devaition","Standard Error of the Mean", "%s%% confidence interval" % (100*(1-self.opts.alpha)) ]
+                    for x in self.segments[segment][trace]:
+                        _hist = self.segments[segment][trace][x]
+                        if x not in rows:
+                            rows[x] = []
+                        rows[x].append("%0.4f"%_hist['mean'])
+                        rows[x].append("%0.4f"%_hist['std'])
+                        _sem = float(_hist['std'])/np.sqrt(len(self.opts.in_files)-1 or 1)
+                        rows[x].append("%0.4f"%_sem)
+                        _t_val = _sem * stdtrit( len(self.opts.in_files)-1 or 1, 1 - self.opts.alpha )
+                        rows[x].append("%0.4f"% _t_val)
+
+
+                writer.writerow(headers)
+                for x in rows:
+                    while len(rows[x]) < _maxtrace * 3:
+                        rows[x] += ['-','-','-']
+                        logger.warning('Filling columns for segment %i, V=%s to match %s traces.', segment, x, _maxtrace)
+                    writer.writerow(["%0.4f"%x]+rows[x])
+
+
     def WriteVtrans(self):
         '''Write the Vtrans data and associated statistics.'''
         for key in ('pos', 'neg'):
             if key not in self.FN:
-                logger.warn("%s not found in Fowler Nordheim data, skipping output." % key)
+                logger.warning("%s not found in Fowler Nordheim data, skipping output." , key)
                 continue
-            fn = os.path.join(self.opts.out_dir, self.opts.outfile+"_Vtrans_"+key+".txt")
-            with open(fn, 'w', newline='') as csvfile:
+            _fn = os.path.join(self.opts.out_dir, self.opts.outfile+"_Vtrans_"+key+".txt")
+            with open(_fn, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile, dialect='JV')
                 writer.writerow(["Vtrans (eV)","Frequency",
                     "Gauss Fit (mean: %0.4f, Standard Deviation: %f)"%(self.FN[key]['mean'], self.FN[key]['std'])])
@@ -235,25 +279,25 @@ class Writer():
                 for x in sorted(data.keys()):
                     writer.writerow(['%0.4f'%x,'%d'%data[x][0],'%0.2f'%data[x][1]])
 
-        fn = os.path.join(self.opts.out_dir, self.opts.outfile+"_Vtrans_stats.txt")
-        with open(fn, 'w') as fh:
+        _fn = os.path.join(self.opts.out_dir, self.opts.outfile+"_Vtrans_stats.txt")
+        with open(_fn, 'w') as _fh:
             for key in ('pos', 'neg'):
                 if key not in self.FN:
-                    logger.warn("%s not found in Fowler Nordheim data, skipping output." % key)
+                    logger.warning("%s not found in Fowler Nordheim data, skipping output." , key)
                     continue
-                fh.write('--- %s ---\n' % key)
-                fh.write('Skew: %s\n' % self.FN[key]['skew'])
-                fh.write('Skew z-score: %s\n' % self.FN[key]['skewstat'])
-                fh.write('Skew p-val: %s\n' % self.FN[key]['skewpval'])
-                fh.write('Kurtosis: %s\n' % self.FN[key]['kurtosis'])
-                fh.write('Kurtosis z-score test: %s\n' % self.FN[key]['kurtstat'])
-                fh.write('Kurtosis p-val: %s\n' % self.FN[key]['kurtpval'])
+                _fh.write('--- %s ---\n' % key)
+                _fh.write('Skew: %s\n' % self.FN[key]['skew'])
+                _fh.write('Skew z-score: %s\n' % self.FN[key]['skewstat'])
+                _fh.write('Skew p-val: %s\n' % self.FN[key]['skewpval'])
+                _fh.write('Kurtosis: %s\n' % self.FN[key]['kurtosis'])
+                _fh.write('Kurtosis z-score test: %s\n' % self.FN[key]['kurtstat'])
+                _fh.write('Kurtosis p-val: %s\n' % self.FN[key]['kurtpval'])
 
 
     def WriteFN(self):
         '''Write Fowler-Nordheim plots of input data.'''
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_FN.txt")
-        with open(fn, 'w', newline='') as csvfile:
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_FN.txt")
+        with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             writer.writerow(['1/V'] + ['Y_%d'%x for x in range(1,len( self.XY[list(self.XY.keys())[0]]['FN'] )+1)])
             for x in self.XY:
@@ -264,29 +308,46 @@ class Writer():
     def WriteFilteredGauss(self):
         '''Write the Gaussian-derived J/V data derived from the filtered input data
            according to the cutoffs specified by the user.'''
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_filteredGauss.txt")
-        with open(fn, 'w', newline='') as csvfile:
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_filteredGauss.txt")
+        with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
-            writer.writerow(["Potential (V)","Log|J|","Standard Devaition","Standard Error of the Mean"])
+            writer.writerow(["Potential (V)",
+                            "Log|J|",
+                            "Standard Devaition",
+                            "Standard Error of the Mean",
+                            "%s%% confidence interval" % (100*(1-self.opts.alpha))])
             #Y = []
             #Yerr = []
             for x in self.XY:
-                writer.writerow(['%f'%x,'%f'%self.XY[x]['filtered_hist']['mean'],'%f'%self.XY[x]['filtered_hist']['std'],\
-                        '%f'% (self.XY[x]['filtered_hist']['std']/np.sqrt(len(self.opts.in_files))) ])
+                _sem = self.XY[x]['filtered_hist']['std']/np.sqrt(len(self.opts.in_files)-1 or 1)
+                writer.writerow(['%f'%x,
+                                '%0.4f'%self.XY[x]['filtered_hist']['mean'],
+                                '%0.4f'%self.XY[x]['filtered_hist']['std'],
+                                '%0.4f'% _sem,
+                                '%0.4f'% (_sem * stdtrit( len(self.opts.in_files)-1 or 1, 1 - self.opts.alpha )) ])
 
     def WriteGauss(self):
         '''Write the Gaussian-derived data for J, R and the differential conductance data.'''
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Gauss.txt")
-        with open(fn, 'w', newline='') as csvfile:
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Gauss.txt")
+        with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
-            writer.writerow(["Potential (V)","Log|J|","Standard Devaition","Standard Error of the Mean"])
+            writer.writerow(["Potential (V)",
+                            "Log|J|",
+                            "Standard Devaition",
+                            "Standard Error of the Mean",
+                            "%s%% confidence interval" % (100*(1 - self.opts.alpha)) ])
             #Y = []
             #Yerr = []
             for x in self.XY:
-                writer.writerow(['%f'%x,'%f'%self.XY[x]['hist']['mean'],'%f'%self.XY[x]['hist']['std'],\
-                        '%f'% (self.XY[x]['hist']['std']/np.sqrt(len(self.opts.in_files))) ])
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RGauss.txt")
-        with open(fn, 'w', newline='') as csvfile:
+                _sem = self.XY[x]['hist']['std']/np.sqrt(len(self.opts.in_files)-1 or 1)
+                writer.writerow([
+                        '%0.4f'%x,
+                        '%0.4f'%self.XY[x]['hist']['mean'],
+                        '%0.4f'%self.XY[x]['hist']['std'],
+                        '%0.4f'% _sem,
+                        '%0.4f'% (_sem * stdtrit( len(self.opts.in_files)-1 or 1, 1 - self.opts.alpha )) ])
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RGauss.txt")
+        with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             if self.opts.logr:
                 writer.writerow(["Potential (V)","log |R|","Standard Deviation"])
@@ -296,27 +357,27 @@ class Writer():
             #Yerr = []
             for x in self.XY:
                 writer.writerow(['%f'%x,'%f'%self.XY[x]['R']['hist']['mean'],'%f'%self.XY[x]['R']['hist']['std']])
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_logdJdVGauss.txt")
-        with open(fn, 'w', newline='') as csvfile:
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_logdJdVGauss.txt")
+        with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             writer.writerow(["Potential (V)","Log|dJ/dV|","Standard Devaition"])
             #Y = []
             #Yerr = []
             for x in self.GHists:
                 writer.writerow(['%f'%x,'%f'%self.GHists[x]['hist']['mean'],'%f'%self.GHists[x]['hist']['std']])
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_NDCGauss.txt")
-        with open(fn, 'w', newline='') as csvfile:
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_NDCGauss.txt")
+        with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             writer.writerow(["Potential (V)","dJ/dV * V/J","Standard Devaition"])
-            Y = []
-            Yerr = []
+            #Y = []
+            #Yerr = []
             for x in self.GHists:
                 writer.writerow(['%f'%x,'%f'%self.NDCHists[x]['hist']['mean'],'%f'%self.NDCHists[x]['hist']['std']])
 
     def WriteVT(self):
         '''Write the transition voltage data plotted against potential (not 1/V).'''
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_VT.txt")
-        with open(fn, 'w', newline='') as csvfile:
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_VT.txt")
+        with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             writer.writerow(["Potential (V)","|V^2/J|"])
             for x in self.XY:
@@ -326,8 +387,8 @@ class Writer():
         '''Write LogJ or LogY (where Y is the generic Y-axis data) plotted against potential.'''
         if log: key,label ='LogY','LogJ'
         else:   key, label ='Y','J'
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt")
-        with open(fn,'w', newline='') as csvfile:
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt")
+        with open(_fn,'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             writer.writerow(["Potential (V)"] + ['Y_%d'%x for x in range(1,len(self.XY[list(self.XY.keys())[0]][key] )+1)])
             for x in self.XY:
@@ -336,8 +397,8 @@ class Writer():
     def WriteDJDV(self):
         '''Write the derivative dJ/dV plotted against potential.'''
         label = 'DJDV'
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt")
-        with open(fn,'w', newline='') as csvfile:
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt")
+        with open(_fn,'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             writer.writerow(["Potential (V)"] + ['DJDV_%d'%x for x in range(1,len(self.DJDV[list(self.DJDV.keys())[0]])+1)])
             X = list(self.DJDV.keys())
@@ -348,8 +409,8 @@ class Writer():
     def WriteNDC(self):
         '''Write the normalized differential conductance plotted against potenial.'''
         label = 'NDC'
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt")
-        with open(fn,'w', newline='') as csvfile:
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt")
+        with open(_fn,'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             writer.writerow(["Potential (V)"] + ['NDC_%d'%x for x in range(1,len(self.DJDV[list(self.DJDV.keys())[0]])+1)])
             X = list(self.NDC.keys())
@@ -359,17 +420,17 @@ class Writer():
 
     def WriteFiltered(self):
         '''Write the filtered J/V data using the input cutoffs provided by the user.'''
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_filtered.txt")
-        with open(fn,'w', newline='') as csvfile:
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_filtered.txt")
+        with open(_fn,'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             for l in self.filtered:
                 writer.writerow(l)
 
     def WriteLag(self):
         '''Write the lag plots of the J/V data.'''
-        fn = fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_lag.txt")
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_lag.txt")
         lenrow = len( self.XY[list(self.XY)[0]]['lag'][0] )
-        with open(fn, 'w', newline='') as csvfile:
+        with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             labels = []
             for x in self.XY:
@@ -387,8 +448,8 @@ class Writer():
 
     def WriteRData(self):
         '''Write the rectification plotted against potential.'''
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Rdata.txt")
-        with open(fn,'w', newline='') as csvfile:
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Rdata.txt")
+        with open(_fn,'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             writer.writerow(["Potential (V)"] + ['R_%d'%x for x in range(1,len(self.XY[list(self.XY)[0]]['R'] )+1)])
             for x in self.XY:
@@ -396,8 +457,8 @@ class Writer():
 
     def WriteGHistogram(self):
         '''Write a contour plot of conductance.'''
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_GHistogram.txt")
-        with open(fn, 'w', newline='') as csvfile:
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_GHistogram.txt")
+        with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             headers = ["Potential (V)", "Log dJ/dV", "Frequency"]
             writer.writerow(headers)
@@ -410,8 +471,8 @@ class Writer():
 
 #    def WriteGMatrixold(self):
 #        '''Output for a matlab-style colormap maxtrix'''
-#        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_GMatrix.txt")
-#        with open(fn, 'w', newline='') as csvfile:
+#        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_GMatrix.txt")
+#        with open(_fn, 'w', newline='') as csvfile:
 #            writer = csv.writer(csvfile, dialect='JV')
 #            x,y,z = [],[],[]
 #            for i in range(0, len(self.GHists[list(self.GHists.keys())[0]]['hist']['bin'])):
@@ -442,8 +503,8 @@ class Writer():
 #                #writer.writerow( ['%0.1f'%Y[i][0]]+list(Z[i]) )
 #                #writer.writerow( ['%0.1f'%Y[i][0]]+zi )
 #                writer.writerow(zi)
-#        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_GMatrix_Labels.txt")
-#        with open(fn, 'w', newline='') as csvfile:
+#        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_GMatrix_Labels.txt")
+#        with open(_fn, 'w', newline='') as csvfile:
 #            writer = csv.writer(csvfile, dialect='JV')
 #            headers = []
 #            for x in X[0]:
@@ -463,8 +524,8 @@ class Writer():
         else:
             return
 
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_%s.txt" % label)
-        with open(fn, 'w', newline='') as csvfile:
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_%s.txt" % label)
+        with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             x,y,z = [],[],[]
             for i in range(0, len(Hists[list(Hists.keys())[0]]['hist']['bin'])):
@@ -493,8 +554,8 @@ class Writer():
                     else:
                         zi.append(z)
                 writer.writerow(zi)
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_%s_Labels.txt" % label)
-        with open(fn, 'w', newline='') as csvfile:
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_%s_Labels.txt" % label)
+        with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             headers = []
             for x in X[0]:
@@ -505,9 +566,9 @@ class Writer():
                 headers += ['%0.4f'%Y[i][0]]
             writer.writerow(headers)
 
-    def WriteGeneric(self, dataset, bfn, labels=[]):
+    def WriteGeneric(self, dataset, bfn, labels=None):
         '''Write a generic set of data expecting an n-dimensional array'''
-
+        labels = labels or []
         if len(labels) and len(labels) != len(dataset):
             logger.error("Length of column labels does not match number of data columns for WriteGeneric!")
             return
@@ -518,8 +579,8 @@ class Writer():
                 logger.error("Length of columns differs for WriteGeneric!")
                 return
 
-        fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+bfn+".txt")
-        with open(fn, 'w', newline='') as csvfile:
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+bfn+".txt")
+        with open(_fn , 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             if len(labels):
                 writer.writerow(labels)
@@ -531,41 +592,46 @@ class Writer():
                 writer.writerow(row)
 
 
-    def WriteGNUplot(self, gpinbn, tocopy=[]):
+    def WriteGNUplot(self, gpinbn, tocopy=None):
         '''Write GNUPlot sciprts for plotting the ASCII files output by the other writers.'''
+        tocopy = tocopy or []
         absdir = os.path.dirname(os.path.abspath(__file__))
         tdir = os.path.join(absdir,'../templates/')
         gpintp = os.path.join(tdir,gpinbn+'.gpin')
         try:
             nsub = str(open(gpintp,'rt').read()).count('%s')
-        except FileNotFoundError as msg:
-            logger.warn("Could not read template file %s" % gpintp)
+        except FileNotFoundError:
+            logger.warning("Could not read template file %s" , gpintp)
             return
         ssub = []
-        for i in range(0,nsub):
+        for _ in range(nsub):
             ssub.append(self.opts.outfile)
         txt = open(gpintp, 'rt').read() % tuple(ssub)
-        fh = open(os.path.join(self.opts.out_dir,self.opts.outfile+'_'+gpinbn+'.gpin'), 'wt')
-        fh.write(txt)
-        fh.close()
-        for fn in tocopy:
-            copyfile(os.path.join(tdir,fn), \
-                    os.path.join(self.opts.out_dir,fn))
+        _fh = open(os.path.join(self.opts.out_dir,self.opts.outfile+'_'+gpinbn+'.gpin'), 'wt')
+        _fh.write(txt)
+        _fh.close()
+        for _fn in tocopy:
+            copyfile(os.path.join(tdir,_fn), \
+                    os.path.join(self.opts.out_dir,_fn))
 
 
 
 class Plotter():
-    '''This is the main Plotter class for generating
-    plots using matplotlib.'''
-    def __init__(self,parser):
+    '''
+    This is the main Plotter class for generating
+    plots using matplotlib.
+    '''
+
+    def __init__(self,parser,plt):
         self.parser = parser
         self.opts = self.parser.opts
+        self.plt = plt
 
     def __getattr__(self, name):
         try:
-                return getattr(self.parser, name)
-        except AttributeError as e:
-                raise AttributeError("Plotter object has no attribute '%s'" % name)
+            return getattr(self.parser, name)
+        except AttributeError as msg:
+            raise AttributeError("Plotter object has no attribute '%s'" % name) from msg
 
     def PlotData(self, key, ax, sym, **kw):
         xax = np.array(list(self.XY))
@@ -575,7 +641,8 @@ class Plotter():
             ax.set_xlabel(r'$V^{-1}$')
             ax.set_ylabel(r'$\mathregular{ln(\frac{J}{V^2})}$')
         if key == 'Y':
-            if self.opts.compliance != np.inf: ax.set_ylim( (-1*self.opts.compliance, self.opts.compliance) )
+            if self.opts.compliance != np.inf:
+                ax.set_ylim( (-1*self.opts.compliance, self.opts.compliance) )
             ax.set_title("Initial Data")
             ax.set_xlabel("Potenial (V)")
             ax.set_ylabel(r'Current Density ($A cm^{-2}$)')
@@ -642,7 +709,7 @@ class Plotter():
                 break
 
     def PlotG(self,ax):
-        import matplotlib.pyplot as plt
+        # import matplotlib.pyplot as plt
         ax.set_title("Conductance Plot")
         ax.set_xlabel("Potential (V)")
         if self.opts.heatmapd == 0:
@@ -675,11 +742,11 @@ class Plotter():
         X,Y= np.meshgrid(xi,yi)
         Z = griddata((x, y), z, (X, Y),method='nearest')
         ax.axis([xmin, xmax, ymin, ymax])
-        ax.pcolormesh(X,Y,Z, cmap = plt.get_cmap('rainbow'))
+        ax.pcolormesh(X,Y,Z, cmap = self.plt.get_cmap('rainbow'))
 
 
     def PlotNDC(self,ax):
-        import matplotlib.pyplot as plt
+        # import matplotlib.pyplot as plt
         ax.set_title("NDC Plot")
         ax.set_xlabel("Potential (V)")
         ax.set_title("Heatmap of NDC")
@@ -703,7 +770,7 @@ class Plotter():
         X,Y= np.meshgrid(xi,yi)
         Z = griddata((x, y), z, (X, Y),method='nearest')
         ax.axis([xmin, xmax, ymin, ymax])
-        ax.pcolormesh(X,Y,Z, cmap = plt.get_cmap('rainbow'))
+        ax.pcolormesh(X,Y,Z, cmap = self.plt.get_cmap('rainbow'))
 
 
     def PlotHist(self,ax):
@@ -733,8 +800,8 @@ class Plotter():
         ax.plot(self.XY[key]['hist']['bin'], self.XY[key]['hist']['fit'], lw=2.0, color='b', label='Fit')
 
 
-    def DoPlots(self, plt):
-        fig = plt.figure(figsize=(16,10))
+    def DoPlots(self):
+        fig = self.plt.figure(figsize=(16,10))
         ax1 = fig.add_axes([0.06, 0.55, 0.4, 0.4])
         ax2 = fig.add_axes([0.56, 0.55, 0.4, 0.4])
         ax3 = fig.add_axes([0.06, 0.05, 0.4, 0.4])
@@ -829,8 +896,10 @@ class StatPlotter:
             fig.savefig(self.opts.outfile+"_statfig.png", format="png")
 
 
-def WriteStats(out_dir, outfile, dataset, bfn, labels=[]):
+def WriteStats(out_dir, outfile, dataset, bfn, labels=None):
     '''Output for a generic set of data expecting an n-dimensional array'''
+
+    labels = labels or []
 
     if len(labels) and len(labels) != len(dataset):
         logger.error("Length of column labels does not match number of data columns for WriteGeneric!")
@@ -841,8 +910,8 @@ def WriteStats(out_dir, outfile, dataset, bfn, labels=[]):
         if len(d) != lencola:
             logger.error("Length of columns differs for WriteGeneric!")
             return
-    fn = os.path.join(out_dir,outfile+"_"+bfn+".txt")
-    with open(fn, 'w', newline='') as csvfile:
+    _fn = os.path.join(out_dir,outfile+"_"+bfn+".txt")
+    with open(_fn , 'w', newline='') as csvfile:
         writer = csv.writer(csvfile, dialect='JV')
         if len(labels):
             writer.writerow(labels)

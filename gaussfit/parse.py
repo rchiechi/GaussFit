@@ -25,23 +25,30 @@ Description:
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-import sys,os,logging,warnings,threading,time
+import sys
+import os
+import logging
+import warnings
+import threading
+import time
 from collections import OrderedDict
-from gaussfit.colors import *
+from gaussfit.colors import * #pylint: disable=W0401,W0614
+from gaussfit.logger import DelayedHandler
 #import concurrent.futures
 
 try:
     import pandas as pd
     from scipy.optimize import curve_fit,OptimizeWarning
     import scipy.interpolate
-    from scipy.stats import gmean,norm,linregress,skew,skewtest,kurtosis,kurtosistest
+    from scipy.stats import gmean,linregress,skew,skewtest,kurtosis,kurtosistest
     import scipy.misc
     import numpy as np
     # SciPy throws a useless warning for noisy J/V traces
     warnings.filterwarnings('ignore','.*Covariance of the parameters.*',OptimizeWarning)
 
 except ImportError as msg:
-    print("\n\t\t%s> > > Error importing numpy/pandas/scipy! %s%s%s < < <%s" % (RED,RS,str(msg),RED,RS))
+    print("\n\t\t%s> > > Error importing numpy/pandas/scipy! %s%s%s < < <%s"
+        % (RED,RS,str(msg),RED,RS))
     print("Try pip3 install <module>")
     sys.exit()
 
@@ -77,6 +84,7 @@ class Parse():
     filtered = []
     R = {}
     traces = {}
+    segments = {}
 
     def __init__(self,opts,handler=None,lock=None):
         self.opts = opts
@@ -88,15 +96,19 @@ class Parse():
         # Pass your own log hanlder, e.g., when calling from a GUI
         # But make sure it supports a flush() method!
         if not handler:
-            from gaussfit.logger import DelayedHandler
             self.loghandler = DelayedHandler()
             self.loghandler.setFormatter(logging.Formatter(\
-                fmt=GREEN+os.path.basename('%(name)s'+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
+                fmt=GREEN+os.path.basename('%(name)s'+TEAL)\
+                    +' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
         else:
             self.loghandler = handler
         self.logger = logging.getLogger('parser')
         self.logger.addHandler(self.loghandler)
         self.logger.setLevel(getattr(logging,self.opts.loglevel.upper()))
+
+        if not 0 < self.opts.alpha < 1:
+            self.logger.error("Alpha must be between 0 and 1")
+            sys.exit()
 
     @classmethod
     def doOutput(cls,writer):
@@ -108,12 +120,13 @@ class Parse():
         try:
             writer.WriteVtrans()
         except ValueError:
-            print("Vtrans data are too broken to output ¯\_(ツ)_/¯")
+            print("Vtrans data are too broken to output ¯\_(ツ)_/¯") #pylint: disable=W1401
         writer.WriteGNUplot('Vtransplot')
         writer.WriteFN()
         writer.WriteVT()
         writer.WriteGNUplot('VTplot')
         writer.WriteGauss()
+        writer.WriteSegmentedHistograms()
         writer.WriteFilteredGauss()
         writer.WriteGNUplot('JVplot')
         writer.WriteGNUplot('NDCplot')
@@ -149,18 +162,21 @@ class Parse():
         them into attributes '''
         frames = {}
         fns.sort()
-        if type(fns) == type(str()):
+        if isinstance(fns, str):
             fns = [fns]
-        self.logger.debug('Parsing %s' % ', '.join(fns))
+        self.logger.debug('Parsing %s', ', '.join(fns))
         if self.opts.Ycol > 0:
             self.logger.info("Parsing two columns of data.")
             for f in fns:
                 try:
-                    frames[f] = pd.read_csv(f,sep=self.opts.delim,usecols=(self.opts.Xcol,self.opts.Ycol),names=('V','J'),header=0)
+                    frames[f] = pd.read_csv(f,sep=self.opts.delim,
+                                            usecols=(self.opts.Xcol,
+                                                    self.opts.Ycol),
+                                            names=('V','J'),header=0)
                 except OSError as msg:
-                    self.logger.warn("Skipping %s because %s" % (f,str(msg)))
+                    self.logger.warning("Skipping %s because %s", f,str(msg) )
                 except pd.errors.ParserError as msg:
-                    self.logger.warn("Skipping malformatted %s because %s" % (f,str(msg)))
+                    self.logger.warning("Skipping malformatted %s because %s", f,str(msg))
 
         else:
             self.logger.info("Parsing all columns of data.")
@@ -169,10 +185,10 @@ class Parse():
                     _df = pd.read_csv(f,sep=self.opts.delim,index_col=self.opts.Xcol,header=0)
                     i = 0
                     for col in _df:
-                        frames['%s_%.2d' % (f,str(i))] = pd.dataframe({'V':_df.index,'J':_df[col]})
+                        frames['%s_%.2d' % (f,i)] = pd.dataframe({'V':_df.index,'J':_df[col]})
                         i += 1
                 except OSError as msg:
-                    self.logger.warn("Skipping %s because %s" % (f,str(msg)))
+                    self.logger.warning("Skipping %s because %s" , f,str(msg))
 
             #self.df = pd.concat((pd.read_csv(f,sep=self.opts.delim,
             #    header=None,skiprows=1) for f in fns),ignore_index=True)
@@ -204,32 +220,36 @@ class Parse():
             self.logger.error("Parsed data does not appear to contain numerical data!")
             self.error = True
             return
-        elif self.df.J.first_valid_index() == None:
-            self.logger.error("Column %s is empty!" % str(self.opts.Ycol+1))
+        if self.df.J.first_valid_index() is None:
+            self.logger.error("Column %s is empty!", str(self.opts.Ycol+1))
             self.error =True
             return
-        elif self.df.J.hasnans:
-            self.logger.warn("Input contains non-numerical data!")
+        if self.df.J.hasnans:
+            self.logger.warning("Input contains non-numerical data!")
         try:
             self.df['FN'] = np.log(abs(self.df.J)/self.df.V**2)
         except ZeroDivisionError:
-            self.logger.warn("Error computing FN (check your input data).")
+            self.logger.warning("Error computing FN (check your input data).")
             self.df['FN'] = np.array([x*0 for x in range(0, len(self.df['V']))])
         self.df.J.replace(0.0,value=1e-16,inplace=True)
         self.df['logJ'] = np.log10(abs(self.df.J)) # Cannot log10 zero
-        self.logger.info('%s values of log|J| above compliance (%s)' %
-                (len(self.df['logJ'][self.df['logJ']>self.opts.compliance]),self.opts.compliance))
+        self.logger.info('%s values of log|J| above compliance (%s)',
+                len(self.df['logJ'][self.df['logJ']>self.opts.compliance]),self.opts.compliance)
 
         #The default log handler only emits when you call flush() after setDelay() called
         self.loghandler.setDelay()
 
         # In the event that we want to call parsing method by hand
         # we stop here when just self.df is complete
-        if not parse: return
-
-        self.logger.info("* * * * * * Finding traces   * * * * * * * *")
-        self.findTraces()
+        if not parse:
+            return
+        self.logger.info("* * * * * * Finding segments   * * * * * * * *")
         self.loghandler.flush()
+        self.findSegments()
+        self.logger.info("* * * * * * Finding traces   * * * * * * * *")
+        self.loghandler.flush()
+        self.findTraces()
+
         if self.error:
             self.logger.error('Cannot compute statistics from these traces.')
             self.loghandler.flush()
@@ -260,7 +280,8 @@ class Parse():
                    "filtered_hist":self.__dohistogram(lag[x]['filtered'],"lag"),
                    "lag":lag[x]['lagplot'],
                    "FN": group['FN'],
-                   "R": R[x] }
+                   "R": R[x]
+                    }
         self.logger.info("* * * * * * Computing |V^2/J|  * * * * * * * * *")
         self.loghandler.flush()
         for x in self.XY:
@@ -286,23 +307,29 @@ class Parse():
             for r in self.df.index.levels[0][1:]:
                 s,e = self.df.loc[r]['V'].values[0],self.df.loc[r]['V'].values[-1]
                 if s not in st or e not in ed:
-                    self.logger.warn('file "%s" starts and ends with weird voltages (%s -> %s)' % (r,s,e))
+                    self.logger.warning(
+                        'file "%s" starts and ends with weird voltages (%s -> %s)', r,s,e)
                 st.append(s)
                 ed.append(e)
             if self.opts.tracebyfile:
                 return True
-            self.logger.debug("Checking V starting from slice %s:%s" % (traces[0][0],traces[0][1]) )
+            self.logger.debug("Checking V starting from slice %s:%s",
+                                traces[0][0],traces[0][1] )
             lt = len(self.df.V[ traces[0][0]:traces[0][1] ])
             for trace in traces:
                 if lt != len(self.df.V[trace[0]:trace[1]]):
                     #TODO Figure out how to mask/delete these files from parsing
                     if trace[0][0] != trace[1][0]:
-                        self.logger.warn('Unequal voltage steps somewhere bewteen "%s" (and) "%s"' % (trace[0][0],trace[1][0]) )
+                        self.logger.warning(
+                            'Unequal voltage steps somewhere bewteen "%s" (and) "%s"',
+                                trace[0][0], trace[1][0] )
                     else:
-                        self.logger.warn('Unequal voltage steps somewhere in "%s"' % trace[0][0] )
+                        self.logger.warning(
+                            'Unequal voltage steps somewhere in "%s"', trace[0][0] )
                     self.loghandler.flush()
                     return False
-                self.logger.debug("Trace: %s -> %s" % (self.df.V[trace[0]],self.df.V[trace[-1]]) )
+                self.logger.debug("Trace: %s -> %s",
+                        self.df.V[trace[0]],self.df.V[trace[-1]] )
             self.logger.info("Traces look good.")
             return True
         self.loghandler.flush()
@@ -321,22 +348,26 @@ class Parse():
                 ntraces = int(self.df.V.value_counts()[0]/3) # Three zeros in every trace!
                 self.logger.info("This looks like an EGaIn dataset.")
                 for t in zip(*(iter(self.df[self.df.V == 0.00].V.index),) * 3):
-                    #traces.append( (t[0], (t[2][0],t[2][1]+1) ) )
+                    # Make an iterator that aggregates elements from each of the iterables.
+                    # Zip is an iterator of tuples, where the i-th tuple contains the i-th element
+                    # from each of the argument sequences or iterables
                     traces.append( (t[0], t[2]) )
 
-            except ValueError:
-                self.logger.warn("Did not find three-zero (EGaIn) traces!")
+            except ValueError as msg:
+                self.logger.warning("Did not find three-zero (EGaIn) traces!")
+                self.logger.debug(str(msg))
         if not ntraces:
-            self.logger.warn("This does not look like an EGaIn dataset.")
+            self.logger.warning("This does not look like an EGaIn dataset.")
             try:
                 ntraces = int(self.df.V.value_counts()[self.df.V[0]]/2) # Two end-pointss in every trace!
                 for t in zip(*(iter(self.df[self.df.V == self.df.V[0]].V.index),) * 2):
                     traces.append( (t[0],t[1]) )
             except ValueError:
-                self.logger.warn("Did not find three-zero (EGaIn) traces!")
+                self.logger.warning("Did not find three-zero (EGaIn) traces!")
 
         if not ntraces or not __checktraces(traces):
-            self.logger.warn("Recomputing traces based on repeat values")
+            # traces contains indices where traces (start, stop) in self.df.
+            self.logger.warning("Recomputing traces based on repeat values")
             traces = []
             Vinit = self.df.V[0]
             trace = []
@@ -351,7 +382,7 @@ class Parse():
         if not __checktraces(traces):
             self.logger.error("Problem with traces: FN and derivative probably will not work correctly!")
             self.loghandler.flush()
-        self.logger.info("Found %s traces (%s)." % (ntraces,len(traces)) )
+        self.logger.info("Found %s traces (%s).", ntraces,len(traces) )
         idx = []
         frames = {}
         self.logger.info("Compressing forward/reverse sweeps to single traces.")
@@ -375,6 +406,110 @@ class Parse():
         if ntraces == 1:
             self.error = True
             self.logger.warning('Only parsed one trace!')
+
+
+    def findSegments(self):
+        '''
+        Break out each trace by segments of
+        0V -> Vmax, 0V -> Vmin.
+        '''
+        # NOTE this is a crude hack because I forgot how Pandas works
+        if self.opts.tracebyfile:
+            self.logger.error("Cannot generate segments from non-EGaIn dataset.")
+            return
+        if self.df.V.value_counts()[0] % 3 != 0:
+            self.logger.warning("Dataset does not seem to have four segments.")
+        segments = {}
+        self.logger.info("Breaking out traces by segments of 0V -> Vmin/max.")
+        # traces = []
+        # for t in zip(*(iter(self.df[self.df.V == 0.00].V.index),) * 3):
+        #     # Make an iterator that aggregates elements from each of the iterables.
+        #     # Zip is an iterator of tuples, where the i-th tuple contains the i-th element
+        #     # from each of the argument sequences or iterables
+        #     traces.append( (t[0], t[2]) )
+        # for col in range(0,len(traces)):
+        #     fbtrace = self.df[traces[col][0]:traces[col][1]].sort_values('V')
+
+        for _fn in self.df.index.levels[0]:
+            # if len(self.df.loc[_fn]['V']) % 4 == 0:
+            #     self.logger.debug("J/V sweep is divisible by 4.")
+            # else:
+            #     self.logger.warning("J/V sweep not divislbe by 4, cannot segment.")
+            #
+            if self.df.loc[_fn]['V'][0] != 0.0:
+                self.logger.warning("J/V didn't start at 0V for %s", _fn)
+
+            _seg = 0
+            _trace = 0
+            _last_V = 0
+            # _zeros = 0
+            _n_traces = int(self.df.V.value_counts()[0] / 3)
+            # V_min = self.df.loc[_fn]['V'].min()
+            # V_max = self.df.loc[_fn]['V'].max()
+            for _i in self.df.loc[_fn].index:
+                J = self.df.loc[_fn]['logJ'][_i]
+                V = self.df.loc[_fn]['V'][_i]
+
+                if _trace > _n_traces:
+                    self.logger.warning("Parsing trace %s, when there should only be %s" , _trace, _n_traces)
+
+                if 0 < V > _last_V:
+                    if _seg == 3:
+                        _trace += 1
+                    _seg = 0
+                    # 0 -> V_max
+                elif 0 < V <= _last_V:
+                    _seg = 1
+                    # V_max -> 0
+                elif 0 > V < _last_V:
+                    _seg = 2
+                    # 0 -> V_min
+                elif 0 > V >= _last_V:
+                    _seg = 3
+                # elif int(V) == 0:
+                #     _zeros += 1
+
+                # if _zeros == 3:
+                #     _trace += 1
+                #     _zeros = 0
+
+                if _seg not in segments:
+                    segments[_seg] = {}
+                    # print("New seg %s" % _seg)
+                if _trace not in segments[_seg]:
+                    segments[_seg][_trace] = {}
+                    #print("New trace %s" % _trace)
+                if V not in segments[_seg][_trace]:
+                    # print(segments)
+                    segments[_seg][_trace][V] = []
+                    #print("New V %s" % V)
+                    # V_min -> 0
+
+                _last_V = V
+                segments[_seg][_trace][V].append(J)
+
+        if len(segments.keys()) != 4:
+            self.error = True
+            self.logger.warning('Parsed %i segments from an EGaIn dataset!', len(segments.keys()))
+        else:
+            self.logger.info('Found %s segments.', len(segments.keys()))
+
+        # print(segments.keys())
+        segmenthists = {}
+        for _seg in segments:
+            if _seg not in segmenthists:
+                segmenthists[_seg] = {}
+            for _trace in segments[_seg]:
+                self.logger.debug('Segment: %s, Trace: %s' , _seg,_trace)
+                if _trace not in segmenthists[_seg]:
+                    segmenthists[_seg][_trace] = {}
+                for _V in segments[_seg][_trace]:
+                    if _V not in segmenthists[_seg][_trace]:
+                        segmenthists[_seg][_trace][_V] = {}
+                    segmenthists[_seg][_trace][_V] = self.__dohistogram(np.array(segments[_seg][_trace][_V]), label='Segmented')
+
+        self.segments = segmenthists
+
 
     def dodjdv(self):
         '''
@@ -408,13 +543,13 @@ class Parse():
                 spl = scipy.interpolate.UnivariateSpline(self.avg.loc[trace].index,self.avg.loc[trace]['J'], k=5, s=self.opts.smooth )
                 dd =  scipy.interpolate.UnivariateSpline(self.avg.loc[trace].index,self.avg.loc[trace]['J'], k=5, s=None).derivative(2)
             except Exception as msg:
-                self.logger.error('Error in derivative calulation: %s' % str(msg))
+                self.logger.error('Error in derivative calulation: %s', str(msg))
                 continue
             try:
                 spldd = dd(vfilterpos) #Compute d2J/dV2
                 spldd += -1*dd(vfilterneg) #Compute d2J/dV2
             except ValueError as msg:
-                self.logger.error('Error computing second derivative: %s' % str(msg))
+                self.logger.error('Error computing second derivative: %s', str(msg))
                 continue
             if len(spldd[spldd<0]):
                     # record in the index where dY/dX is < 0 within vcutoff range
@@ -431,10 +566,10 @@ class Parse():
                     d = spl.derivatives(x)
                 except ValueError as msg:
                     err = str(msg)
-                    self.logger.warn('Error computing derivative: %s' % str(msg))
+                    self.logger.warning('Error computing derivative: %s', str(msg))
                     continue
                 if np.isnan(d[self.opts.heatmapd]):
-                    self.logger.warn("Got NaN computing dJ/dV")
+                    self.logger.warning("Got NaN computing dJ/dV")
                     continue
                 spls[x].append(d[self.opts.heatmapd])
                 splhists[x]['spl'].append(np.log10(abs(d[self.opts.heatmapd])))
@@ -448,12 +583,12 @@ class Parse():
                     # but we keep track of how many data points we toss as a sanity check
                     ndc_cut += 1
             if err:
-                self.logger.error("Error while computing derivative: %s" % str(err))
+                self.logger.error("Error while computing derivative: %s", str(err))
 
-        self.logger.info("Non-tunneling traces: %s (out of %0d)" %
-                    ( len(self.ohmic), len(self.avg.index.levels[0]) ) )
+        self.logger.info("Non-tunneling traces: %s (out of %0d)",
+                    len(self.ohmic), len(self.avg.index.levels[0]) )
         if ndc_tot:
-            self.logger.info("NDC values not between 0 and 10: %s (%0.2f%%)" % (ndc_cut, (ndc_cut/ndc_tot)*100) )
+            self.logger.info("NDC values not between 0 and 10: %s (%0.2f%%)", ndc_cut, (ndc_cut/ndc_tot)*100 )
         self.loghandler.flush()
         for x in splhists:
             splhists[x]['hist'] = self.__dohistogram(np.array(splhists[x]['spl']), label='DJDV')
@@ -476,7 +611,7 @@ class Parse():
         for trace in self.avg.index.levels[0]:
             for x in self.avg.loc[trace].index[self.avg.loc[trace].index >= 0]:
                 if -1*x not in self.avg.loc[trace]['J']:
-                    self.logger.warn("Rectification data missing voltages.")
+                    self.logger.warning("Rectification data missing voltages.")
                     if self.opts.logr: r[x].append(0.)
                     else: r[x].append(1.)
                     continue
@@ -495,14 +630,14 @@ class Parse():
                 R[x] = {'r':np.array(r[x]),'hist':self.__dohistogram(np.array(r[x]),"R")}
                 R[-1*x] = R[x]
             if x not in R:
-                    self.logger.warn("Unequal +/- voltages in R-plot will be filled with R=1.")
+                    self.logger.warning("Unequal +/- voltages in R-plot will be filled with R=1.")
                     if self.opts.logr: y = np.array([1.,1.,1.,1.,1.,1.,1.,1.,1.,1.])
                     else: y = np.array([0.,0.,0.,0.,0.,0.,0.,0.,0.,0.])
                     R[x] = {'r':y,'hist':self.__dohistogram(y,"R")}
         if clipped:
             if self.opts.logr: rstr = 'log|R|'
             else: rstr = '|R|'
-            self.logger.info("%s values of %s exceed maxR (%s)" % (clipped, rstr, self.opts.maxr))
+            self.logger.info("%s values of %s exceed maxR (%s)", clipped, rstr, self.opts.maxr)
         self.logger.info("R complete.")
         return R
 
@@ -520,8 +655,8 @@ class Parse():
         tossed = 0
         if self.opts.skipohmic:
             # Vtrans has no physical meaning for curves with negative derivatives
-            self.logger.info("Skipping %s (out of %s) non-tunneling traces for Vtrans calculation." %
-                    ( len(self.ohmic), (len(self.avg.index.levels[0]))))
+            self.logger.info("Skipping %s (out of %s) non-tunneling traces for Vtrans calculation.",
+                     len(self.ohmic), (len(self.avg.index.levels[0])) )
 
         for trace in self.avg.index.levels[0]:
             if self.opts.skipohmic and trace in self.ohmic:
@@ -535,7 +670,7 @@ class Parse():
                     pos_min_x.append(self.avg.loc[trace]['FN'][ self.avg.loc[trace].index > 0 ].idxmin() )
 
                 else:
-                    err = (False,False)
+                    err = [False,False]
                     self.logger.debug('Finding minimum FN plot from derivative.')
                     splpos = scipy.interpolate.UnivariateSpline(np.array(self.avg.loc[trace].index[self.avg.loc[trace].index > 0]),
                                                             self.avg.loc[trace]['FN'][self.avg.loc[trace].index > 0].values, k=4)
@@ -544,12 +679,12 @@ class Parse():
                     try:
                         pos_min_x += list(np.array(splpos.derivative().roots()))
                     except ValueError as msg:
-                        self.logger.warn('Error finding derivative of FN(+), falling back to linear interpolation. %s' % str(msg))
+                        self.logger.warning('Error finding derivative of FN(+), falling back to linear interpolation. %s', str(msg))
                         err[0] = True
                     try:
                         neg_min_x += list(np.array(splneg.derivative().roots()))
                     except ValueError as msg:
-                        self.logger.warn('Error finding derivative of FN(–), falling back to linear interpolation. %s' % str(msg))
+                        self.logger.warning('Error finding derivative of FN(–), falling back to linear interpolation. %s', str(msg))
                         err[1] = True
                     if err == (False,False):
                         continue
@@ -578,18 +713,18 @@ class Parse():
                             splpos = scipy.interpolate.UnivariateSpline(fndf['X'][pidx-20:pidx+20].values,fndf['Y'][pidx-20:pidx+20].values, k=4 )
                             pos_min_x += list(np.array(splpos.derivative().roots()))
                         except Exception as msg:
-                            self.logger.warn('Error finding FN(+) minimum from interpolated derivative, falling back to minimum. %s' %str(msg))
+                            self.logger.warning('Error finding FN(+) minimum from interpolated derivative, falling back to minimum. %s', str(msg))
                             pos_min_x.append(np.mean(fndf['X'][pidx-20:pidx+20].values))
                     if err[1]:
                         try:
                             splneg = scipy.interpolate.UnivariateSpline(fndf['X'][nidx-20:nidx+20].values,fndf['Y'][nidx-20:nidx+20].values, k=4 )
                             neg_min_x += list(np.array(splneg.derivative().roots()))
                         except Exception as msg:
-                            self.logger.warn('Error finding FN(–) minimum from interpolated derivative, falling back to minimum. %s' %str(msg))
+                            self.logger.warning('Error finding FN(–) minimum from interpolated derivative, falling back to minimum. %s', str(msg))
                             neg_min_x.append(np.mean(fndf['X'][nidx-20:nidx+20].values))
             except ValueError as msg:
-                self.logger.warn("Error finding minimum in trace: %s" % str(msg))
-        if tossed: self.logger.warn("Tossed %d compliance traces during FN calculation.", tossed)
+                self.logger.warning("Error finding minimum in trace: %s", str(msg))
+        if tossed: self.logger.warning("Tossed %d compliance traces during FN calculation.", tossed)
         neg_min_x = np.array(list(filter(np.isfinite,neg_min_x)))
         pos_min_x = np.array(list(filter(np.isfinite,pos_min_x)))
         self.FN["neg"], self.FN["pos"] = self.__dohistogram(neg_min_x, "Vtrans(-)", True), self.__dohistogram(pos_min_x, "Vtrans(+)", True)
@@ -611,11 +746,11 @@ class Parse():
             #self.logger.debug("R-squared: %s" % (r**2))
             distances = self.getdistances( (m,b), _lag[0], _lag[1] )
             min_distance = min(distances)
-            self.logger.debug("Distance from lag: %s" % min_distance)
+            self.logger.debug("Distance from lag: %s", min_distance)
             if min_distance > self.opts.lagcutoff:
-                self.logger.warn("Found a high degree of scatter in lag plot (%0.4f)" % min_distance)
+                self.logger.warning("Found a high degree of scatter in lag plot (%0.4f)", min_distance)
             if r**2 < 0.9:
-                self.logger.warn("Poor line-fit to lag plot (R-squared: %s)" % (r**2))
+                self.logger.warning("Poor line-fit to lag plot (R-squared: %s)", (r**2))
             tossed = 0
             for i in range(0,len(distances)):
                 if distances[i] < self.opts.lagcutoff:
@@ -624,9 +759,9 @@ class Parse():
                 else:
                     tossed += 1
             if not len(_filtered):
-                self.logger.warn("Lag filter excluded all data at %s V" % x)
+                self.logger.warning("Lag filter excluded all data at %s V", x)
             if tossed > 0:
-                self.logger.info("Lag filtered excluded %s data points at %s V" % (tossed, x) )
+                self.logger.info("Lag filtered excluded %s data points at %s V", tossed, x )
             lag[x]['lagplot'] = np.array(_lag)
             lag[x]['filtered'] = np.array(_filtered)
         return lag
@@ -695,7 +830,7 @@ class Parse():
         try:
             yrange = (Y.min(),Y.max())
         except ValueError as msg:
-            self.logger.error("Error ranging data for histogram: %s" % str(msg))
+            self.logger.error("Error ranging data for histogram: %s", str(msg))
             yrange = (0,0)
 
         if label == "J" or label == "lag":
@@ -706,7 +841,7 @@ class Parse():
         if label=='DJDV' or label=='NDC': nbins = self.opts.heatmapbins
         else: nbins = self.opts.bins
         if len(Y) < 10:
-            self.logger.warn("Histogram with only %d points.", len(Y))
+            self.logger.warning("Histogram with only %d points.", len(Y))
         try:
             #TODO Why not offer density plots as an option?
             freq, bins = np.histogram(Y, range=yrange, bins=nbins, density=density)
