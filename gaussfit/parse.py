@@ -166,7 +166,7 @@ class Parse():
             fns = [fns]
         self.logger.debug('Parsing %s', ', '.join(fns))
         if self.opts.Ycol > 0:
-            self.logger.info("Parsing two columns of data (X=%s, Y=%s).", self.opts.Xcol, self.opts.Ycol)
+            self.logger.info("Parsing two columns of data (X=%s, Y=%s).", self.opts.Xcol+1, self.opts.Ycol+1)
             for f in fns:
                 try:
                     frames[f] = pd.read_csv(f,sep=self.opts.delim,
