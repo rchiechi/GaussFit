@@ -177,8 +177,8 @@ class Parse():
                                 usecols=(_x,_y))[[_x,_y]]
                         frames[f].rename(columns = {_x:'V', _y:'J'}, inplace = True)
                     elif self.opts.X > self.opts.Y:
-                        self.logger.error("Xcol cannot be greater than Ycol without column headers.")
-                        sys.exit()
+                        # self.logger.error("Xcol cannot be greater than Ycol without column headers.")
+                        raise pd.errors.ParserError("Xcol cannot be greater than Ycol without column headers.")
                     else:
                         frames[f] = pd.read_csv(f,sep=self.opts.delim,
                                                 usecols=(self.opts.Xcol,
