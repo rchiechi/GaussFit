@@ -417,10 +417,14 @@ class Parse():
         if self.opts.tracebyfile:
             self.logger.error("Cannot generate segments from non-EGaIn dataset.")
             return
-        if self.df.V.value_counts()[0] % 3 != 0:
-            self.logger.warning("Dataset does not seem to have four segments.")
-        segments = {}
-        self.logger.info("Breaking out traces by segments of 0V -> Vmin/max.")
+        try:
+            if self.df.V.value_counts()[0] % 3 != 0:
+                self.logger.warning("Dataset does not seem to have four segments.")
+            segments = {}
+            self.logger.info("Breaking out traces by segments of 0V -> Vmin/max.")
+        except KeyError:
+            self.logger.error("Could not segment data by 0's.")
+            return
         # traces = []
         # for t in zip(*(iter(self.df[self.df.V == 0.00].V.index),) * 3):
         #     # Make an iterator that aggregates elements from each of the iterables.
