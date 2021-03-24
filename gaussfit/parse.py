@@ -168,11 +168,22 @@ class Parse():
         if self.opts.Ycol > -1:
             self.logger.info("Parsing two columns of data (X=%s, Y=%s).", self.opts.Xcol+1, self.opts.Ycol+1)
             for f in fns:
+                with open(f, 'rt') as fh:
+                    _headers = fh.readline(1).split(self.opts.delim)
                 try:
-                    frames[f] = pd.read_csv(f,sep=self.opts.delim,
-                                            usecols=(self.opts.Xcol,
-                                                    self.opts.Ycol),
-                                            names=('V','J'),header=0)
+                    if _headers:
+                        _x, _y = _headers[self.opts.Xcol], _headers[self.opts.Ycol]
+                        frames[f] = pd.read_csv(f,sep=self.opts.delim,
+                                usecols=(_x,_y),
+                                names=('V','J'),header=0)[[_x,_y]]
+                    elif self.opts.X > self.opts.Y:
+                        self.logger.error("Xcol cannot be greater than Ycol without column headers.")
+                        sys.exit()
+                    else:
+                        frames[f] = pd.read_csv(f,sep=self.opts.delim,
+                                                usecols=(self.opts.Xcol,
+                                                        self.opts.Ycol),
+                                                names=('V','J'),header=0)
                 except OSError as msg:
                     self.logger.warning("Skipping %s because %s", f,str(msg) )
                 except pd.errors.ParserError as msg:

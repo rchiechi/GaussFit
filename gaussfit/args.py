@@ -143,15 +143,15 @@ Opts.Ycol -= 1
 if Opts.Xcol > Opts.Ycol:
 	print(RED+"Due to funniness with pandas, Xcol must be greater thatn Ycol."+RS)
 	sys.exit()
-	
+
 if Opts.Xcol < 0:
 	print(RED+"Xcolum must be greater than 0."+RS)
 	sys.exit()
 
 #Parsing all columns is broken.
-if Opts.Ycol < 0:
-	print(RED+"Ycolum must be greater than 0."+RS)
-	sys.exit()
+# if Opts.Ycol < 0:
+# 	print(RED+"Ycolum must be greater than 0."+RS)
+# 	sys.exit()
 
 if not len(Opts.in_files) and not Opts.GUI and 0 in (len(Opts.setA),len(Opts.setB)):
 	parser.print_help()
