@@ -32,7 +32,7 @@ from gui.colors import * #pylint: disable=W0614,W0401
 from gui.tooltip import * #pylint: disable=W0614,W0401
 
 from gaussfit import * #pylint: disable=W0614,W0401
-from gaussfit.Output import Writer,Plotter
+from gaussfit.output import Writer,Plotter
 from gaussfit.logger import GUIHandler
 
 

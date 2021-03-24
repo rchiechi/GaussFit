@@ -178,13 +178,13 @@ setattr(Opts, 'configfile', _configfile)
 
 
 if not Opts.write:
-	Opts.plot = True
+    Opts.plot = True
 
 if len(Opts.in_files) and not Opts.outfile:
-	if Opts.in_files[0][-4] == '.':
-		Opts.outfile = os.path.basename(Opts.in_files[0])[:-4]
-	else:
-		Opts.outfile = Opts.in_files[0]
+    if Opts.in_files[0][-4] == '.':
+        Opts.outfile = os.path.basename(Opts.in_files[0])[:-4]
+    else:
+        Opts.outfile = Opts.in_files[0]
 Opts.xcol -= 1
 Opts.ycol -= 1
 
@@ -192,26 +192,26 @@ Opts.ycol -= 1
 # 	print(RED+"Due to funniness with pandas, Xcol must be greater thatn Ycol."+RS)
 # 	sys.exit()
 
-if Opts.Xcol < 0:
-	print(RED+"Xcolum must be greater than 0."+RS)
-	sys.exit()
+if Opts.xcol < 0:
+    print(RED+"Xcolum must be greater than 0."+RS)
+    sys.exit()
 
 #Parsing all columns is broken.
-if Opts.Ycol < 0:
-	print(RED+"Ycolum must be greater than 0."+RS)
-	sys.exit()
+if Opts.ycol < 0:
+    print(RED+"Ycolum must be greater than 0."+RS)
+    sys.exit()
 
 if not len(Opts.in_files) and not Opts.GUI and 0 in (len(Opts.setA),len(Opts.setB)):
-	parser.print_help()
-	print(RED+"\n\t\t> > > No input files! < < < "+RS)
-	sys.exit()
+    parser.print_help()
+    print(RED+"\n\t\t> > > No input files! < < < "+RS)
+    sys.exit()
 
 
 # Setup CSV parser dialect and separator for pandas
 if Opts.delim == 'tab':
-	Opts.delim='\t'
+    Opts.delim='\t'
 if Opts.delim == 'comma':
-	Opts.delim=','
+    Opts.delim=','
 if Opts.delim == 'space':
-	Opts.delim=' '
+    Opts.delim=' '
 csv.register_dialect('JV', delimiter=Opts.delim, quoting=csv.QUOTE_MINIMAL)

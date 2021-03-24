@@ -32,7 +32,7 @@ import warnings
 import threading
 import time
 from collections import OrderedDict
-from gaussfit.colors import * #pylint: disable=W0401,W0614
+from gaussfit.colors import RED, WHITE, GREEN, TEAL, YELLOW, RS
 from gaussfit.logger import DelayedHandler
 #import concurrent.futures
 
@@ -157,7 +157,7 @@ class Parse():
             print("Error outputting GMatrix")
         writer.logger.info("Done!")
 
-    def ReadFiles(self, fns, parse=True):
+    def readfiles(self, fns, parse=True):
         '''Walk through input files and parse
         them into attributes '''
         frames = {}
@@ -165,24 +165,23 @@ class Parse():
         if isinstance(fns, str):
             fns = [fns]
         self.logger.debug('Parsing %s', ', '.join(fns))
-        if self.opts.Ycol > -1:
-            self.logger.info("Parsing two columns of data (X=%s, Y=%s).", self.opts.Xcol+1, self.opts.Ycol+1)
+        if self.opts.ycol > -1:
+            self.logger.info("Parsing two columns of data (X=%s, Y=%s).", self.opts.xcol+1, self.opts.ycol+1)
             for f in fns:
                 with open(f, 'rt') as fh:
                     _headers = fh.readline().split(self.opts.delim)
                 try:
                     if _headers:
-                        _x, _y = _headers[self.opts.Xcol].strip(), _headers[self.opts.Ycol].strip()
+                        _x, _y = _headers[self.opts.xcol].strip(), _headers[self.opts.ycol].strip()
                         frames[f] = pd.read_csv(f,sep=self.opts.delim,
                                 usecols=(_x,_y))[[_x,_y]]
                         frames[f].rename(columns = {_x:'V', _y:'J'}, inplace = True)
                     elif self.opts.X > self.opts.Y:
-                        self.logger.error("Xcol cannot be greater than Ycol without column headers.")
-                        sys.exit()
+                        raise pd.errors.ParserError("xcol cannot be greater than ycol without column headers.")
                     else:
                         frames[f] = pd.read_csv(f,sep=self.opts.delim,
-                                                usecols=(self.opts.Xcol,
-                                                        self.opts.Ycol),
+                                                usecols=(self.opts.xcol,
+                                                        self.opts.ycol),
                                                 names=('V','J'),header=0)
                 except OSError as msg:
                     self.logger.warning("Skipping %s because %s", f,str(msg) )
@@ -217,7 +216,7 @@ class Parse():
         self.df = pd.concat(frames)
         self.__parse(parse)
 
-    def ReadPandas(self,df,parse):
+    def readpandas(self,df,parse):
         '''Take a pandas.DataFrame as input instead of files.'''
         self.logger.debug("Using Pandas as input")
         self.df = df
@@ -256,7 +255,7 @@ class Parse():
             return
         self.logger.info("* * * * * * Finding segments   * * * * * * * *")
         self.loghandler.flush()
-        self.findSegments()
+        self.findsegments()
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.loghandler.flush()
         self.findTraces()
@@ -419,7 +418,7 @@ class Parse():
             self.logger.warning('Only parsed one trace!')
 
 
-    def findSegments(self):
+    def findsegments(self):
         '''
         Break out each trace by segments of
         0V -> Vmax, 0V -> Vmin.
@@ -428,7 +427,7 @@ class Parse():
         if self.opts.tracebyfile:
             self.logger.error("Cannot generate segments from non-EGaIn dataset.")
             return
-        if self.opts.Ycol < 0:
+        if self.opts.ycol < 0:
             self.logger.warning("Cannot find segments when all columns are parsed.")
             return
         try:
@@ -544,7 +543,7 @@ class Parse():
         else:
             vfilterneg,vfilterpos = np.linspace(self.df.V.min(),0,200), np.linspace(0,self.df.V.max(),200)
         if self.opts.vcutoff > 0:
-            vfilterneg,vfilterpos = linx[-1*self.opts.vcutoff < linx < 0],linux[0 < linx < self.opts.vcutoff]
+            vfilterneg,vfilterpos = linx[-1*self.opts.vcutoff < linx < 0],linx[0 < linx < self.opts.vcutoff]
         else:
             vfilterneg,vfilterpos = linx[linx < 0], linx[linx > 0]
 
@@ -561,8 +560,10 @@ class Parse():
             spl_normhists[x] = {'spl':[],'hist':{}}
         for trace in self.avg.index.levels[0]:
             try:
-                spl = scipy.interpolate.UnivariateSpline(self.avg.loc[trace].index,self.avg.loc[trace]['J'], k=5, s=self.opts.smooth )
-                dd =  scipy.interpolate.UnivariateSpline(self.avg.loc[trace].index,self.avg.loc[trace]['J'], k=5, s=None).derivative(2)
+                spl = scipy.interpolate.UnivariateSpline(
+                    self.avg.loc[trace].index,self.avg.loc[trace]['J'], k=5, s=self.opts.smooth )
+                dd =  scipy.interpolate.UnivariateSpline(
+                    self.avg.loc[trace].index,self.avg.loc[trace]['J'], k=5, s=None).derivative(2)
             except Exception as msg:
                 self.logger.error('Error in derivative calulation: %s', str(msg))
                 continue
@@ -574,9 +575,9 @@ class Parse():
                 continue
             if len(spldd[spldd<0]):
                     # record in the index where dY/dX is < 0 within vcutoff range
-                    self.ohmic.append(trace)
-                    if self.opts.skipohmic:
-                        continue
+                self.ohmic.append(trace)
+                if self.opts.skipohmic:
+                    continue
             else:
                 for row in self.avg.loc[trace].iterrows():
                     # filtered is a list containing only "clean" traces

@@ -22,7 +22,9 @@ Description:
 '''
 import cProfile
 from gaussfit import Parse, Opts
-from gaussfit.Output import Writer,Plotter
+from gaussfit.output import Writer,Plotter
+from gaussfit import colors
+
 try:
     import matplotlib.pyplot as plt
     CAN_PLOT = True
@@ -54,7 +56,7 @@ def do_gaussfit(opts):
     i.e., as main()
     '''
     parser = Parse(opts)
-    parser.ReadFiles(opts.in_files)
+    parser.readfiles(opts.in_files)
     if opts.write and not parser.error:
         writer = Writer(parser)
         Parse.doOutput(writer)
@@ -64,13 +66,13 @@ def do_gaussfit(opts):
             plotter.DoPlots()
             plt.show()
         else:
-            print("Unable to show plots without matplotlib.")
+            print(colors.RED+"Unable to show plots without matplotlib."+colors.RS)
 
-user_opts = Opts
+_opts = Opts
 
 if __name__ == "__main__":
-    if user_opts.gui:
+    if _opts.gui:
         from gui import filebrowser
-        gui = filebrowser.ChooseFiles(user_opts)
+        gui = filebrowser.ChooseFiles(_opts)
     else:
-        do_gaussfit(user_opts)
+        do_gaussfit(_opts)
