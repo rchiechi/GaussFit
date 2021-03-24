@@ -165,7 +165,7 @@ class Parse():
         if isinstance(fns, str):
             fns = [fns]
         self.logger.debug('Parsing %s', ', '.join(fns))
-        if self.opts.Ycol > 0:
+        if self.opts.Ycol > -1:
             self.logger.info("Parsing two columns of data (X=%s, Y=%s).", self.opts.Xcol+1, self.opts.Ycol+1)
             for f in fns:
                 try:
@@ -185,7 +185,7 @@ class Parse():
                     _df = pd.read_csv(f,sep=self.opts.delim,index_col=self.opts.Xcol,header=0)
                     i = 0
                     for col in _df:
-                        frames['%s_%.2d' % (f,i)] = pd.dataframe({'V':_df.index,'J':_df[col]})
+                        frames['%s_%.2d' % (f,i)] = pd.DataFrame({'V':_df.index,'J':_df[col]})
                         i += 1
                 except OSError as msg:
                     self.logger.warning("Skipping %s because %s" , f,str(msg))
