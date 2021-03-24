@@ -172,7 +172,7 @@ class Parse():
                     _headers = fh.readline(1).split(self.opts.delim)
                 try:
                     if _headers:
-                        _x, _y = _headers[self.opts.Xcol], _headers[self.opts.Ycol]
+                        _x, _y = _headers[self.opts.Xcol].strip(), _headers[self.opts.Ycol].strip()
                         frames[f] = pd.read_csv(f,sep=self.opts.delim,
                                 usecols=(_x,_y),
                                 names=('V','J'),header=0)[[_x,_y]]
