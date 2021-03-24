@@ -417,6 +417,9 @@ class Parse():
         if self.opts.tracebyfile:
             self.logger.error("Cannot generate segments from non-EGaIn dataset.")
             return
+        if self.opts.Ycol < 0:
+            self.logger.warning("Cannot find segments when all columns are parsed.")
+            return
         try:
             if self.df.V.value_counts()[0] % 3 != 0:
                 self.logger.warning("Dataset does not seem to have four segments.")
@@ -440,6 +443,9 @@ class Parse():
             # else:
             #     self.logger.warning("J/V sweep not divislbe by 4, cannot segment.")
             #
+            #TODO when parsing all columns of data, this throws:
+            #  'ValueError: The truth value of a Series is ambiguous. Use a.empty, a.bool(), a.item(), a.any() or a.all().'
+            # For now segmenter will just refuse to run when all columns are parsed.
             if self.df.loc[_fn]['V'][0] != 0.0:
                 self.logger.warning("J/V didn't start at 0V for %s", _fn)
 
