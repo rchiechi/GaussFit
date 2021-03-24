@@ -165,14 +165,25 @@ class Parse():
         if isinstance(fns, str):
             fns = [fns]
         self.logger.debug('Parsing %s', ', '.join(fns))
-        if self.opts.ycol > 0:
-            self.logger.info("Parsing two columns of data.")
+        if self.opts.Ycol > -1:
+            self.logger.info("Parsing two columns of data (X=%s, Y=%s).", self.opts.Xcol+1, self.opts.Ycol+1)
             for f in fns:
+                with open(f, 'rt') as fh:
+                    _headers = fh.readline().split(self.opts.delim)
                 try:
-                    frames[f] = pd.read_csv(f,sep=self.opts.delim,
-                                            usecols=(self.opts.xcol,
-                                                    self.opts.ycol),
-                                            names=('V','J'),header=0)
+                    if _headers:
+                        _x, _y = _headers[self.opts.Xcol].strip(), _headers[self.opts.Ycol].strip()
+                        frames[f] = pd.read_csv(f,sep=self.opts.delim,
+                                usecols=(_x,_y))[[_x,_y]]
+                        frames[f].rename(columns = {_x:'V', _y:'J'}, inplace = True)
+                    elif self.opts.X > self.opts.Y:
+                        self.logger.error("Xcol cannot be greater than Ycol without column headers.")
+                        sys.exit()
+                    else:
+                        frames[f] = pd.read_csv(f,sep=self.opts.delim,
+                                                usecols=(self.opts.Xcol,
+                                                        self.opts.Ycol),
+                                                names=('V','J'),header=0)
                 except OSError as msg:
                     self.logger.warning("Skipping %s because %s", f,str(msg) )
                 except pd.errors.ParserError as msg:
@@ -185,7 +196,7 @@ class Parse():
                     _df = pd.read_csv(f,sep=self.opts.delim,index_col=self.opts.xcol,header=0)
                     i = 0
                     for col in _df:
-                        frames['%s_%.2d' % (f,i)] = pd.dataframe({'V':_df.index,'J':_df[col]})
+                        frames['%s_%.2d' % (f,i)] = pd.DataFrame({'V':_df.index,'J':_df[col]})
                         i += 1
                 except OSError as msg:
                     self.logger.warning("Skipping %s because %s" , f,str(msg))
@@ -417,10 +428,17 @@ class Parse():
         if self.opts.tracebyfile:
             self.logger.error("Cannot generate segments from non-EGaIn dataset.")
             return
-        if self.df.V.value_counts()[0] % 3 != 0:
-            self.logger.warning("Dataset does not seem to have four segments.")
-        segments = {}
-        self.logger.info("Breaking out traces by segments of 0V -> Vmin/max.")
+        if self.opts.Ycol < 0:
+            self.logger.warning("Cannot find segments when all columns are parsed.")
+            return
+        try:
+            if self.df.V.value_counts()[0] % 3 != 0:
+                self.logger.warning("Dataset does not seem to have four segments.")
+            segments = {}
+            self.logger.info("Breaking out traces by segments of 0V -> Vmin/max.")
+        except KeyError:
+            self.logger.error("Could not segment data by 0's.")
+            return
         # traces = []
         # for t in zip(*(iter(self.df[self.df.V == 0.00].V.index),) * 3):
         #     # Make an iterator that aggregates elements from each of the iterables.
@@ -436,6 +454,9 @@ class Parse():
             # else:
             #     self.logger.warning("J/V sweep not divislbe by 4, cannot segment.")
             #
+            #TODO when parsing all columns of data, this throws:
+            #  'ValueError: The truth value of a Series is ambiguous. Use a.empty, a.bool(), a.item(), a.any() or a.all().'
+            # For now segmenter will just refuse to run when all columns are parsed.
             if self.df.loc[_fn]['V'][0] != 0.0:
                 self.logger.warning("J/V didn't start at 0V for %s", _fn)
 

@@ -232,6 +232,9 @@ class Writer():
         hysteretic behavior without smearing it out.'''
         #for segment in self.XY[list(self.XY.keys())[0]]['segmented']:
         #TODO set num_segments in opts
+        if not self.segments:
+            logger.warning("No segments found.")
+            return
         for segment in self.segments:
             rows = {}
             _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Gauss_Segment_%s.txt" % str(segment+1))
