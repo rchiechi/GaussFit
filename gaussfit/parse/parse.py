@@ -32,7 +32,7 @@ import warnings
 import threading
 import time
 from collections import OrderedDict
-from .util import signedgmean, getdistances, printFN
+from .util import signedgmean, gauss, getdistances, printFN
 from ..colors import RED, WHITE, GREEN, TEAL, YELLOW, RS
 from ..logger import DelayedHandler
 #import concurrent.futures
@@ -831,7 +831,7 @@ class Parse():
             freq=np.array([0.,0.,0.,0.])
 
         if len(Y):
-            Ym = self.signedgmean(Y)
+            Ym = signedgmean(Y)
             Ys = abs(Y.std())
         else:
             Ym,Ys = 0.0,0.0
@@ -847,8 +847,8 @@ class Parse():
                     coeff, covar = curve_fit(self.lorenz, bin_centers, freq, p0=p0, maxfev=self.opts.maxfev)
                     hist_fit = self.lorenz(bin_centers, *coeff)
                 else:
-                    coeff, covar = curve_fit(self.gauss, bin_centers, freq, p0=p0, maxfev=self.opts.maxfev)
-                    hist_fit = self.gauss(bin_centers, *coeff)
+                    coeff, covar = curve_fit(gauss, bin_centers, freq, p0=p0, maxfev=self.opts.maxfev)
+                    hist_fit = gauss(bin_centers, *coeff)
         except RuntimeError as msg:
             if self.opts.maxfev > 100:
                 self.logger.warning("|%s| Fit did not converge", label, exc_info=False)
