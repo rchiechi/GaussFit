@@ -1,0 +1,35 @@
+DBLUE='#3300FF'
+tHC='#774c901f'
+HC='#3300FF'
+
+BFN='200709_DyPc_AuTS_2V_1MeOH_S01'
+
+#set terminal pdfcairo color enhanced font "Arial,24" size 5,7
+set terminal wxt enhanced font "Arial,12" size 500,700
+
+#set output BFN."_JVhists.pdf"
+
+set key top right
+set key autotitle columnheader
+
+set xlabel "log|J (A/cm^2)|" offset 0,0.5
+set ylabel "Potential (V)" offset 3,0
+set boxwidth 0.1 relative
+
+## Set oN=1 if stats causes a segfault ##
+stats '200709_DyPc_AuTS_2V_1MeOH_S01_Histograms.txt' using 3 nooutput
+oN = STATS_max/2
+
+NCOL=words("`tail -1 200709_DyPc_AuTS_2V_1MeOH_S01_Histograms.txt`")
+
+## Edit this for different voltage ranges ##
+ymax=125.3
+set ytics ( "-1" 1, "-0.5" (ymax/4), "0" (ymax/2) , "0.5" (ymax/2)+(ymax/4) , "+1" ymax )
+
+set xrange [-7:0]
+
+plot for [i=1:NCOL:3] BFN.'_Histograms.txt' u (column(i)):( (column(i+1))/oN + i) smooth mcsplines w lines notitle lc rgb tHC lw 0.5, \
+for [i=1:NCOL:3] BFN.'_Histograms.txt' u (column(i)):( (column(i+2))/oN + i) w filledcu notitle lc rgb HC lw 0.5
+
+pause -1
+exit

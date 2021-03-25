@@ -22,7 +22,7 @@ Description:
 import sys,os,platform,threading,logging
 from gaussfit import *
 from gaussfit.stats import Stats
-from gaussfit.Output import WriteStats,StatPlotter
+from gaussfit.output import WriteStats,StatPlotter
 from gaussfit.logger import GUIHandler
 from tkinter import filedialog #some weird bug...
 from tkinter import *

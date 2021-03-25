@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 '''
 Copyright (C) 2018 Ryan Chiechi <r.c.chiechi@rug.nl>
 Description:
@@ -23,11 +22,20 @@ Description:
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
+import sys
+import os
+import logging
+import warnings
+import csv
+import datetime
+import threading
+import time
+import math
 
-from gaussfit import *
-from gaussfit.Output import Writer,WriteStats
+from gaussfit import Parse
+from gaussfit.output import Writer,WriteStats
 from gaussfit.logger import DelayedHandler
-import sys,os,logging,warnings,csv,datetime,threading,time,math
+from .colors import RED, RS, GREEN, TEAL, YELLOW, WHITE
 
 try:
     from scipy.stats import gmean,kstest,ttest_ind,ttest_rel,ttest_1samp
@@ -66,7 +74,7 @@ class ParserThread(threading.Thread):
         self.logger.info("Starting thread...")
         self.handler.flush()
         try:
-            self.parser.ReadFiles(self.files)
+            self.parser.readfiles(self.files)
             self.handler.flush()
             XY = self.parser.getXY()
             FN = self.parser.getFN()
@@ -120,8 +128,8 @@ class Stats:
         if not handler:
             self.loghandler = DelayedHandler()
             self.loghandler.setFormatter(logging.Formatter(\
-                fmt=self.GREEN+os.path.basename(sys.argv[0]+self.TEAL)+
-                ' %(levelname)s '+self.YELLOW+'%(message)s'+self.WHITE))
+                fmt=GREEN+os.path.basename(sys.argv[0]+TEAL)+
+                ' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
         else:
             # Make sure it has a flush() method!
             self.loghandler = handler
