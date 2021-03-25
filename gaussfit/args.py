@@ -201,7 +201,7 @@ if Opts.ycol < 0:
     print(RED+"Ycolum must be greater than 0."+RS)
     sys.exit()
 
-if not len(Opts.in_files) and not Opts.GUI and 0 in (len(Opts.setA),len(Opts.setB)):
+if not len(Opts.in_files) and not Opts.gui and 0 in (len(Opts.setA),len(Opts.setB)):
     parser.print_help()
     print(RED+"\n\t\t> > > No input files! < < < "+RS)
     sys.exit()
