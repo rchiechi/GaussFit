@@ -4,7 +4,7 @@
 # import platform
 #import tkinter as tk
 import tkinter.ttk as tk
-from tkinter import Toplevel,N,S,E,W,Y,N,BOTTOM,TOP,LEFT,RIGHT,END,BOTH
+from tkinter import Toplevel,Y,BOTTOM,LEFT,RIGHT,END,BOTH
 from gui.colors import GREY
 from gui.tooltip import createToolTip
 
