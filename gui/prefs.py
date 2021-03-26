@@ -1,12 +1,11 @@
 '''A separate preferences window for settings Opts'''
 
-# import os
-# import platform
-#import tkinter as tk
 import tkinter.ttk as tk
 from tkinter import Toplevel,Y,BOTTOM,LEFT,RIGHT,END,BOTH
 from gui.colors import GREY
 from gui.tooltip import createToolTip
+
+# pylint: disable=attribute-defined-outside-init,missing-function-docstring,line-too-long
 
 BOOLMAP = {1:True, 0:False}
 
@@ -34,10 +33,7 @@ class PreferencesFrame(tk.Frame):
         self.__createOptions()
         self.mainloop()
 
-    
-    
     def __createFrames(self):
-
         self.ButtonFrame = tk.Frame(self)
         self.LeftOptionsFrame = tk.Frame(self)
         self.RightOptionsFrame = tk.Frame(self)
@@ -45,17 +41,10 @@ class PreferencesFrame(tk.Frame):
         self.LeftOptionsFrame.pack(side=LEFT,fill=Y)
         self.RightOptionsFrame.pack(side=RIGHT,fill=Y)
 
-
-
     def __createButtons(self):
 
         buttons = [
                {'name':'Save','text':'Save','side':BOTTOM},
-            #    {'name':'Quit','text':'QUIT','command':'Quit','side':BOTTOM},
-            #    {'name':'SpawnInputDialog','text':'Add Input Files','side':LEFT},
-            #    {'name':'RemoveFile','text':'Remove Files','side':LEFT},
-            #    {'name':'SpawnOutputDialog','text':'Choose Output Directory','side':LEFT},
-            #    {'name':'Parse','text':'Parse!','side':LEFT}
                ]
 
         for _b in buttons:
@@ -65,7 +54,6 @@ class PreferencesFrame(tk.Frame):
             setattr(self,'Button'+_b['name'],button)
 
     def __createOptions(self):
-    
         lbls = [
             {'name': 'Columns', 'text': "Columns to parse:",
              'tooltip': 'Columns from input data to parse as X/Y data.',
