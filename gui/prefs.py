@@ -116,6 +116,7 @@ class PreferencesFrame(tk.Frame):
         self.checkOptions()
 
     def SaveClick(self):
+        self.checkOptions()
         self.master.destroy()
 
     def checkOptions(self, event=None): #pylint: disable=W0613

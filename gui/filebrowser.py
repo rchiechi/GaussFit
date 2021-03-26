@@ -42,7 +42,7 @@ class ParseThread(threading.Thread):
         self.parser = parser
         self.opts = opts
     def run(self):
-        self.parser.ReadFiles(self.opts.in_files)
+        self.parser.readfiles(self.opts.in_files)
 
 
 class ChooseFiles(Frame):
@@ -103,13 +103,13 @@ class ChooseFiles(Frame):
     def __createButtons(self):
 
         buttons = [
-               {'name':'Settings','text':'Settings','side':BOTTOM},
-               {'name':'Quit','text':'QUIT','command':'Quit','side':BOTTOM},
-               {'name':'SpawnInputDialog','text':'Add Input Files','side':LEFT},
-               {'name':'RemoveFile','text':'Remove Files','side':LEFT},
-               {'name':'SpawnOutputDialog','text':'Choose Output Directory','side':LEFT},
-               {'name':'Parse','text':'Parse!','side':LEFT}
-               ]
+            {'name':'Quit','text':'QUIT','command':'Quit','side':BOTTOM},
+            {'name':'Settings','text':'Settings','side':BOTTOM},
+            {'name':'SpawnInputDialog','text':'Add Input Files','side':LEFT},
+            {'name':'RemoveFile','text':'Remove Files','side':LEFT},
+            {'name':'SpawnOutputDialog','text':'Choose Output Directory','side':LEFT},
+            {'name':'Parse','text':'Parse!','side':LEFT}
+              ]
 
         for b in buttons:
             button = Button(self.ButtonFrame)
@@ -267,10 +267,10 @@ class ChooseFiles(Frame):
         PreferencesWindow(self.master, self.opts)
 
     def Parse(self):
-        if len(self.gothreads):
+        if self.gothreads:
             self.ButtonParse['state']=DISABLED #pylint: disable=E1101
-            for c in self.gothreads:
-                if c.is_alive():
+            for _t in self.gothreads:
+                if _t.is_alive():
                     self.ButtonParse.after('500',self.Parse) #pylint: disable=E1101
                     return
             self.logger.info("Parse complete!")
@@ -297,6 +297,7 @@ class ChooseFiles(Frame):
             else:
                 self.logger.warning("No input files!")
         self.handler.flush()
+
     def RemoveFileClick(self):
         self.checkOptions()
         selected = [self.FileListBox.get(x) for x in self.FileListBox.curselection()]

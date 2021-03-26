@@ -22,8 +22,6 @@ heatmapbins:25
 heatmapd:1
 # Max iterations for fitting gaussians
 maxfev:10000
-# Filter log|R| above this value
-maxr:2
 # Upper/lower cutoffs for G heatmap
 mhi:0
 mlow:-6
@@ -35,6 +33,8 @@ threads:8
 vcutoff:-1
 
 [FLOATS]
+# Filter log|R| above this value
+maxr:3.0
 # Alpha for p-cutoff in confidence intervals
 alpha:0.025
 # Upper/lower cutoffs for NDC heatmaps
