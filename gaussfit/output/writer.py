@@ -19,28 +19,26 @@ Description:
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
+#pylint: disable=line-too-long
 
 import os
 import warnings
 import datetime
-#TODO Replace csv with pandas
 import csv
 from shutil import copyfile
 import logging
-from scipy.special import stdtrit #pylint: disable=E0611
-# import matplotlib.pyplot as plt
 from gaussfit.colors import GREEN, TEAL, YELLOW, WHITE
-
 
 logger = logging.getLogger('output')
 loghandler = logging.StreamHandler()
 loghandler.setFormatter(logging.Formatter(\
-                fmt=GREEN+os.path.basename('%(name)s'+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
+    fmt=GREEN+os.path.basename('%(name)s'+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
 logger.addHandler(loghandler)
 
 try:
     import numpy as np
     from scipy.interpolate import griddata
+    from scipy.special import stdtrit #pylint: disable=E0611
 except ImportError as msg:
     pass #We catch numpy import errors in Parser.py
 warnings.filterwarnings('ignore','.*comparison.*',FutureWarning)
@@ -69,11 +67,12 @@ class Writer():
         used to parse the input data.'''
         _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_parseinfo.txt")
         with open(_fn, 'a') as _fh:
-            _fh.write("Parsed: %s\n" % str(datetime.datetime.today().ctime()) )
+            _fh.write("Parsed: %s\n***\n" % str(datetime.datetime.today().ctime()) )
             _t = str(vars(self.opts))
             _t = _t.replace(",","\n").replace("[","\n[")
             _fh.write(_t)
             _fh.write(extra+"\n")
+            _fh.write("\n***\n")
 
     def WriteSummary(self):
         '''Write a summary of the traces that were parsed.'''
@@ -97,13 +96,15 @@ class Writer():
             headers = []
             #for x in self.XY: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x, \
             #        "Skew (%0.4f)"%x, "Kurtosis (%0.4f)"%x, "Skew test (%0.4f)"%x, "Skew pvalue (%0.4f)"%x]
-            for x in self.XY: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
+            for x in self.XY:
+                headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
             writer.writerow(headers)
             for i in range(0, len( self.XY[list(self.XY.keys())[0]]['hist']['bin'] ) ):
                 row = []
-                for x in self.XY: row += ["%0.4f"%self.XY[x]['hist']['bin'][i],
-                             "%s"%self.XY[x]['hist']['freq'][i],
-                             "%0.4f"%self.XY[x]['hist']['fit'][i]]
+                for x in self.XY:
+                    row += ["%0.4f"%self.XY[x]['hist']['bin'][i],
+                        "%s"%self.XY[x]['hist']['freq'][i],
+                        "%0.4f"%self.XY[x]['hist']['fit'][i]]
                 writer.writerow(row)
 
         _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms_stats.txt")
@@ -137,15 +138,18 @@ class Writer():
             writer = csv.writer(csvfile, dialect='JV')
             headers = []
             if self.opts.logr:
-                for x in self.XY: headers += ["log |R| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
+                for x in self.XY:
+                    headers += ["log |R| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
             else:
-                for x in self.XY: headers += ["|R| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
+                for x in self.XY:
+                    headers += ["|R| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
             writer.writerow(headers)
             for i in range(0, len( self.XY[list(self.XY)[0]]['R']['hist']['bin'] ) ):
                 row = []
-                for x in self.XY: row += ["%0.4f"%self.XY[x]['R']['hist']['bin'][i],
-                                 "%d"%self.XY[x]['R']['hist']['freq'][i],
-                                 "%0.4f"%self.XY[x]['R']['hist']['fit'][i]]
+                for x in self.XY:
+                    row += ["%0.4f"%self.XY[x]['R']['hist']['bin'][i],
+                    "%d"%self.XY[x]['R']['hist']['freq'][i],
+                    "%0.4f"%self.XY[x]['R']['hist']['fit'][i]]
                 writer.writerow(row)
 
         _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RHistograms_stats.txt")
@@ -168,13 +172,15 @@ class Writer():
         with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             headers = []
-            for x in self.XY: headers += ["log |dJ/dV| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
+            for x in self.XY:
+                headers += ["log |dJ/dV| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
             writer.writerow(headers)
             for i in range(0, len( self.GHists[list(self.GHists.keys())[0]]['hist']['bin'] ) ):
                 row = []
-                for x in self.GHists: row += ["%0.4f"%self.GHists[x]['hist']['bin'][i],
-                                 "%s"%self.GHists[x]['hist']['freq'][i],
-                             "%0.4f"%self.GHists[x]['hist']['fit'][i]]
+                for x in self.GHists:
+                    row += ["%0.4f"%self.GHists[x]['hist']['bin'][i],
+                        "%s"%self.GHists[x]['hist']['freq'][i],
+                        "%0.4f"%self.GHists[x]['hist']['fit'][i]]
                 writer.writerow(row)
 
         _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_LogdJdVHistograms_stats.txt")
@@ -203,13 +209,15 @@ class Writer():
             headers = []
             #for x in self.XY: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x, \
             #        "Skew (%0.4f)"%x, "Kurtosis (%0.4f)"%x, "Skew test (%0.4f)"%x, "Skew pvalue (%0.4f)"%x]
-            for x in self.XY: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
+            for x in self.XY:
+                headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
             writer.writerow(headers)
             for i in range(0, len( self.XY[list(self.XY.keys())[0]]['filtered_hist']['bin'] ) ):
                 row = []
-                for x in self.XY: row += ["%0.4f"%self.XY[x]['filtered_hist']['bin'][i],
-                             "%s"%self.XY[x]['filtered_hist']['freq'][i],
-                             "%0.4f"%self.XY[x]['filtered_hist']['fit'][i]]
+                for x in self.XY:
+                    row += ["%0.4f"%self.XY[x]['filtered_hist']['bin'][i],
+                        "%s"%self.XY[x]['filtered_hist']['freq'][i],
+                        "%0.4f"%self.XY[x]['filtered_hist']['fit'][i]]
                 writer.writerow(row)
 
         _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms_stats.txt")
@@ -230,8 +238,7 @@ class Writer():
     def WriteSegmentedHistograms(self):
         '''Write histograms of values of J broken out by segment to catch
         hysteretic behavior without smearing it out.'''
-        #for segment in self.XY[list(self.XY.keys())[0]]['segmented']:
-        #TODO set num_segments in opts
+
         if not self.segments:
             logger.warning("No segments found.")
             return
@@ -244,7 +251,10 @@ class Writer():
                 _maxtrace = 0
                 for trace in self.segments[segment]:
                     _maxtrace += 1
-                    headers += ["Log|J|","Standard Devaition","Standard Error of the Mean", "%s%% confidence interval" % (100*(1-self.opts.alpha)) ]
+                    headers += ["Log|J|",
+                        "Standard Devaition",
+                        "Standard Error of the Mean",
+                        "%s%% confidence interval" % (100*(1-self.opts.alpha)) ]
                     for x in self.segments[segment][trace]:
                         _hist = self.segments[segment][trace][x]
                         if x not in rows:
@@ -388,8 +398,10 @@ class Writer():
 
     def WriteData(self, log=False):
         '''Write LogJ or LogY (where Y is the generic Y-axis data) plotted against potential.'''
-        if log: key,label ='LogY','LogJ'
-        else:   key, label ='Y','J'
+        if log:
+            key,label ='LogY','LogJ'
+        else:
+            key, label ='Y','J'
         _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt")
         with open(_fn,'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
@@ -472,51 +484,6 @@ class Writer():
                     writer.writerow(row)
                 writer.writerow([])
 
-#    def WriteGMatrixold(self):
-#        '''Output for a matlab-style colormap maxtrix'''
-#        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_GMatrix.txt")
-#        with open(_fn, 'w', newline='') as csvfile:
-#            writer = csv.writer(csvfile, dialect='JV')
-#            x,y,z = [],[],[]
-#            for i in range(0, len(self.GHists[list(self.GHists.keys())[0]]['hist']['bin'])):
-#                for v in self.GHists:
-#                    x.append(v)
-#                    y.append(self.GHists[v]['hist']['bin'][i])
-#                    z.append(self.GHists[v]['hist']['freq'][i])
-#            x,y,z = np.array(x),np.array(y),np.array(z)
-#            xmin,xmax = x.min(),x.max()
-#            ymin,ymax = self.opts.mlow, self.opts.mhi
-#            xi=np.linspace(xmin,xmax,200)
-#            yi=np.linspace(ymin,ymax,200)
-#            X,Y= np.meshgrid(xi,yi)
-#            Z = griddata((x, y), z, (X, Y),fill_value=0,method='cubic')
-#
-#            #headers = ['MatrixData']
-#            #for x in X[0]:
-#            #   headers += ["%0.1f"%x]
-#            #writer.writerow(headers)
-#
-#            for i in range(0,len(Z)):
-#                zi = []
-#                for z in Z[i]:
-#                    if z < 0:
-#                        zi.append(0)
-#                    else:
-#                        zi.append(z)
-#                #writer.writerow( ['%0.1f'%Y[i][0]]+list(Z[i]) )
-#                #writer.writerow( ['%0.1f'%Y[i][0]]+zi )
-#                writer.writerow(zi)
-#        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_GMatrix_Labels.txt")
-#        with open(_fn, 'w', newline='') as csvfile:
-#            writer = csv.writer(csvfile, dialect='JV')
-#            headers = []
-#            for x in X[0]:
-#                headers += ["%0.4f"%x]
-#            writer.writerow(headers)
-#            headers = []
-#            for i in range(0,len(Y)):
-#                headers += ['%0.4f'%Y[i][0]]
-#            writer.writerow(headers)
 
     def WriteGMatrix(self, label):
         '''Write a matlab-style colormap maxtrix of G or NDC.'''
@@ -549,9 +516,9 @@ class Writer():
             X,Y= np.meshgrid(xi,yi)
             Z = griddata((x, y), z, (X, Y),fill_value=0,method='cubic')
 
-            for i in range(0,len(Z)):
+            for _t in enumerate(Z):
                 zi = []
-                for z in Z[i]:
+                for z in _t[1]:
                     if z < 0:
                         zi.append(0)
                     else:
@@ -565,14 +532,14 @@ class Writer():
                 headers += ["%0.4f"%x]
             writer.writerow(headers)
             headers = []
-            for i in range(0,len(Y)):
-                headers += ['%0.4f'%Y[i][0]]
+            for _t in enumerate(Y):
+                headers += ['%0.4f'%_t[1][0]]
             writer.writerow(headers)
 
     def WriteGeneric(self, dataset, bfn, labels=None):
         '''Write a generic set of data expecting an n-dimensional array'''
         labels = labels or []
-        if len(labels) and len(labels) != len(dataset):
+        if labels and len(labels) != len(dataset):
             logger.error("Length of column labels does not match number of data columns for WriteGeneric!")
             return
 
@@ -590,8 +557,8 @@ class Writer():
 
             for n in range(0, lencola):
                 row = []
-                for i in range(0,len(dataset)):
-                    row.append(dataset[i][n])
+                for _t in enumerate(dataset):
+                    row.append(_t[1][n])
                 writer.writerow(row)
 
 
@@ -599,7 +566,7 @@ class Writer():
         '''Write GNUPlot sciprts for plotting the ASCII files output by the other writers.'''
         tocopy = tocopy or []
         absdir = os.path.dirname(os.path.abspath(__file__))
-        tdir = os.path.join(absdir,'../templates/')
+        tdir = os.path.join(absdir,'../../templates/')
         gpintp = os.path.join(tdir,gpinbn+'.gpin')
         try:
             nsub = str(open(gpintp,'rt').read()).count('%s')
@@ -616,311 +583,3 @@ class Writer():
         for _fn in tocopy:
             copyfile(os.path.join(tdir,_fn), \
                     os.path.join(self.opts.out_dir,_fn))
-
-
-
-class Plotter():
-    '''
-    This is the main Plotter class for generating
-    plots using matplotlib.
-    '''
-
-    def __init__(self,parser,plt):
-        self.parser = parser
-        self.opts = self.parser.opts
-        self.plt = plt
-
-    def __getattr__(self, name):
-        try:
-            return getattr(self.parser, name)
-        except AttributeError as msg:
-            raise AttributeError("Plotter object has no attribute '%s'" % name) from msg
-
-    def PlotData(self, key, ax, sym, **kw):
-        xax = np.array(list(self.XY))
-        if key == "FN":
-            xax = 1/xax
-            ax.set_title("Fowler Nordheim Plot of Initial Data")
-            ax.set_xlabel(r'$V^{-1}$')
-            ax.set_ylabel(r'$\mathregular{ln(\frac{J}{V^2})}$')
-        if key == 'Y':
-            if self.opts.compliance != np.inf:
-                ax.set_ylim( (-1*self.opts.compliance, self.opts.compliance) )
-            ax.set_title("Initial Data")
-            ax.set_xlabel("Potenial (V)")
-            ax.set_ylabel(r'Current Density ($A cm^{-2}$)')
-        if key == 'LogY':
-            ax.set_title("Semilog Plot of Initial Data")
-            ax.set_xlabel("Potenial (V)")
-            ax.set_ylabel(r'Current Density $\mathregular{log_{10}|J(\mathrm{A cm^{-2}})|}$')
-        i = -1
-        allY = np.array([])
-        while True:
-            i += 1
-            try:
-                allY = np.append(allY,[self.XY[x][key][i] for x in self.XY])
-                ax.plot(xax,[self.XY[x][key][i] for x in self.XY], sym, **kw)
-            except IndexError:
-                break
-            except ValueError:
-                break
-        #if key == 'LogY':
-        #   ax.set_ylim(allY.min(),allY.max())
-        ax.axis([xax.min(), xax.max(), allY.min(),allY.max()])
-
-    def PlotR(self, ax):
-        if self.opts.logr:
-            ax.set_title("Semilog Plot of |R|")
-            ax.set_ylabel(r'log|R|')
-        else:
-            ax.set_title("Plot of |R|")
-            ax.set_ylabel(r'|R|')
-        ax.set_xlabel("Potenial (V)")
-        Y, Yerr = [],[]
-        for x in self.XY:
-            Y.append(self.XY[x]['R']["hist"]["mean"])
-            Yerr.append(self.XY[x]['R']["hist"]["std"])
-        ax.errorbar(list(self.XY), Y,  yerr=Yerr, marker='o', lw=0.0, color='k')
-
-    def PlotRFit(self,ax):
-        key = list(self.XY)[-1]
-        ax.set_title(r'Histogram and fit at $'+str(key)+'$ V')
-        ax.set_xlabel(r'$log|R|$')
-        ax.set_ylabel('Counts')
-        ax.bar(self.XY[key]['R']['hist']['bin'], self.XY[key]['R']['hist']['freq'], width=0.05, color='r')
-        ax.plot(self.XY[key]['R']['hist']['bin'], self.XY[key]['R']['hist']['fit'], lw=2.0, color='b', label='Fit')
-
-
-
-    def PlotDJDV(self,ax):
-        xax = list(self.DJDV.keys())
-        xax.sort()
-        ax.set_xlabel("Potential (V)")
-        ax.set_title("Derivative of Initial Data")
-        ax.set_ylabel(r'$\mathregular{\frac{dJ}{dV}}$')
-        #ax.set_ylabel(r'Normalized $\mathregular{\frac{dJ}{dV}}$')
-        #ax.axis([np.array(xax).min(), np.array(xax).max(), pow(10,self.opts.mlow), pow(10,self.opts.mhi)])
-        i = -1
-        while True:
-            i += 1
-            try:
-                if i not in self.ohmic:
-                    ax.plot(xax, [self.DJDV[x][i] for x in xax], "-", lw=2)
-                else:
-                    ax.plot(xax, [self.DJDV[x][i] for x in xax], "-", lw=0.5, color='grey')
-            except IndexError:
-                break
-
-    def PlotG(self,ax):
-        # import matplotlib.pyplot as plt
-        ax.set_title("Conductance Plot")
-        ax.set_xlabel("Potential (V)")
-        if self.opts.heatmapd == 0:
-            ax.set_title("Heatmap of Initial Data")
-            ax.set_ylabel(r'$log|J A cm^{-2}|$')
-        elif self.opts.heatmapd == 1:
-            ax.set_title("Derivative of Initial Data")
-            ax.set_ylabel(r'$\mathregular{\log|\frac{dJ}{dV}|}$')
-        elif self.opts.heatmapd == 2:
-            ax.set_title("Second Derivative of Initial Data")
-            ax.set_ylabel(r'$\mathregular{\frac{d^2J}{dV^2}}$')
-        #ax.set_ylabel(r'$log|\mathregular{\frac{dJ}{dV}}|$')
-        x,y,z =[],[],[]
-        for v in self.GHists:
-            for i in range(0, len(self.GHists[v]['hist']['bin'])):
-                if i in self.ohmic and self.opts.skipohmic:
-                    continue
-                x.append(v)
-                y.append(self.GHists[v]['hist']['bin'][i])
-                z.append(self.GHists[v]['hist']['freq'][i])
-        x,y,z = np.array(x),np.array(y),np.array(z)
-        xmin,xmax = x.min(),x.max()
-        #ymin,ymax = y.min(),y.max()
-        ymin,ymax = self.opts.mlow, self.opts.mhi
-        x = np.r_[x,xmin,xmax]
-        y = np.r_[y,ymin,ymax]
-        z = np.r_[z,z[0],z[-1]]
-        xi = np.linspace(xmin, xmax, 200)
-        yi = np.linspace(ymin, ymax, 200)
-        X,Y= np.meshgrid(xi,yi)
-        Z = griddata((x, y), z, (X, Y),method='nearest')
-        ax.axis([xmin, xmax, ymin, ymax])
-        ax.pcolormesh(X,Y,Z, cmap = self.plt.get_cmap('rainbow'))
-
-
-    def PlotNDC(self,ax):
-        # import matplotlib.pyplot as plt
-        ax.set_title("NDC Plot")
-        ax.set_xlabel("Potential (V)")
-        ax.set_title("Heatmap of NDC")
-        ax.set_ylabel('Normalized Differential Condutance')
-        x,y,z =[],[],[]
-        for v in self.NDCHists:
-            for i in range(0, len(self.NDCHists[v]['hist']['bin'])):
-                if i in self.ohmic and self.opts.skipohmic:
-                    continue
-                x.append(v)
-                y.append(self.NDCHists[v]['hist']['bin'][i])
-                z.append(self.NDCHists[v]['hist']['freq'][i])
-        x,y,z = np.array(x),np.array(y),np.array(z)
-        xmin,xmax = x.min(),x.max()
-        ymin,ymax = self.opts.ndc_mlow, self.opts.ndc_mhi
-        x = np.r_[x,xmin,xmax]
-        y = np.r_[y,ymin,ymax]
-        z = np.r_[z,z[0],z[-1]]
-        xi = np.linspace(xmin, xmax, 200)
-        yi = np.linspace(ymin, ymax, 200)
-        X,Y= np.meshgrid(xi,yi)
-        Z = griddata((x, y), z, (X, Y),method='nearest')
-        ax.axis([xmin, xmax, ymin, ymax])
-        ax.pcolormesh(X,Y,Z, cmap = self.plt.get_cmap('rainbow'))
-
-
-    def PlotHist(self,ax):
-        ax.set_title("Gaussian Fit and Raw Data")
-        ax.set_xlabel('Potential (V)')
-        ax.set_ylabel(r'Current Density $log_{10}|J(\mathrm{A cm}^{-2})|$')
-        Y, Yerr = [],[]
-        for x in self.XY:
-            Y.append(self.XY[x]["hist"]["mean"])
-            Yerr.append(self.XY[x]["hist"]["std"])
-        ax.errorbar(list(self.XY.keys()), Y, yerr=Yerr, lw=3.0, color='k')
-
-    def PlotVtrans(self,ax):
-        ax.set_title(r'Histogram and fit of $V_{trans}$')
-        ax.set_xlabel(r'$V_{trans}$')
-        ax.set_ylabel('Counts')
-        for key in ('pos','neg'):
-            ax.bar(self.FN[key]['bin'], self.FN[key]['freq'], width=0.01, color='g')
-            ax.plot(self.FN[key]['bin'], self.FN[key]['fit'], lw=2.0, color='b', label='Fit')
-
-    def PlotFit(self,ax):
-        key = list(self.XY.keys())[-1]
-        ax.set_title(r'Histogram and fit at $'+str(key)+'$ V')
-        ax.set_xlabel(r'$log|J|$')
-        ax.set_ylabel('Counts')
-        ax.bar(self.XY[key]['hist']['bin'], self.XY[key]['hist']['freq'], width=0.1, color='r')
-        ax.plot(self.XY[key]['hist']['bin'], self.XY[key]['hist']['fit'], lw=2.0, color='b', label='Fit')
-
-
-    def DoPlots(self):
-        fig = self.plt.figure(figsize=(16,10))
-        ax1 = fig.add_axes([0.06, 0.55, 0.4, 0.4])
-        ax2 = fig.add_axes([0.56, 0.55, 0.4, 0.4])
-        ax3 = fig.add_axes([0.06, 0.05, 0.4, 0.4])
-        ax4 = fig.add_axes([0.56, 0.05, 0.4, 0.4])
-        if self.opts.plots == 'J':
-            self.PlotFit(ax1)
-            self.PlotData('LogY',ax2,':',lw=0.25, color='c')
-            self.PlotHist(ax2)
-        elif self.opts.plots == 'R':
-            self.PlotRFit(ax1)
-            self.PlotR(ax2)
-        self.PlotVtrans(ax4)
-        if self.opts.histplots == 'NDC':
-            self.PlotNDC(ax3)
-        elif self.opts.histplots == 'G':
-            self.PlotG(ax3)
-        if self.opts.write:
-            fig.savefig(os.path.join(self.opts.out_dir,self.opts.outfile+"_fig.png"), format="png")
-        #self.PlotData('FN', ax3, 'x', ms=2)
-        #self.PlotData('Y', ax1, '-')
-        #self.PlotDJDV(ax1)
-
-
-class StatPlotter:
-    '''This is the main Plotter class for Stats.py.'''
-    def __init__(self, statparser):
-        self.opts = statparser.opts
-        self.dataset = statparser.dataset
-        self.cutoff = 0.01
-
-    def PlotGmeanData(self, key, ax, sym, **kw):
-
-        xmin = np.asarray(self.dataset[key][0]).min()
-        xmax = np.asarray(self.dataset[key][0]).max()
-        ymin = np.asarray(self.dataset[key][1]).min()
-        ymax = np.asarray(self.dataset[key][1]).max()
-        if ymax < self.cutoff:
-            ymax = self.cutoff
-        if ymin > self.cutoff:
-            ymin = self.cutoff
-        ymax = ymax + ymax*0.1
-        ymin = ymin - ymin*0.1
-        ax.set_yscale('log')
-        ax.set_title("P-values for %s (Gmean)" % key)
-        ax.set_xlabel("Potenial (V)")
-        ax.set_ylabel('p-value')
-
-        ax.plot(self.dataset[key][0],self.dataset[key][1], sym, **kw)
-        ax.axis([xmin,xmax,ymin,ymax])
-
-        self.PlotCutoff(xmin, xmax, ax)
-
-    def PlotJData(self, key, ax, sym, **kw):
-
-        xmin = np.asarray(self.dataset[key][0]).min()
-        xmax = np.asarray(self.dataset[key][0]).max()
-        ymin = np.asarray(self.dataset[key][3]).min()
-        ymax = np.asarray(self.dataset[key][3]).max()
-        if ymax < self.cutoff:
-            ymax = self.cutoff
-        if ymin > self.cutoff:
-            ymin = self.cutoff
-        ymax = ymax + ymax*0.1
-        ymin = ymin - ymin*0.1
-        ax.set_yscale('log')
-        ax.set_title("P-values for %s (mean using N)" % key)
-        ax.set_xlabel("Potenial (V)")
-        ax.set_ylabel('p-value')
-
-        ax.plot(self.dataset[key][0],self.dataset[key][3], sym, **kw)
-        ax.axis([xmin,xmax,ymin,ymax])
-
-        self.PlotCutoff(xmin, xmax, ax)
-
-    def PlotCutoff(self, xmin, xmax,  ax):
-        X = np.linspace(xmin,xmax)
-        ax.plot(X, [ self.cutoff for x in X],  '-', lw='0.5', color='c')
-
-    def DoPlots(self, plt):
-        fig = plt.figure(figsize=(10,5))
-        #ax1 = fig.add_axes([0.08, 0.1, 0.4, 0.8])
-        #ax2 = fig.add_axes([0.56, 0.1, 0.4, 0.8])
-        ax1 = fig.add_axes([0.06, 0.55, 0.4, 0.35])
-        ax2 = fig.add_axes([0.56, 0.55, 0.4, 0.35])
-        ax3 = fig.add_axes([0.06, 0.05, 0.4, 0.35])
-        ax4 = fig.add_axes([0.56, 0.05, 0.4, 0.35])
-        self.PlotGmeanData('J',ax1,'.',lw=1.25, color='b')
-        self.PlotGmeanData('R',ax2,'.',lw=1.25, color='b')
-        self.PlotJData('J',ax3,'.',lw=1.25, color='b')
-        self.PlotJData('R',ax4,'.',lw=1.25, color='b')
-        if self.opts.write:
-            fig.savefig(self.opts.outfile+"_statfig.png", format="png")
-
-
-def WriteStats(out_dir, outfile, dataset, bfn, labels=None):
-    '''Output for a generic set of data expecting an n-dimensional array'''
-
-    labels = labels or []
-
-    if len(labels) and len(labels) != len(dataset):
-        logger.error("Length of column labels does not match number of data columns for WriteGeneric!")
-        return
-
-    lencola = len(dataset[0])
-    for d in dataset:
-        if len(d) != lencola:
-            logger.error("Length of columns differs for WriteGeneric!")
-            return
-    _fn = os.path.join(out_dir,outfile+"_"+bfn+".txt")
-    with open(_fn , 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile, dialect='JV')
-        if len(labels):
-            writer.writerow(labels)
-
-        for n in range(0, lencola):
-            row = []
-            for i in range(0,len(dataset)):
-                row.append(dataset[i][n])
-            writer.writerow(row)

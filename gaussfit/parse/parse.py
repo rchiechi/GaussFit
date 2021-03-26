@@ -24,6 +24,7 @@ Description:
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
+#pylint: disable=line-too-long
 
 import sys
 import os
@@ -32,15 +33,16 @@ import warnings
 import threading
 import time
 from collections import OrderedDict
-from gaussfit.colors import * #pylint: disable=W0401,W0614
-from gaussfit.logger import DelayedHandler
+from .util import signedgmean, gauss, getdistances, printFN, lorenz
+from ..colors import RED, WHITE, GREEN, TEAL, YELLOW, RS
+from ..logger import DelayedHandler
 #import concurrent.futures
 
 try:
     import pandas as pd
     from scipy.optimize import curve_fit,OptimizeWarning
     import scipy.interpolate
-    from scipy.stats import gmean,linregress,skew,skewtest,kurtosis,kurtosistest
+    from scipy.stats import linregress,skew,skewtest,kurtosis,kurtosistest
     import scipy.misc
     import numpy as np
     # SciPy throws a useless warning for noisy J/V traces
@@ -74,6 +76,7 @@ class Parse():
     error = False
     parsed = False
     df = pd.DataFrame()
+    avg = pd.DataFrame()
     XY = OrderedDict()
     X = np.array([])
     FN = {}
@@ -81,6 +84,8 @@ class Parse():
     ohmic = []
     DJDV = {}
     GHists = {}
+    NDC = []
+    NDCHists = OrderedDict()
     filtered = []
     R = {}
     traces = {}
@@ -157,7 +162,7 @@ class Parse():
             print("Error outputting GMatrix")
         writer.logger.info("Done!")
 
-    def ReadFiles(self, fns, parse=True):
+    def readfiles(self, fns, parse=True):
         '''Walk through input files and parse
         them into attributes '''
         frames = {}
@@ -165,24 +170,23 @@ class Parse():
         if isinstance(fns, str):
             fns = [fns]
         self.logger.debug('Parsing %s', ', '.join(fns))
-        if self.opts.Ycol > -1:
-            self.logger.info("Parsing two columns of data (X=%s, Y=%s).", self.opts.Xcol+1, self.opts.Ycol+1)
+        if self.opts.ycol > -1:
+            self.logger.info("Parsing two columns of data (X=%s, Y=%s).", self.opts.xcol+1, self.opts.ycol+1)
             for f in fns:
                 with open(f, 'rt') as fh:
                     _headers = fh.readline().split(self.opts.delim)
                 try:
                     if _headers:
-                        _x, _y = _headers[self.opts.Xcol].strip(), _headers[self.opts.Ycol].strip()
+                        _x, _y = _headers[self.opts.xcol].strip(), _headers[self.opts.ycol].strip()
                         frames[f] = pd.read_csv(f,sep=self.opts.delim,
                                 usecols=(_x,_y))[[_x,_y]]
                         frames[f].rename(columns = {_x:'V', _y:'J'}, inplace = True)
                     elif self.opts.X > self.opts.Y:
-                        # self.logger.error("Xcol cannot be greater than Ycol without column headers.")
-                        raise pd.errors.ParserError("Xcol cannot be greater than Ycol without column headers.")
+                        raise pd.errors.ParserError("xcol cannot be greater than ycol without column headers.")
                     else:
                         frames[f] = pd.read_csv(f,sep=self.opts.delim,
-                                                usecols=(self.opts.Xcol,
-                                                        self.opts.Ycol),
+                                                usecols=(self.opts.xcol,
+                                                        self.opts.ycol),
                                                 names=('V','J'),header=0)
                 except OSError as msg:
                     self.logger.warning("Skipping %s because %s", f,str(msg) )
@@ -193,7 +197,7 @@ class Parse():
             self.logger.info("Parsing all columns of data.")
             for f in fns:
                 try:
-                    _df = pd.read_csv(f,sep=self.opts.delim,index_col=self.opts.Xcol,header=0)
+                    _df = pd.read_csv(f,sep=self.opts.delim,index_col=self.opts.xcol,header=0)
                     i = 0
                     for col in _df:
                         frames['%s_%.2d' % (f,i)] = pd.DataFrame({'V':_df.index,'J':_df[col]})
@@ -217,7 +221,7 @@ class Parse():
         self.df = pd.concat(frames)
         self.__parse(parse)
 
-    def ReadPandas(self,df,parse):
+    def readpandas(self,df,parse):
         '''Take a pandas.DataFrame as input instead of files.'''
         self.logger.debug("Using Pandas as input")
         self.df = df
@@ -232,7 +236,7 @@ class Parse():
             self.error = True
             return
         if self.df.J.first_valid_index() is None:
-            self.logger.error("Column %s is empty!", str(self.opts.Ycol+1))
+            self.logger.error("Column %s is empty!", str(self.opts.ycol+1))
             self.error =True
             return
         if self.df.J.hasnans:
@@ -256,10 +260,10 @@ class Parse():
             return
         self.logger.info("* * * * * * Finding segments   * * * * * * * *")
         self.loghandler.flush()
-        self.findSegments()
+        self.__findsegments()
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.loghandler.flush()
-        self.findTraces()
+        self.__findtraces()
 
         if self.error:
             self.logger.error('Cannot compute statistics from these traces.')
@@ -275,10 +279,10 @@ class Parse():
         lag = self.dolag(xy)
         self.logger.info("* * * * * * Computing dY/dX  * * * * * * * *")
         self.loghandler.flush()
-        self.dodjdv()
+        self.__dodjdv()
         self.logger.info("* * * * * * Computing Vtrans * * * * * * * *")
         self.loghandler.flush()
-        self.findmin()
+        self.__findmin()
         self.logger.info("* * * * * * Computing |R|  * * * * * * * * *")
         self.loghandler.flush()
         R = self.dorect(xy)
@@ -299,11 +303,100 @@ class Parse():
             self.XY[x]['VT'] = abs(x**2/ 10**self.XY[x]['hist']['mean'] )
         self.logger.info("* * * * * * * * * * * * * * * * * * * * * * ")
         self.loghandler.flush()
-        self.PrintFN()
+        if not self.error:
+            printFN(self.logger, self.FN)
         self.loghandler.unsetDelay()
         self.parsed = True
 
-    def findTraces(self):
+    def dorect(self,xy):
+        '''
+        Divide each value of Y at +V by Y at -V
+        and build a histogram of rectification, R
+        also construct the unique Voltage list
+        '''
+        r = OrderedDict()
+        R = OrderedDict()
+        for x, _ in xy:
+            r[x] = []
+        clipped = 0
+        for trace in self.avg.index.levels[0]:
+            for x in self.avg.loc[trace].index[self.avg.loc[trace].index >= 0]:
+                if -1*x not in self.avg.loc[trace]['J']:
+                    self.logger.warning("Rectification data missing voltages.")
+                    if self.opts.logr:
+                        r[x].append(0.)
+                    else:
+                        r[x].append(1.)
+                    continue
+                elif x == 0.0:
+                    if self.opts.logr:
+                        r[x].append(0.)
+                    else:
+                        r[x].append(1.)
+                    continue
+                if self.opts.logr:
+                    r[x].append(np.log10(abs(self.avg.loc[trace]['J'][x]/self.avg.loc[trace]['J'][-1*x])))
+                else:
+                    r[x].append(abs(self.avg.loc[trace]['J'][x]/self.avg.loc[trace]['J'][-1*x]))
+                if r[x][-1] > self.opts.maxr:
+                    clipped += 1
+        for x in reversed(list(r)):
+            if x >= 0:
+                R[x] = {'r':np.array(r[x]),'hist':self.__dohistogram(np.array(r[x]),"R")}
+                R[-1*x] = R[x]
+            if x not in R:
+                self.logger.warning("Unequal +/- voltages in R-plot will be filled with R=1.")
+                if self.opts.logr:
+                    y = np.array([1.,1.,1.,1.,1.,1.,1.,1.,1.,1.])
+                else:
+                    y = np.array([0.,0.,0.,0.,0.,0.,0.,0.,0.,0.])
+                R[x] = {'r':y,'hist':self.__dohistogram(y,"R")}
+        if clipped:
+            if self.opts.logr:
+                rstr = 'log|R|'
+            else: rstr = '|R|'
+            self.logger.info("%s values of %s exceed maxR (%s)", clipped, rstr, self.opts.maxr)
+        self.logger.info("R complete.")
+        return R
+
+    def dolag(self,xy):
+        '''
+        Make a lag plot of Y
+        '''
+        lag = {}
+        for x, group in xy:
+            lag[x]={'lagplot':np.array([[],[]]),'filtered':np.array([])}
+            Y = group['logJ']
+            _lag = [[],[]]
+            _filtered = []
+            for i in range(0, (len(Y)-len(Y)%2), 2):
+                _lag[0].append(Y[i])
+                _lag[1].append(Y[i+1])
+            m, b, r, _, _ = linregress(_lag[0],_lag[1])
+            #self.logger.debug("R-squared: %s" % (r**2))
+            distances = getdistances( (m,b), _lag[0], _lag[1] )
+            min_distance = min(distances)
+            self.logger.debug("Distance from lag: %s", min_distance)
+            if min_distance > self.opts.lagcutoff:
+                self.logger.warning("Found a high degree of scatter in lag plot (%0.4f)", min_distance)
+            if r**2 < 0.9:
+                self.logger.warning("Poor line-fit to lag plot (R-squared: %s)", (r**2))
+            tossed = 0
+            for _t in enumerate(distances):
+                if _t[1] < self.opts.lagcutoff:
+                    _filtered.append(_lag[0][_t[0]])
+                    _filtered.append(_lag[1][_t[0]])
+                else:
+                    tossed += 1
+            if not _filtered:
+                self.logger.warning("Lag filter excluded all data at %s V", x)
+            if tossed > 0:
+                self.logger.info("Lag filtered excluded %s data points at %s V", tossed, x )
+            lag[x]['lagplot'] = np.array(_lag)
+            lag[x]['filtered'] = np.array(_filtered)
+        return lag
+
+    def __findtraces(self):
         '''Try to find individual J/V traces. A trace is defined
         by a complete forward and reverse trace unless the input
         dataset comprises only forward or only reverse traces.
@@ -384,7 +477,7 @@ class Parse():
             trace = []
             for row in self.df[0:].iterrows():
                 if row[1].V == Vinit:
-                    if not len(trace) or len(trace) == 1:
+                    if len(trace) <= 1:
                         trace.append(row[0])
                     elif len(trace) == 2:
                         traces.append(trace)
@@ -397,13 +490,13 @@ class Parse():
         idx = []
         frames = {}
         self.logger.info("Compressing forward/reverse sweeps to single traces.")
-        for col in range(0,len(traces)):
+        for col,_t in enumerate(traces):
             fbtrace = self.df[traces[col][0]:traces[col][1]].sort_values('V')
             avg = OrderedDict({'J':[],'FN':[]})
             idx = []
             for x,group in fbtrace.groupby('V'):
                 idx.append(x)
-                avg['J'].append(self.signedgmean(group['J']))
+                avg['J'].append(signedgmean(group['J']))
                 fn = np.mean(group['FN'])
                 #fn = self.signedgmean(group['FN'])
                 avg['FN'].append(fn)
@@ -419,16 +512,17 @@ class Parse():
             self.logger.warning('Only parsed one trace!')
 
 
-    def findSegments(self):
+    def __findsegments(self):
         '''
-        Break out each trace by segments of
-        0V -> Vmax, 0V -> Vmin.
+        Break out each trace into four segments of
+        0V -> Vmax, Vmax -> 0, 0V -> Vmin, Vmin -> 0V.
         '''
+        #TODO set num_segments in opts
         # NOTE this is a crude hack because I forgot how Pandas works
         if self.opts.tracebyfile:
             self.logger.error("Cannot generate segments from non-EGaIn dataset.")
             return
-        if self.opts.Ycol < 0:
+        if self.opts.ycol < 0:
             self.logger.warning("Cannot find segments when all columns are parsed.")
             return
         try:
@@ -439,21 +533,8 @@ class Parse():
         except KeyError:
             self.logger.error("Could not segment data by 0's.")
             return
-        # traces = []
-        # for t in zip(*(iter(self.df[self.df.V == 0.00].V.index),) * 3):
-        #     # Make an iterator that aggregates elements from each of the iterables.
-        #     # Zip is an iterator of tuples, where the i-th tuple contains the i-th element
-        #     # from each of the argument sequences or iterables
-        #     traces.append( (t[0], t[2]) )
-        # for col in range(0,len(traces)):
-        #     fbtrace = self.df[traces[col][0]:traces[col][1]].sort_values('V')
 
         for _fn in self.df.index.levels[0]:
-            # if len(self.df.loc[_fn]['V']) % 4 == 0:
-            #     self.logger.debug("J/V sweep is divisible by 4.")
-            # else:
-            #     self.logger.warning("J/V sweep not divislbe by 4, cannot segment.")
-            #
             #TODO when parsing all columns of data, this throws:
             #  'ValueError: The truth value of a Series is ambiguous. Use a.empty, a.bool(), a.item(), a.any() or a.all().'
             # For now segmenter will just refuse to run when all columns are parsed.
@@ -463,48 +544,35 @@ class Parse():
             _seg = 0
             _trace = 0
             _last_V = 0
-            # _zeros = 0
             _n_traces = int(self.df.V.value_counts()[0] / 3)
-            # V_min = self.df.loc[_fn]['V'].min()
-            # V_max = self.df.loc[_fn]['V'].max()
+
             for _i in self.df.loc[_fn].index:
                 J = self.df.loc[_fn]['logJ'][_i]
                 V = self.df.loc[_fn]['V'][_i]
 
                 if _trace > _n_traces:
-                    self.logger.warning("Parsing trace %s, when there should only be %s" , _trace, _n_traces)
+                    self.logger.warning("Parsing trace %s, when there should only be %s",
+                        _trace, _n_traces)
 
                 if 0 < V > _last_V:
                     if _seg == 3:
                         _trace += 1
                     _seg = 0
-                    # 0 -> V_max
                 elif 0 < V <= _last_V:
                     _seg = 1
-                    # V_max -> 0
                 elif 0 > V < _last_V:
                     _seg = 2
-                    # 0 -> V_min
                 elif 0 > V >= _last_V:
                     _seg = 3
-                # elif int(V) == 0:
-                #     _zeros += 1
-
-                # if _zeros == 3:
-                #     _trace += 1
-                #     _zeros = 0
 
                 if _seg not in segments:
                     segments[_seg] = {}
-                    # print("New seg %s" % _seg)
+
                 if _trace not in segments[_seg]:
                     segments[_seg][_trace] = {}
-                    #print("New trace %s" % _trace)
+
                 if V not in segments[_seg][_trace]:
-                    # print(segments)
                     segments[_seg][_trace][V] = []
-                    #print("New V %s" % V)
-                    # V_min -> 0
 
                 _last_V = V
                 segments[_seg][_trace][V].append(J)
@@ -515,7 +583,6 @@ class Parse():
         else:
             self.logger.info('Found %s segments.', len(segments.keys()))
 
-        # print(segments.keys())
         segmenthists = {}
         for _seg in segments:
             if _seg not in segmenthists:
@@ -527,24 +594,25 @@ class Parse():
                 for _V in segments[_seg][_trace]:
                     if _V not in segmenthists[_seg][_trace]:
                         segmenthists[_seg][_trace][_V] = {}
-                    segmenthists[_seg][_trace][_V] = self.__dohistogram(np.array(segments[_seg][_trace][_V]), label='Segmented')
+                    segmenthists[_seg][_trace][_V] = self.__dohistogram(
+                        np.array(segments[_seg][_trace][_V]), label='Segmented')
 
         self.segments = segmenthists
 
 
-    def dodjdv(self):
+    def __dodjdv(self):
         '''
         Fit a spline function to X/Y data,
         compute dY/dX and normalize.
         '''
         linx = np.linspace(self.df.V.min(), self.df.V.max(), 200)
         if self.opts.vcutoff > 0:
-            self.logger.debug('Using %s cutoff for dj/dv' % self.opts.vcutoff)
+            self.logger.debug('Using %s cutoff for dj/dv', self.opts.vcutoff)
             vfilterneg,vfilterpos = np.linspace(-1*self.opts.vcutoff,0,200), np.linspace(0,self.opts.vcutoff.max(),200)
         else:
             vfilterneg,vfilterpos = np.linspace(self.df.V.min(),0,200), np.linspace(0,self.df.V.max(),200)
         if self.opts.vcutoff > 0:
-            vfilterneg,vfilterpos = linx[-1*self.opts.vcutoff < linx < 0],linux[0 < linx < self.opts.vcutoff]
+            vfilterneg,vfilterpos = linx[-1*self.opts.vcutoff < linx < 0],linx[0 < linx < self.opts.vcutoff]
         else:
             vfilterneg,vfilterpos = linx[linx < 0], linx[linx > 0]
 
@@ -561,9 +629,12 @@ class Parse():
             spl_normhists[x] = {'spl':[],'hist':{}}
         for trace in self.avg.index.levels[0]:
             try:
-                spl = scipy.interpolate.UnivariateSpline(self.avg.loc[trace].index,self.avg.loc[trace]['J'], k=5, s=self.opts.smooth )
-                dd =  scipy.interpolate.UnivariateSpline(self.avg.loc[trace].index,self.avg.loc[trace]['J'], k=5, s=None).derivative(2)
-            except Exception as msg:
+                spl = scipy.interpolate.UnivariateSpline(
+                    self.avg.loc[trace].index,self.avg.loc[trace]['J'], k=5, s=self.opts.smooth )
+                dd =  scipy.interpolate.UnivariateSpline(
+                    self.avg.loc[trace].index,self.avg.loc[trace]['J'], k=5, s=None).derivative(2)
+            except Exception as msg: #pylint: disable=broad-except
+                #TODO: Figure out how to catch all the various scipy errors here
                 self.logger.error('Error in derivative calulation: %s', str(msg))
                 continue
             try:
@@ -574,9 +645,9 @@ class Parse():
                 continue
             if len(spldd[spldd<0]):
                     # record in the index where dY/dX is < 0 within vcutoff range
-                    self.ohmic.append(trace)
-                    if self.opts.skipohmic:
-                        continue
+                self.ohmic.append(trace)
+                if self.opts.skipohmic:
+                    continue
             else:
                 for row in self.avg.loc[trace].iterrows():
                     # filtered is a list containing only "clean" traces
@@ -618,51 +689,7 @@ class Parse():
         self.loghandler.flush()
         self.DJDV, self.GHists, self.NDC, self.NDCHists, self.filtered = spls, splhists, spls_norm, spl_normhists, filtered
 
-    def dorect(self,xy):
-        '''
-        Divide each value of Y at +V by Y at -V
-        and build a histogram of rectification, R
-        also construct the unique Voltage list
-        '''
-        r = OrderedDict()
-        R = OrderedDict()
-        for x, group in xy:
-            r[x] = []
-        clipped = 0
-        for trace in self.avg.index.levels[0]:
-            for x in self.avg.loc[trace].index[self.avg.loc[trace].index >= 0]:
-                if -1*x not in self.avg.loc[trace]['J']:
-                    self.logger.warning("Rectification data missing voltages.")
-                    if self.opts.logr: r[x].append(0.)
-                    else: r[x].append(1.)
-                    continue
-                elif x == 0.0:
-                    if self.opts.logr: r[x].append(0.)
-                    else: r[x].append(1.)
-                    continue
-                if self.opts.logr:
-                    r[x].append(np.log10(abs(self.avg.loc[trace]['J'][x]/self.avg.loc[trace]['J'][-1*x])))
-                else:
-                    r[x].append(abs(self.avg.loc[trace]['J'][x]/self.avg.loc[trace]['J'][-1*x]))
-                if r[x][-1] > self.opts.maxr:
-                    clipped += 1
-        for x in reversed(list(r)):
-            if x >= 0:
-                R[x] = {'r':np.array(r[x]),'hist':self.__dohistogram(np.array(r[x]),"R")}
-                R[-1*x] = R[x]
-            if x not in R:
-                    self.logger.warning("Unequal +/- voltages in R-plot will be filled with R=1.")
-                    if self.opts.logr: y = np.array([1.,1.,1.,1.,1.,1.,1.,1.,1.,1.])
-                    else: y = np.array([0.,0.,0.,0.,0.,0.,0.,0.,0.,0.])
-                    R[x] = {'r':y,'hist':self.__dohistogram(y,"R")}
-        if clipped:
-            if self.opts.logr: rstr = 'log|R|'
-            else: rstr = '|R|'
-            self.logger.info("%s values of %s exceed maxR (%s)", clipped, rstr, self.opts.maxr)
-        self.logger.info("R complete.")
-        return R
-
-    def findmin(self):
+    def __findmin(self):
         '''
         Find the troughs of ln(Y/X^2) vs. 1/X plots
         i.e., Vtrans, by either interpolating the data with
@@ -694,9 +721,9 @@ class Parse():
                     err = [False,False]
                     self.logger.debug('Finding minimum FN plot from derivative.')
                     splpos = scipy.interpolate.UnivariateSpline(np.array(self.avg.loc[trace].index[self.avg.loc[trace].index > 0]),
-                                                            self.avg.loc[trace]['FN'][self.avg.loc[trace].index > 0].values, k=4)
+                                self.avg.loc[trace]['FN'][self.avg.loc[trace].index > 0].values, k=4)
                     splneg = scipy.interpolate.UnivariateSpline(np.array(self.avg.loc[trace].index[self.avg.loc[trace].index < 0]),
-                                                            self.avg.loc[trace]['FN'][self.avg.loc[trace].index < 0].values, k=4)
+                                self.avg.loc[trace]['FN'][self.avg.loc[trace].index < 0].values, k=4)
                     try:
                         pos_min_x += list(np.array(splpos.derivative().roots()))
                     except ValueError as msg:
@@ -712,130 +739,48 @@ class Parse():
 
                     self.logger.debug('Finding minimum of interpolated FN plot.')
                     splpos = scipy.interpolate.interp1d( np.array(self.avg.loc[trace].index[self.avg.loc[trace].index > 0]),
-                                                       self.avg.loc[trace]['FN'][self.avg.loc[trace].index > 0].values,kind='linear',fill_value='extrapolate')
+                                self.avg.loc[trace]['FN'][self.avg.loc[trace].index > 0].values,kind='linear',fill_value='extrapolate')
                     splneg = scipy.interpolate.interp1d( np.array(self.avg.loc[trace].index[self.avg.loc[trace].index < 0]),
-                                                       self.avg.loc[trace]['FN'][self.avg.loc[trace].index < 0 ].values ,kind='linear',fill_value='extrapolate')
+                                self.avg.loc[trace]['FN'][self.avg.loc[trace].index < 0 ].values ,kind='linear',fill_value='extrapolate')
                     xy = {'X':[],'Y':[]}
                     for x in xneg:
                         if not np.isfinite(x):
                             continue
-                        xy['Y'].append(splneg(x))
-                        xy['X'].append(x)
+                        xy['Y'].append(float(splneg(x)))
+                        xy['X'].append(float(x))
                     for x in xpos:
                         if not np.isfinite(x):
                             continue
-                        xy['Y'].append(splpos(x))
-                        xy['X'].append(x)
+                        xy['Y'].append(float(splpos(x)))
+                        xy['X'].append(float(x))
                     fndf = pd.DataFrame(xy)
                     pidx = fndf[fndf.X > 0]['Y'].idxmin()
                     nidx = fndf[fndf.X < 0]['Y'].idxmin()
                     if err[0]:
                         try:
-                            splpos = scipy.interpolate.UnivariateSpline(fndf['X'][pidx-20:pidx+20].values,fndf['Y'][pidx-20:pidx+20].values, k=4 )
+                            splpos = scipy.interpolate.UnivariateSpline(
+                                fndf['X'][pidx-20:pidx+20].values,fndf['Y'][pidx-20:pidx+20].values, k=4 )
                             pos_min_x += list(np.array(splpos.derivative().roots()))
-                        except Exception as msg:
+                        except Exception as msg: #pylint: disable=broad-except
+                            #TODO: Figure out how to catch all the scipy errors
                             self.logger.warning('Error finding FN(+) minimum from interpolated derivative, falling back to minimum. %s', str(msg))
                             pos_min_x.append(np.mean(fndf['X'][pidx-20:pidx+20].values))
                     if err[1]:
                         try:
                             splneg = scipy.interpolate.UnivariateSpline(fndf['X'][nidx-20:nidx+20].values,fndf['Y'][nidx-20:nidx+20].values, k=4 )
                             neg_min_x += list(np.array(splneg.derivative().roots()))
-                        except Exception as msg:
+                        except Exception as msg: #pylint: disable=broad-except
+                            #TODO: Figure out how to catch all the scipy errors
                             self.logger.warning('Error finding FN(–) minimum from interpolated derivative, falling back to minimum. %s', str(msg))
                             neg_min_x.append(np.mean(fndf['X'][nidx-20:nidx+20].values))
             except ValueError as msg:
                 self.logger.warning("Error finding minimum in trace: %s", str(msg))
-        if tossed: self.logger.warning("Tossed %d compliance traces during FN calculation.", tossed)
+        if tossed:
+            self.logger.warning("Tossed %d compliance traces during FN calculation.", tossed)
         neg_min_x = np.array(list(filter(np.isfinite,neg_min_x)))
         pos_min_x = np.array(list(filter(np.isfinite,pos_min_x)))
         self.FN["neg"], self.FN["pos"] = self.__dohistogram(neg_min_x, "Vtrans(-)", True), self.__dohistogram(pos_min_x, "Vtrans(+)", True)
 
-    def dolag(self,xy):
-        '''
-        Make a lag plot of Y
-        '''
-        lag = {}
-        for x, group in xy:
-            lag[x]={'lagplot':np.array([[],[]]),'filtered':np.array([])}
-            Y = group['logJ']
-            _lag = [[],[]]
-            _filtered = []
-            for i in range(0, (len(Y)-len(Y)%2), 2):
-                _lag[0].append(Y[i])
-                _lag[1].append(Y[i+1])
-            m, b, r, p, std_err = linregress(_lag[0],_lag[1])
-            #self.logger.debug("R-squared: %s" % (r**2))
-            distances = self.getdistances( (m,b), _lag[0], _lag[1] )
-            min_distance = min(distances)
-            self.logger.debug("Distance from lag: %s", min_distance)
-            if min_distance > self.opts.lagcutoff:
-                self.logger.warning("Found a high degree of scatter in lag plot (%0.4f)", min_distance)
-            if r**2 < 0.9:
-                self.logger.warning("Poor line-fit to lag plot (R-squared: %s)", (r**2))
-            tossed = 0
-            for i in range(0,len(distances)):
-                if distances[i] < self.opts.lagcutoff:
-                    _filtered.append(_lag[0][i])
-                    _filtered.append(_lag[1][i])
-                else:
-                    tossed += 1
-            if not len(_filtered):
-                self.logger.warning("Lag filter excluded all data at %s V", x)
-            if tossed > 0:
-                self.logger.info("Lag filtered excluded %s data points at %s V", tossed, x )
-            lag[x]['lagplot'] = np.array(_lag)
-            lag[x]['filtered'] = np.array(_filtered)
-        return lag
-
-    def getdistances(self, coeff, X, Y):
-        _a = [[],[]]
-        _b = [X,Y]
-        for x in np.linspace(min(X), max(X), 500):
-            _a[0].append(x)
-            _a[1].append(self.linear(x,*coeff))
-        A = np.array(_a)
-        B = np.array(_b)
-        distances = []
-        # rotate three times to get J-pairs in order
-        for p in np.rot90(B,k=3):
-            _d = []
-            for q in np.rot90(A,k=3):
-                _d.append( np.sqrt( (p[0]-q[0])**2 + (p[1]-q[1])**2 ) )
-            distances.append(min(_d))
-        return distances
-
-
-    def signedgmean(self,Y):
-        '''
-        Return a geometric average with the
-        same sign as the input data assuming
-        all values have the same sign
-        '''
-        if len(Y[Y<0]): Ym = -1*gmean(abs(Y))
-        else: Ym = gmean(abs(Y))
-        return Ym
-
-    def gauss(self, x, *p):
-        '''
-        Return a gaussian function
-        '''
-        A, mu, sigma = p
-        return A*np.exp(-(x-mu)**2/(2.*sigma**2))
-
-
-    def linear(self, x, *p):
-        '''
-        Return a line
-        '''
-        m,b = p
-        return (m*x)+b
-
-    def lorenz(self, x, *p):
-        '''
-        Return a lorenzian function
-        '''
-        A, mu, B = p
-        return A/( (x-mu)**2 + B**2)
 
     def __dohistogram(self, Y, label="", density=False):
         '''
@@ -858,8 +803,10 @@ class Parse():
             Y = Y[Y <= self.opts.compliance]
             if yrange != (0,0):
                 yrange = (Y.min()-1, Y.max()+1)
-        if label == "R": Y = Y[Y <= self.opts.maxr]
-        if label=='DJDV' or label=='NDC': nbins = self.opts.heatmapbins
+        if label == "R":
+            Y = Y[Y <= self.opts.maxr]
+        if label in ('DJDV','NDC'):
+            nbins = self.opts.heatmapbins
         else: nbins = self.opts.bins
         if len(Y) < 10:
             self.logger.warning("Histogram with only %d points.", len(Y))
@@ -873,7 +820,7 @@ class Parse():
             freq=np.array([0.,0.,0.,0.])
 
         if len(Y):
-            Ym = self.signedgmean(Y)
+            Ym = signedgmean(Y)
             Ys = abs(Y.std())
         else:
             Ym,Ys = 0.0,0.0
@@ -881,16 +828,16 @@ class Parse():
         p0 = [1., Ym, Ys]
         bin_centers = (bins[:-1] + bins[1:])/2
         coeff = p0
-        covar = None
+        covar = None #pylint: disable=unused-variable
         hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
         try:
             with self.lock:
                 if self.opts.lorenzian:
-                    coeff, covar = curve_fit(self.lorenz, bin_centers, freq, p0=p0, maxfev=self.opts.maxfev)
-                    hist_fit = self.lorenz(bin_centers, *coeff)
+                    coeff, covar = curve_fit(lorenz, bin_centers, freq, p0=p0, maxfev=self.opts.maxfev) #pylint: disable=unbalanced-tuple-unpacking
+                    hist_fit = lorenz(bin_centers, *coeff)
                 else:
-                    coeff, covar = curve_fit(self.gauss, bin_centers, freq, p0=p0, maxfev=self.opts.maxfev)
-                    hist_fit = self.gauss(bin_centers, *coeff)
+                    coeff, covar = curve_fit(gauss, bin_centers, freq, p0=p0, maxfev=self.opts.maxfev) #pylint: disable=unbalanced-tuple-unpacking
+                    hist_fit = gauss(bin_centers, *coeff)
         except RuntimeError as msg:
             if self.opts.maxfev > 100:
                 self.logger.warning("|%s| Fit did not converge", label, exc_info=False)
@@ -898,10 +845,11 @@ class Parse():
             self.logger.warning("|%s| Skipping data with ridiculous numbers in it (%s)", label, str(msg), exc_info=False )
             #coeff=p0
 
-        #hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
-
-        #if covar != None:
-        #    self.logger.debug('Covariance: %s ' % (np.sqrt(np.diag(covar))) )
+        # if covar is not None:
+        #     try:
+        #         self.logger.debug('Covariance: %s ', np.sqrt(np.diag(covar)) )
+        #     except FloatingPointError:
+        #         self.logger.debug('Could not compute sqrt of covariance: %s', np.diag(covar))
 
         skewstat, skewpval = skewtest(freq)
         kurtstat, kurtpval = kurtosistest(freq)
@@ -929,6 +877,7 @@ class Parse():
             self.loghandler.flush()
 
     def getXY(self):
+        '''Public method to return the main XY dictionary'''
         self.wait()
         if self.error:
             return {}
@@ -936,18 +885,9 @@ class Parse():
             return self.XY
 
     def getFN(self):
+        '''Public method to reutrn the main FN dictionary'''
         self.wait()
         if self.error:
             return {}
         else:
             return self.FN
-
-    def PrintFN(self):
-        '''
-        Print Vtrans values to the command line for convinience
-        '''
-        if self.error:
-            return
-        for key in ('pos', 'neg'):
-            self.logger.info("|Vtrans %s| Gauss-mean: %0.4f Standard Deviation: %f" % (key, self.FN[key]['mean'], self.FN[key]['std']) )
-            self.logger.info("|Vtrans %s| Geometric-mean: %0.4f Standard Deviation: %f" % (key, self.FN[key]['Gmean'], self.FN[key]['Gstd']) )

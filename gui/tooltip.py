@@ -7,6 +7,7 @@ class ToolTip(object):
         self.tipwindow = None
         self.id = None
         self.x = self.y = 0
+        self.text = str()
 
     def showtip(self, text):
         "Display text in tooltip window"

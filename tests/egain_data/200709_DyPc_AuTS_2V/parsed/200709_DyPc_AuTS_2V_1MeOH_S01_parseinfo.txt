@@ -1,0 +1,50 @@
+Parsed: Wed Jul 15 22:55:35 2020
+{'interpolateminfn': False
+ 'delim': '\t'
+ 'logr': True
+ 'skipohmic': False
+ 'maxfev': 10000
+ 'plot': True
+ 'out_dir': '/data/Instrument_Data/Saurabh/DyPc/200709_DyPc_AuTS_2V/parsed'
+ 'bins': 50
+ 'compliance': inf
+ 'heatmapd': 1
+ 'setA': 
+[]
+ 'histplots': 'NDC'
+ 'threads': 8
+ 'heatmapbins': 25
+ 'smooth': 1e-12
+ 'lorenzian': False
+ 'write': True
+ 'mlow': -6
+ 'setB': 
+[]
+ 'outfile': '200709_DyPc_AuTS_2V_1MeOH_S01'
+ 'Xcol': 0
+ 'plots': 'J'
+ 'tracebyfile': False
+ 'loglevel': 'info'
+ 'autonobs': False
+ 'lagcutoff': 0.1
+ 'mhi': 0
+ 'vcutoff': -1
+ 'Ycol': 2
+ 'ndc_mlow': 0.05
+ 'maxr': 2
+ 'in_files': 
+['200709_DyPc_AuTS_2V_1MeOH_S01J01_data.txt'
+ '200709_DyPc_AuTS_2V_1MeOH_S01J02_data.txt'
+ '200709_DyPc_AuTS_2V_1MeOH_S01J03_data.txt'
+ '200709_DyPc_AuTS_2V_1MeOH_S01J04_data.txt'
+ '200709_DyPc_AuTS_2V_1MeOH_S01J05_data.txt'
+ '200709_DyPc_AuTS_2V_1MeOH_S01J06_data.txt'
+ '200709_DyPc_AuTS_2V_1MeOH_S01J07_data.txt'
+ '200709_DyPc_AuTS_2V_1MeOH_S01J08_data.txt'
+ '200709_DyPc_AuTS_2V_1MeOH_S01J09_data.txt'
+ '200709_DyPc_AuTS_2V_1MeOH_S01J10_data.txt'
+ '200709_DyPc_AuTS_2V_1MeOH_S01J11_data.txt'
+ '200709_DyPc_AuTS_2V_1MeOH_S01J12_data.txt']
+ 'ndc_mhi': 10.0
+ 'GUI': True
+ 'nobs': 0}

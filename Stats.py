@@ -22,37 +22,39 @@ Description:
 '''
 
 
-import sys,os,warnings,csv
-from gaussfit import *
-from gaussfit.Output import WriteStats,StatPlotter
-from gaussfit.stats import Stats
+# import sys
+# import os
+# import warnings
+# import csv
+from gaussfit import Stats, Opts
+from gaussfit.output import StatPlotter
 
-def Go(opts):
+def do_stats(opts):
 	'''
 	Call this function to execute the parsing engine
 	i.e., as main()
 	'''
 
-	if len(opts.setA) and len(opts.setB):
+	if opts.setA and opts.setB:
 		statparser = Stats(opts)
 		statparser.parse()
 	else:
 		print("No input files to parse!")
 
 	if opts.plot:
-			plotter = StatPlotter(statparser)
-			print("Generating plots...")
-			try:
-					import matplotlib.pyplot as plt
-					plotter.DoPlots(plt)
-					plt.show()
-			except ImportError as msg:
-					print("Cannot import matplotlib! %s", str(msg), exc_info=False)
+		plotter = StatPlotter(statparser)
+		print("Generating plots...")
+		try:
+			import matplotlib.pyplot as plt
+			plotter.DoPlots(plt)
+			plt.show()
+		except ImportError as msg:
+			print("Cannot import matplotlib! %s", str(msg), exc_info=False)
 
 
-opts = Opts
-if opts.GUI:
-		from gui import statsfilebrowser
-		gui = statsfilebrowser.ChooseFiles(opts)
+_opts = Opts
+if _opts.gui:
+	from gui import statsfilebrowser
+	gui = statsfilebrowser.ChooseFiles(_opts)
 else:
-		Go(opts)
+	do_stats(_opts)
