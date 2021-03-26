@@ -24,7 +24,6 @@ Description:
 import os
 import warnings
 import datetime
-#TODO Replace csv with pandas
 import csv
 from shutil import copyfile
 import logging
