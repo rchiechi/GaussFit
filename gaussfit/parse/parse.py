@@ -24,6 +24,7 @@ Description:
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
+#pylint: disable=line-too-long
 
 import sys
 import os
@@ -32,7 +33,7 @@ import warnings
 import threading
 import time
 from collections import OrderedDict
-from .util import signedgmean, gauss, getdistances, printFN
+from .util import signedgmean, gauss, getdistances, printFN, lorenz
 from ..colors import RED, WHITE, GREEN, TEAL, YELLOW, RS
 from ..logger import DelayedHandler
 #import concurrent.futures
@@ -624,7 +625,7 @@ class Parse():
         '''
         linx = np.linspace(self.df.V.min(), self.df.V.max(), 200)
         if self.opts.vcutoff > 0:
-            self.logger.debug('Using %s cutoff for dj/dv' % self.opts.vcutoff)
+            self.logger.debug('Using %s cutoff for dj/dv', self.opts.vcutoff)
             vfilterneg,vfilterpos = np.linspace(-1*self.opts.vcutoff,0,200), np.linspace(0,self.opts.vcutoff.max(),200)
         else:
             vfilterneg,vfilterpos = np.linspace(self.df.V.min(),0,200), np.linspace(0,self.df.V.max(),200)
@@ -844,8 +845,8 @@ class Parse():
         try:
             with self.lock:
                 if self.opts.lorenzian:
-                    coeff, covar = curve_fit(self.lorenz, bin_centers, freq, p0=p0, maxfev=self.opts.maxfev)
-                    hist_fit = self.lorenz(bin_centers, *coeff)
+                    coeff, covar = curve_fit(lorenz, bin_centers, freq, p0=p0, maxfev=self.opts.maxfev)
+                    hist_fit = lorenz(bin_centers, *coeff)
                 else:
                     coeff, covar = curve_fit(gauss, bin_centers, freq, p0=p0, maxfev=self.opts.maxfev)
                     hist_fit = gauss(bin_centers, *coeff)
