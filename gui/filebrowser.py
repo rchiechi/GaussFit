@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 '''
 Copyright (C) 2018 Ryan Chiechi <r.c.chiechi@rug.nl>
 Description:
@@ -24,31 +23,41 @@ import os
 import platform
 import threading
 import logging
-from tkinter import filedialog #some weird bug...
-from tkinter import * #pylint: disable=W0614,W0401
-from tkinter.ttk import * #pylint: disable=W0614,W0401
-from tkinter.font import * #pylint: disable=W0614,W0401
+
+import tkinter.ttk as tk
+from tkinter import filedialog
+from tkinter import Text,IntVar,StringVar,Listbox
+from tkinter import N,S,E,W,X,Y # pylint: disable=unused-import
+from tkinter import TOP,BOTTOM,LEFT,RIGHT # pylint: disable=unused-import
+from tkinter import END,BOTH,VERTICAL,HORIZONTAL # pylint: disable=unused-import
+from tkinter import EXTENDED,RAISED,DISABLED,NORMAL # pylint: disable=unused-import
+from tkinter.font import Font
+
 from gui.prefs import PreferencesWindow
-from gui.colors import BLACK,YELLOW, WHITE, RED, TEAL, GREEN, BLUE, GREY
-from gui.tooltip import ToolTip, createToolTip
+from gui.colors import BLACK,YELLOW,WHITE,RED,TEAL,GREEN,BLUE,GREY # pylint: disable=unused-import
+from gui.tooltip import createToolTip
 from gaussfit import Parse
 from gaussfit.output import Writer,Plotter
 from gaussfit.logger import GUIHandler
 
+# pylint: disable=attribute-defined-outside-init,missing-function-docstring
 
 class ParseThread(threading.Thread):
+    '''A Thread object to run the parse in so it
+       doesn't block the main GUI thread.'''
     def __init__(self,opts,parser):
         threading.Thread.__init__(self)
         self.parser = parser
         self.opts = opts
     def run(self):
-        self.parser.ReadFiles(self.opts.in_files)
+        self.parser.readfiles(self.opts.in_files)
 
 
-class ChooseFiles(Frame):
-
+class ChooseFiles(tk.Frame):
+    '''The main frame for adding/removing files, accessing setttings
+       and parsing.'''
     def __init__(self, opts, master=None):
-        Frame.__init__(self, master)
+        tk.Frame.__init__(self, master)
         self.boolmap = {1:True, 0:False}
         try:
             self.last_input_path = os.getcwd()
@@ -60,7 +69,7 @@ class ChooseFiles(Frame):
         self.master.tk_setPalette(background=GREY,
             activeBackground=GREY)
         self.master.title("RCCLab EGaIn Data Parser")
-        self.master.geometry('900x900+250-250')
+        self.master.geometry('1000x1400+250-250')
         self.pack(fill=BOTH)
         self.__createWidgets()
         self.ToFront()
@@ -68,15 +77,15 @@ class ChooseFiles(Frame):
 
     def __createWidgets(self):
 
-        self.ButtonFrame = Frame(self)
-        # self.LeftOptionsFrame = Frame(self)
-        self.LoggingFrame = Frame(self)
-        self.RightOptionsFrame = Frame(self)
+        self.ButtonFrame = tk.Frame(self)
+        # self.LeftOptionsFrame = tk.Frame(self)
+        self.LoggingFrame = tk.Frame(self)
+        self.RightOptionsFrame = tk.Frame(self)
 
 
-        self.FileListBoxFrame = Frame(self)
+        self.FileListBoxFrame = tk.Frame(self)
 
-        yScroll = Scrollbar(self.LoggingFrame, orient=VERTICAL)
+        yScroll = tk.Scrollbar(self.LoggingFrame, orient=VERTICAL)
         self.Logging = Text(self.LoggingFrame, height=20, width=0,
                 bg=BLACK, fg=WHITE, yscrollcommand=yScroll.set)
         yScroll['command'] = self.Logging.yview
@@ -103,22 +112,23 @@ class ChooseFiles(Frame):
     def __createButtons(self):
 
         buttons = [
-               {'name':'Settings','text':'Settings','side':BOTTOM},
-               {'name':'Quit','text':'QUIT','command':'Quit','side':BOTTOM},
-               {'name':'SpawnInputDialog','text':'Add Input Files','side':LEFT},
-               {'name':'RemoveFile','text':'Remove Files','side':LEFT},
-               {'name':'SpawnOutputDialog','text':'Choose Output Directory','side':LEFT},
-               {'name':'Parse','text':'Parse!','side':LEFT}
-               ]
+            {'name':'Quit','text':'QUIT','command':'Quit','side':BOTTOM},
+            {'name':'SpawnInputDialog','text':'Add Input Files','side':LEFT},
+            {'name':'RemoveFile','text':'Remove Files','side':LEFT},
+            {'name':'SpawnOutputDialog','text':'Choose Output Directory','side':LEFT},
+            {'name':'Settings','text':'Settings','side':LEFT},
+            {'name':'Parse','text':'Parse!','side':LEFT}
+              ]
 
         for b in buttons:
-            button = Button(self.ButtonFrame)
+            button = tk.Button(self.ButtonFrame)
             button.config(text=b['text'],command=getattr(self,b['name']+'Click'))
             button.pack(side=b['side'])
-            setattr(self,'Button'+b['name'],button)
+            setattr(self,'tk.Button'+b['name'],button)
 
 
     def __createOptions(self):
+        '''Create the widgest for options and use setattr to assign them to self.'''
         self.checks = [
               {'name':'plot','text':'Plot','row':1,
                 'tooltip':"Show summary plots after parsing."},
@@ -136,20 +146,21 @@ class ChooseFiles(Frame):
                 'tooltip':'Each file contains one (foward/backward) trace.'}
               ]
 
-        for c in self.checks:
-            setattr(self,c['name'],IntVar())
-            check = Checkbutton(self.RightOptionsFrame, text=c['text'],
-                    variable=getattr(self,c['name']), command=self.checkOptions)
-            check.grid(column=0,row=c['row'],sticky=W)
-            createToolTip(check,c['tooltip'])
-            setattr(self,'Check_'+c['name'],check)
-            if getattr(self.opts,c['name']):
-                getattr(self,c['name']).set(1)
+        for _c in self.checks:
+            setattr(self,_c['name'],IntVar())
+            check = tk.Checkbutton(self.RightOptionsFrame, text=_c['text'],
+                    variable=getattr(self,_c['name']), command=self.checkOptions)
+            check.grid(column=0,row=_c['row'],sticky=W)
+            createToolTip(check,_c['tooltip'])
+            setattr(self,'Check_'+_c['name'],check)
+            if getattr(self.opts,_c['name']):
+                getattr(self,_c['name']).set(1)
 
         rowidx = len(self.checks)+1
 
-        Label(self.RightOptionsFrame, text="Output file base name:").grid(column=0,row=rowidx)
-        self.OutputFileName = Entry(self.RightOptionsFrame, width=20,
+        tk.Label(self.RightOptionsFrame, text="Output file base name:").grid(
+            column=0,row=rowidx)
+        self.OutputFileName = tk.Entry(self.RightOptionsFrame, width=20,
                 font=Font(size=8,slant='italic'))
         for n in ('<Return>','<Leave>','<Enter>'):
             self.OutputFileName.bind(n, self.checkOutputFileName)
@@ -158,95 +169,66 @@ class ChooseFiles(Frame):
         if self.opts.outfile:
             self.OutputFileName.insert(0,self.opts.outfile)
 
-        Label(self.RightOptionsFrame, text="Data to plot:").grid(column=0,row=rowidx+2,sticky=W)
+        tk.Label(self.RightOptionsFrame, text="Data to plot:").grid(
+            column=0,row=rowidx+2,sticky=W)
         self.OptionsPlotsString = StringVar()
         self.OptionsPlotsString.set(self.opts.plots)
-        self.OptionPlots = OptionMenu(self.RightOptionsFrame, self.OptionsPlotsString,'J','R',
-                                 command=self.checkOptions)
+        self.OptionPlots = tk.OptionMenu(self.RightOptionsFrame,
+            self.OptionsPlotsString,'J','R',
+            command=self.checkOptions)
         self.OptionPlots.grid(column=0,row=rowidx+3,sticky=W)
 
-        Label(self.RightOptionsFrame, text="Histogram to plot:").grid(column=0,row=rowidx+4,sticky=W)
+        tk.Label(self.RightOptionsFrame, text="Histogram to plot:").grid(
+            column=0,row=rowidx+4,sticky=W)
         self.OptionsHistPlotsString = StringVar()
         self.OptionsHistPlotsString.set(self.opts.histplots)
-        self.OptionHistPlots = OptionMenu(self.RightOptionsFrame, self.OptionsHistPlotsString,'NDC','G',
-                                 command=self.checkOptions)
+        self.OptionHistPlots = tk.OptionMenu(self.RightOptionsFrame,
+            self.OptionsHistPlotsString,'NDC','G',
+            command=self.checkOptions)
         self.OptionHistPlots.grid(column=0,row=rowidx+5,sticky=W)
 
 
-        Label(self.RightOptionsFrame, text="Derivative for heatmap:").grid(column=0,row=rowidx+6,sticky=W)
+        tk.Label(self.RightOptionsFrame, text="Derivative for heatmap:").grid(
+            column=0,row=rowidx+6,sticky=W)
         self.OptionsHeatmapdString = StringVar()
         self.OptionsHeatmapdString.set(self.opts.heatmapd)
-        self.OptionHeatmapd = OptionMenu(self.RightOptionsFrame, self.OptionsHeatmapdString,'0','1','2',
-                                 command=self.checkOptions)
+        self.OptionHeatmapd = tk.OptionMenu(self.RightOptionsFrame,
+            self.OptionsHeatmapdString,'0','1','2',
+            command=self.checkOptions)
         self.OptionHeatmapd.grid(column=0,row=rowidx+7,sticky=W)
-
-        # Label(self.RightOptionsFrame, text="Config file:%s" % self.opts.configfile).grid(column=0,row=rowidx+8,sticky=W)
-
-        # lbls = [
-        #     {'name': 'Columns', 'text': "Columns to parse:",
-        #      'tooltip': 'Columns from input data to parse as X/Y data.'},
-        #     {'name': 'Vcutoff', 'text': "Cuttoff for d2J/dV2:",
-        #      'tooltip': "Check the values of d2J/dV2 between |vcutoff| and Vmin/Vmax for line-shape filtering. Set to -1 for Vmin/Vmax."},
-        #     {'name': 'Lagcutoff', 'text': "Cuttoff for lag plot filter:",
-        #      'tooltip': "Throw out J-values whose euclidian distance from a linear fit of the lag plot exceed this value for computing filtered histograms."},
-        #     {'name': 'Smooth', 'text': "Smoothing parameter:",
-        #      'tooltip': "The cutoff value for the residual squares (the difference between experimental data points and the fit). The default is 1e-12. Set to 0 to disable smoothing."},
-        #     {'name': 'Gminmax', 'text': "Y-scale for G heatmap:",
-        #          'tooltip': "Set Ymin,Ymax for the heapmap plot (lower-left of plot output)."},
-        #     {'name': 'NDCminmax', 'text': "Y-scale for NDC heatmap:",
-        #          'tooltip': "Set Ymin,Ymax for the heapmap plot (lower-left of plot output)."},
-        #     {'name': 'Bins', 'text': "Bins for J/R Histograms:",
-        #      'tooltip': "Set binning for histograms of J and R."},
-        #     {'name': 'Heatmapbins', 'text': "Bins for G Histograms:",
-        #      'tooltip': "Set binning for heatmap histograms."},
-        #      {'name': 'Alpha', 'text': "⍺-value for CI:",
-        #       'tooltip': "The p-cutoff is 1-⍺, e.g., ⍺ = 0.05 => 95% cutoff."},
-        #     ]
-
-        # i = 0
-        # for l in lbls:
-        #     Label(self.LeftOptionsFrame, text=l['text']).grid(column=0,row=i)
-        #     entry = Entry(self.LeftOptionsFrame, width=8,
-        #             validate='focus', validatecommand=self.checkOptions)
-        #     entry.bind("<Return>", self.checkOptions)
-        #     entry.bind("<Leave>", self.checkOptions)
-        #     entry.bind("<Enter>", self.checkOptions)
-        #     entry.bind("<Tab>", self.checkOptions)
-        #     entry.grid(column=0,row=i+1)
-        #     createToolTip(entry, l['tooltip'])
-        #     setattr(self, 'Entry'+l['name'], entry)
-        #     i+=2
 
         self.checkOptions()
 
     def __createFileListBox(self):
         self.FileListBoxFrameLabelVar = StringVar()
-        self.FileListBoxFrameLabel = Label(self.FileListBoxFrame,\
+        self.FileListBoxFrameLabel = tk.Label(self.FileListBoxFrame,\
                 textvariable=self.FileListBoxFrameLabelVar,\
                 font=Font(size=10,weight="bold"))
         self.FileListBoxFrameLabel.pack(side=TOP,fill=X)
 
 
 
-        yScroll = Scrollbar(self.FileListBoxFrame,orient=VERTICAL)
+        yScroll = tk.Scrollbar(self.FileListBoxFrame,orient=VERTICAL)
         yScroll.pack(side=RIGHT,fill=Y)
-        xScroll = Scrollbar(self.FileListBoxFrame, orient=HORIZONTAL)
+        xScroll = tk.Scrollbar(self.FileListBoxFrame, orient=HORIZONTAL)
         xScroll.pack(side=BOTTOM,fill=X)
         self.filelist = StringVar()
-        self.FileListBox = Listbox(self.FileListBoxFrame, listvariable=self.filelist, selectmode=EXTENDED,
-                        height = 20, width = 0, relief=RAISED, bd=1,
-                            bg=WHITE,
-                                                        #font=Font(size=10),
-                            xscrollcommand=xScroll.set,
-                            yscrollcommand=yScroll.set)
+        self.FileListBox = Listbox(self.FileListBoxFrame,
+            listvariable=self.filelist, selectmode=EXTENDED,
+            height = 20, width = 0, relief=RAISED, bd=1,
+            bg=WHITE,
+            #font=Font(size=10),
+            xscrollcommand=xScroll.set,
+            yscrollcommand=yScroll.set)
         xScroll['command'] = self.FileListBox.xview
         yScroll['command'] = self.FileListBox.yview
         self.FileListBox.pack(side=LEFT, fill=BOTH, expand=True)
         self.UpdateFileListBoxFrameLabel()
 
     def ToFront(self):
+        '''Try to bring hte main window to the front on different platforms'''
         if platform.system() == "Darwin":
-            os.system('''/usr/bin/osascript -e 'tell app "Finder" to set frontmost of process "Python" to true' ''')
+            os.system('''/usr/bin/osascript -e 'tell app "Finder" to set frontmost of process "Python" to true' ''')#pylint: disable=line-too-long
         else:
             self.master.attributes('-topmost', 1)
             self.master.attributes('-topmost', 0)
@@ -267,10 +249,11 @@ class ChooseFiles(Frame):
         PreferencesWindow(self.master, self.opts)
 
     def Parse(self):
-        if len(self.gothreads):
+        '''Start the parser in a background thread and wait for it to complete.'''
+        if self.gothreads:
             self.ButtonParse['state']=DISABLED #pylint: disable=E1101
-            for c in self.gothreads:
-                if c.is_alive():
+            for _t in self.gothreads:
+                if _t.is_alive():
                     self.ButtonParse.after('500',self.Parse) #pylint: disable=E1101
                     return
             self.logger.info("Parse complete!")
@@ -297,6 +280,7 @@ class ChooseFiles(Frame):
             else:
                 self.logger.warning("No input files!")
         self.handler.flush()
+
     def RemoveFileClick(self):
         self.checkOptions()
         selected = [self.FileListBox.get(x) for x in self.FileListBox.curselection()]
@@ -364,98 +348,11 @@ class ChooseFiles(Frame):
         else:
             self.Check_plot["state"]=NORMAL #pylint: disable=E1101
 
-        # for n in (('Smooth',1e-12),('Bins',50),('Heatmapbins',25)):
-        #     try:
-        #         var = getattr(self,'Entry'+n[0]).get()
-        #         if 'Smooth' in n:
-        #             var = float(var)
-        #         else:
-        #             var = int(var)
-        #     except ValueError:
-        #         var = n[1]
-        #     if var == 0:
-        #         var = int(0)
-        #     if 'Smooth' in n:
-        #         if var >= 0:
-        #             setattr(self.opts,n[0].lower(),var)
-        #     elif var > 0:
-        #         setattr(self.opts,n[0].lower(),var)
-        #     getattr(self,'Entry'+n[0]).delete(0,END)
-        #     getattr(self,'Entry'+n[0]).insert(0,getattr(self.opts,n[0].lower()))
-
         self.opts.plots = self.OptionsPlotsString.get()
         self.opts.histplots = self.OptionsHistPlotsString.get()
         self.opts.heatmapd = int(self.OptionsHeatmapdString.get())
-        # self.checkGminmaxEntry()
-        # self.checkNDCminmaxEntry()
-        # self.checkOutputFileName()
-        # self.checkColumnEntry()
-        # self.checkVcutoffEntry()
-        # self.checkLagcutoffEntry()
-        # self.checkAlphaEntry()
 
-    # def checkVcutoffEntry(self):
-    #     try:
-    #         vcutoff = float(self.EntryVcutoff.get()) #pylint: disable=E1101
-    #         if vcutoff != -1:
-    #             vcutoff = abs(vcutoff)
-    #         self.opts.vcutoff = vcutoff
-    #     except ValueError:
-    #         self.opts.vcutoff = -1
 
-    #     self.EntryVcutoff.delete(0, END) #pylint: disable=E1101
-    #     if self.opts.vcutoff > 0:
-    #         self.EntryVcutoff.insert(0,self.opts.vcutoff) #pylint: disable=E1101
-    #     else:
-    #         self.EntryVcutoff.insert(0,"Vmax") #pylint: disable=E1101
-
-    # def checkLagcutoffEntry(self):
-    #     try:
-    #         lagcutoff = float(self.EntryLagcutoff.get()) #pylint: disable=E1101
-    #         self.opts.lagcutoff = abs(lagcutoff)
-    #     except ValueError:
-    #         self.opts.lagcutoff = 0.1
-
-    #     self.EntryLagcutoff.delete(0, END) #pylint: disable=E1101
-    #     self.EntryLagcutoff.insert(0,self.opts.lagcutoff) #pylint: disable=E1101
-
-    def checkOutputFileName(self, event=None):
+    def checkOutputFileName(self, event=None): # pylint: disable=unused-argument
         self.opts.outfile = self.OutputFileName.get()
         self.UpdateFileListBoxFrameLabel()
-
-    # def checkColumnEntry(self):
-    #     try:
-    #         x, y = self.EntryColumns.get().split(",") #pylint: disable=E1101
-    #         self.opts.xcol, self.opts.ycol = int(x)-1, int(y)-1
-    #     except ValueError:
-    #         pass
-    #     self.EntryColumns.delete(0, END) #pylint: disable=E1101
-    #     self.EntryColumns.insert(0, ",".join(( str(self.opts.xcol+1), str(self.opts.ycol+1) ))) #pylint: disable=E1101
-
-    # def checkGminmaxEntry(self):
-    #     try:
-    #         x, y = self.EntryGminmax.get().split(",") #pylint: disable=E1101
-    #         self.opts.mlow, self.opts.mhi = int(x), int(y)
-    #     except ValueError:
-    #         pass
-    #     self.EntryGminmax.delete(0, END) #pylint: disable=E1101
-    #     self.EntryGminmax.insert(0, ",".join( (str(self.opts.mlow), str(self.opts.mhi)) )) #pylint: disable=E1101
-
-    # def checkNDCminmaxEntry(self):
-    #     try:
-    #         x, y = self.EntryNDCminmax.get().split(",") #pylint: disable=E1101
-    #         self.opts.ndc_mlow, self.opts.ndc_mhi = float(x), float(y)
-    #     except ValueError:
-    #         pass
-    #     self.EntryNDCminmax.delete(0, END) #pylint: disable=E1101
-    #     self.EntryNDCminmax.insert(0, ",".join( (str(self.opts.ndc_mlow), str(self.opts.ndc_mhi)) )) #pylint: disable=E1101
-
-    # def checkAlphaEntry(self):
-    #     try:
-    #         alpha = float(self.EntryAlpha.get()) #pylint: disable=E1101
-    #         if 0 < alpha < 1:
-    #             self.opts.alpha = alpha
-    #     except ValueError:
-    #         pass
-    #     self.EntryAlpha.delete(0, END) #pylint: disable=E1101
-    #     self.EntryAlpha.insert(0,self.opts.alpha) #pylint: disable=E1101
