@@ -251,7 +251,10 @@ class Writer():
                 _maxtrace = 0
                 for trace in self.segments[segment]:
                     _maxtrace += 1
-                    headers += ["Log|J|","Standard Devaition","Standard Error of the Mean", "%s%% confidence interval" % (100*(1-self.opts.alpha)) ]
+                    headers += ["Log|J|",
+                        "Standard Devaition",
+                        "Standard Error of the Mean",
+                        "%s%% confidence interval" % (100*(1-self.opts.alpha)) ]
                     for x in self.segments[segment][trace]:
                         _hist = self.segments[segment][trace][x]
                         if x not in rows:
@@ -481,51 +484,6 @@ class Writer():
                     writer.writerow(row)
                 writer.writerow([])
 
-#    def WriteGMatrixold(self):
-#        '''Output for a matlab-style colormap maxtrix'''
-#        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_GMatrix.txt")
-#        with open(_fn, 'w', newline='') as csvfile:
-#            writer = csv.writer(csvfile, dialect='JV')
-#            x,y,z = [],[],[]
-#            for i in range(0, len(self.GHists[list(self.GHists.keys())[0]]['hist']['bin'])):
-#                for v in self.GHists:
-#                    x.append(v)
-#                    y.append(self.GHists[v]['hist']['bin'][i])
-#                    z.append(self.GHists[v]['hist']['freq'][i])
-#            x,y,z = np.array(x),np.array(y),np.array(z)
-#            xmin,xmax = x.min(),x.max()
-#            ymin,ymax = self.opts.mlow, self.opts.mhi
-#            xi=np.linspace(xmin,xmax,200)
-#            yi=np.linspace(ymin,ymax,200)
-#            X,Y= np.meshgrid(xi,yi)
-#            Z = griddata((x, y), z, (X, Y),fill_value=0,method='cubic')
-#
-#            #headers = ['MatrixData']
-#            #for x in X[0]:
-#            #   headers += ["%0.1f"%x]
-#            #writer.writerow(headers)
-#
-#            for i in range(0,len(Z)):
-#                zi = []
-#                for z in Z[i]:
-#                    if z < 0:
-#                        zi.append(0)
-#                    else:
-#                        zi.append(z)
-#                #writer.writerow( ['%0.1f'%Y[i][0]]+list(Z[i]) )
-#                #writer.writerow( ['%0.1f'%Y[i][0]]+zi )
-#                writer.writerow(zi)
-#        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_GMatrix_Labels.txt")
-#        with open(_fn, 'w', newline='') as csvfile:
-#            writer = csv.writer(csvfile, dialect='JV')
-#            headers = []
-#            for x in X[0]:
-#                headers += ["%0.4f"%x]
-#            writer.writerow(headers)
-#            headers = []
-#            for i in range(0,len(Y)):
-#                headers += ['%0.4f'%Y[i][0]]
-#            writer.writerow(headers)
 
     def WriteGMatrix(self, label):
         '''Write a matlab-style colormap maxtrix of G or NDC.'''
