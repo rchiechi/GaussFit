@@ -238,8 +238,7 @@ class Writer():
     def WriteSegmentedHistograms(self):
         '''Write histograms of values of J broken out by segment to catch
         hysteretic behavior without smearing it out.'''
-        #for segment in self.XY[list(self.XY.keys())[0]]['segmented']:
-        #TODO set num_segments in opts
+
         if not self.segments:
             logger.warning("No segments found.")
             return
