@@ -19,6 +19,7 @@ Description:
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
+#pylint: disable=line-too-long
 
 import os
 import warnings
@@ -27,20 +28,18 @@ import datetime
 import csv
 from shutil import copyfile
 import logging
-from scipy.special import stdtrit #pylint: disable=E0611
-# import matplotlib.pyplot as plt
 from gaussfit.colors import GREEN, TEAL, YELLOW, WHITE
-
 
 logger = logging.getLogger('output')
 loghandler = logging.StreamHandler()
 loghandler.setFormatter(logging.Formatter(\
-                fmt=GREEN+os.path.basename('%(name)s'+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
+    fmt=GREEN+os.path.basename('%(name)s'+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
 logger.addHandler(loghandler)
 
 try:
     import numpy as np
     from scipy.interpolate import griddata
+    from scipy.special import stdtrit #pylint: disable=E0611
 except ImportError as msg:
     pass #We catch numpy import errors in Parser.py
 warnings.filterwarnings('ignore','.*comparison.*',FutureWarning)
@@ -97,13 +96,15 @@ class Writer():
             headers = []
             #for x in self.XY: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x, \
             #        "Skew (%0.4f)"%x, "Kurtosis (%0.4f)"%x, "Skew test (%0.4f)"%x, "Skew pvalue (%0.4f)"%x]
-            for x in self.XY: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
+            for x in self.XY:
+                headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
             writer.writerow(headers)
             for i in range(0, len( self.XY[list(self.XY.keys())[0]]['hist']['bin'] ) ):
                 row = []
-                for x in self.XY: row += ["%0.4f"%self.XY[x]['hist']['bin'][i],
-                             "%s"%self.XY[x]['hist']['freq'][i],
-                             "%0.4f"%self.XY[x]['hist']['fit'][i]]
+                for x in self.XY:
+                    row += ["%0.4f"%self.XY[x]['hist']['bin'][i],
+                        "%s"%self.XY[x]['hist']['freq'][i],
+                        "%0.4f"%self.XY[x]['hist']['fit'][i]]
                 writer.writerow(row)
 
         _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms_stats.txt")
@@ -137,15 +138,18 @@ class Writer():
             writer = csv.writer(csvfile, dialect='JV')
             headers = []
             if self.opts.logr:
-                for x in self.XY: headers += ["log |R| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
+                for x in self.XY:
+                    headers += ["log |R| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
             else:
-                for x in self.XY: headers += ["|R| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
+                for x in self.XY:
+                    headers += ["|R| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
             writer.writerow(headers)
             for i in range(0, len( self.XY[list(self.XY)[0]]['R']['hist']['bin'] ) ):
                 row = []
-                for x in self.XY: row += ["%0.4f"%self.XY[x]['R']['hist']['bin'][i],
-                                 "%d"%self.XY[x]['R']['hist']['freq'][i],
-                                 "%0.4f"%self.XY[x]['R']['hist']['fit'][i]]
+                for x in self.XY:
+                    row += ["%0.4f"%self.XY[x]['R']['hist']['bin'][i],
+                    "%d"%self.XY[x]['R']['hist']['freq'][i],
+                    "%0.4f"%self.XY[x]['R']['hist']['fit'][i]]
                 writer.writerow(row)
 
         _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RHistograms_stats.txt")
@@ -168,13 +172,15 @@ class Writer():
         with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             headers = []
-            for x in self.XY: headers += ["log |dJ/dV| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
+            for x in self.XY:
+                headers += ["log |dJ/dV| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
             writer.writerow(headers)
             for i in range(0, len( self.GHists[list(self.GHists.keys())[0]]['hist']['bin'] ) ):
                 row = []
-                for x in self.GHists: row += ["%0.4f"%self.GHists[x]['hist']['bin'][i],
-                                 "%s"%self.GHists[x]['hist']['freq'][i],
-                             "%0.4f"%self.GHists[x]['hist']['fit'][i]]
+                for x in self.GHists:
+                    row += ["%0.4f"%self.GHists[x]['hist']['bin'][i],
+                        "%s"%self.GHists[x]['hist']['freq'][i],
+                        "%0.4f"%self.GHists[x]['hist']['fit'][i]]
                 writer.writerow(row)
 
         _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_LogdJdVHistograms_stats.txt")
@@ -203,13 +209,15 @@ class Writer():
             headers = []
             #for x in self.XY: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x, \
             #        "Skew (%0.4f)"%x, "Kurtosis (%0.4f)"%x, "Skew test (%0.4f)"%x, "Skew pvalue (%0.4f)"%x]
-            for x in self.XY: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
+            for x in self.XY:
+                headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
             writer.writerow(headers)
             for i in range(0, len( self.XY[list(self.XY.keys())[0]]['filtered_hist']['bin'] ) ):
                 row = []
-                for x in self.XY: row += ["%0.4f"%self.XY[x]['filtered_hist']['bin'][i],
-                             "%s"%self.XY[x]['filtered_hist']['freq'][i],
-                             "%0.4f"%self.XY[x]['filtered_hist']['fit'][i]]
+                for x in self.XY:
+                    row += ["%0.4f"%self.XY[x]['filtered_hist']['bin'][i],
+                        "%s"%self.XY[x]['filtered_hist']['freq'][i],
+                        "%0.4f"%self.XY[x]['filtered_hist']['fit'][i]]
                 writer.writerow(row)
 
         _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms_stats.txt")
@@ -388,8 +396,10 @@ class Writer():
 
     def WriteData(self, log=False):
         '''Write LogJ or LogY (where Y is the generic Y-axis data) plotted against potential.'''
-        if log: key,label ='LogY','LogJ'
-        else:   key, label ='Y','J'
+        if log:
+            key,label ='LogY','LogJ'
+        else:
+            key, label ='Y','J'
         _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt")
         with open(_fn,'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
@@ -549,9 +559,9 @@ class Writer():
             X,Y= np.meshgrid(xi,yi)
             Z = griddata((x, y), z, (X, Y),fill_value=0,method='cubic')
 
-            for i in range(0,len(Z)):
+            for _t in enumerate(Z):
                 zi = []
-                for z in Z[i]:
+                for z in _t[1]:
                     if z < 0:
                         zi.append(0)
                     else:
@@ -565,14 +575,14 @@ class Writer():
                 headers += ["%0.4f"%x]
             writer.writerow(headers)
             headers = []
-            for i in range(0,len(Y)):
-                headers += ['%0.4f'%Y[i][0]]
+            for _t in enumerate(Y):
+                headers += ['%0.4f'%_t[1][0]]
             writer.writerow(headers)
 
     def WriteGeneric(self, dataset, bfn, labels=None):
         '''Write a generic set of data expecting an n-dimensional array'''
         labels = labels or []
-        if len(labels) and len(labels) != len(dataset):
+        if labels and len(labels) != len(dataset):
             logger.error("Length of column labels does not match number of data columns for WriteGeneric!")
             return
 
@@ -590,8 +600,8 @@ class Writer():
 
             for n in range(0, lencola):
                 row = []
-                for i in range(0,len(dataset)):
-                    row.append(dataset[i][n])
+                for _t in enumerate(dataset):
+                    row.append(_t[1][n])
                 writer.writerow(row)
 
 
