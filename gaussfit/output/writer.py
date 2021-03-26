@@ -68,11 +68,12 @@ class Writer():
         used to parse the input data.'''
         _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_parseinfo.txt")
         with open(_fn, 'a') as _fh:
-            _fh.write("Parsed: %s\n" % str(datetime.datetime.today().ctime()) )
+            _fh.write("Parsed: %s\n***\n" % str(datetime.datetime.today().ctime()) )
             _t = str(vars(self.opts))
             _t = _t.replace(",","\n").replace("[","\n[")
             _fh.write(_t)
             _fh.write(extra+"\n")
+            _fh.write("\n***\n")
 
     def WriteSummary(self):
         '''Write a summary of the traces that were parsed.'''
