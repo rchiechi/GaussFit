@@ -26,7 +26,7 @@ class PreferencesFrame(tk.Frame):
         self.opts = opts
         self.master.tk_setPalette(background=GREY,
             activeBackground=GREY)
-        self.master.geometry('800x800+250-250')
+        self.master.geometry('400x400+250-250')
         self.pack(fill=BOTH)
         self.__createFrames()
         self.__createButtons()

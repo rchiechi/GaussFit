@@ -69,7 +69,7 @@ class ChooseFiles(tk.Frame):
         self.master.tk_setPalette(background=GREY,
             activeBackground=GREY)
         self.master.title("RCCLab EGaIn Data Parser")
-        self.master.geometry('1000x1400+250-250')
+        self.master.geometry('700x800+250-250')
         self.pack(fill=BOTH)
         self.__createWidgets()
         self.ToFront()
