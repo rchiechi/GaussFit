@@ -124,7 +124,7 @@ class ChooseFiles(tk.Frame):
             button = tk.Button(self.ButtonFrame)
             button.config(text=b['text'],command=getattr(self,b['name']+'Click'))
             button.pack(side=b['side'])
-            setattr(self,'tk.Button'+b['name'],button)
+            setattr(self,'Button'+b['name'],button)
 
 
     def __createOptions(self):
