@@ -566,16 +566,18 @@ class Parse():
                     _seg = 3
 
                 if _seg not in segments:
-                    segments[_seg] = {}
+                    segments[_seg] = {'combined':{}}
 
                 if _trace not in segments[_seg]:
                     segments[_seg][_trace] = {}
 
                 if V not in segments[_seg][_trace]:
                     segments[_seg][_trace][V] = []
-
+                if V not in segments[_seg]['combined']:
+                    segments[_seg]['combined'][V] = []
                 _last_V = V
                 segments[_seg][_trace][V].append(J)
+                segments[_seg]['combined'][V].append(J)
 
         if len(segments.keys()) != 4:
             self.error = True
@@ -586,7 +588,7 @@ class Parse():
         segmenthists = {}
         for _seg in segments:
             if _seg not in segmenthists:
-                segmenthists[_seg] = {}
+                segmenthists[_seg] = {'combined':{}}
             for _trace in segments[_seg]:
                 self.logger.debug('Segment: %s, Trace: %s' , _seg,_trace)
                 if _trace not in segmenthists[_seg]:
@@ -596,6 +598,11 @@ class Parse():
                         segmenthists[_seg][_trace][_V] = {}
                     segmenthists[_seg][_trace][_V] = self.__dohistogram(
                         np.array(segments[_seg][_trace][_V]), label='Segmented')
+            for _V in segments[_seg]['combined']:
+                if _V not in segmenthists[_seg]['combined']:
+                        segmenthists[_seg]['combined'][_V] = {}
+                segmenthists[_seg]['combined'][_V] = self.__dohistogram(
+                        np.array(segments[_seg]['combined'][_V]), label='Segmented')
 
         self.segments = segmenthists
 
