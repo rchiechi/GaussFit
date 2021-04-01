@@ -252,7 +252,7 @@ class Writer():
                 for trace in self.segments[segment]:
                     _maxtrace += 1
                     headers += ["Log|J|",
-                        "Standard Devaition",
+                        "Standard Deviation",
                         "Standard Error of the Mean",
                         "%s%% confidence interval" % (100*(1-self.opts.alpha)) ]
                     for x in self.segments[segment][trace]:
@@ -326,7 +326,7 @@ class Writer():
             writer = csv.writer(csvfile, dialect='JV')
             writer.writerow(["Potential (V)",
                             "Log|J|",
-                            "Standard Devaition",
+                            "Standard Deviation",
                             "Standard Error of the Mean",
                             "%s%% confidence interval" % (100*(1-self.opts.alpha))])
             #Y = []
@@ -346,7 +346,7 @@ class Writer():
             writer = csv.writer(csvfile, dialect='JV')
             writer.writerow(["Potential (V)",
                             "Log|J|",
-                            "Standard Devaition",
+                            "Standard Deviation",
                             "Standard Error of the Mean",
                             "%s%% confidence interval" % (100*(1 - self.opts.alpha)) ])
             #Y = []
@@ -373,7 +373,7 @@ class Writer():
         _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_logdJdVGauss.txt")
         with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
-            writer.writerow(["Potential (V)","Log|dJ/dV|","Standard Devaition"])
+            writer.writerow(["Potential (V)","Log|dJ/dV|","Standard Deviation"])
             #Y = []
             #Yerr = []
             for x in self.GHists:
@@ -381,7 +381,7 @@ class Writer():
         _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_NDCGauss.txt")
         with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
-            writer.writerow(["Potential (V)","dJ/dV * V/J","Standard Devaition"])
+            writer.writerow(["Potential (V)","dJ/dV * V/J","Standard Deviation"])
             #Y = []
             #Yerr = []
             for x in self.GHists:
