@@ -278,7 +278,7 @@ class Writer():
         #TODO: Don't just repeat the whole code block
         for segment in self.segments:
             rows = {}
-            _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Gauss_Segments_Combined.txt" % str(segment+1))
+            _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Gauss_Segments_Combined_%s.txt" % str(segment+1))
             with open(_fn, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile, dialect='JV')
                 headers = ["Potential (V)",
