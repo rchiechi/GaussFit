@@ -268,7 +268,9 @@ class Writer():
 
 
                 writer.writerow(headers)
-                for x in rows:
+                _V = list(rows.keys())
+                _V.sort()
+                for x in _V:
                     while len(rows[x]) < _maxtrace * 3:
                         rows[x] += ['-','-','-']
                         logger.warning('Filling columns for segment %i, V=%s to match %s traces.', segment, x, _maxtrace)
