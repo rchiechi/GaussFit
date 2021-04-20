@@ -250,6 +250,9 @@ class Writer():
                 headers = ["Potential (V)"]
                 _maxtrace = 0
                 for trace in self.segments[segment]:
+                    #TODO: Fix this hack
+                    if trace == 'combined':
+                        continue
                     _maxtrace += 1
                     headers += ["Log|J|",
                         "Standard Deviation",
