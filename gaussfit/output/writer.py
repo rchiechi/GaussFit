@@ -415,8 +415,8 @@ class Writer():
             writer = csv.writer(csvfile, dialect='JV')
             writer.writerow(["Potential (V)",
                              "Log|dJ/dV|",
-                            "Standard Deviation"],
-                            "%s%% confidence interval" % (100*(1 - self.opts.alpha)))
+                            "Standard Deviation",
+                            "%s%% confidence interval" % (100*(1 - self.opts.alpha))])
             for x in self.GHists:
                 _sem = float(self.GHists[x]['hist']['std'])/np.sqrt(len(self.opts.in_files)-1 or 1)
                 _t_val = _sem * stdtrit( len(self.opts.in_files)-1 or 1, 1 - self.opts.alpha )
