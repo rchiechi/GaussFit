@@ -40,6 +40,8 @@ logger.addHandler(loghandler)
 try:
     import numpy as np
     from scipy.interpolate import griddata
+    from scipy.special import stdtrit #pylint: disable=E0611
+    from matplotlib import container
 except ImportError as msg:
     pass #We catch numpy import errors in Parser.py
 warnings.filterwarnings('ignore','.*comparison.*',FutureWarning)
@@ -96,6 +98,40 @@ class Plotter():
         #   ax.set_ylim(allY.min(),allY.max())
         ax.axis([xax.min(), xax.max(), allY.min(),allY.max()])
 
+    def PlotSegmentedGauss(self, ax):
+        '''Plot segmented J/V data'''
+        ax.set_title("Semilog Plots of |J| by Trace")
+        ax.set_ylabel(r'Current Density $log_{10}|J(\mathrm{A cm}^{-2})|$')
+        ax.set_xlabel(r'Potential (V)')
+        X,Y={},{}
+        Yerr={}
+        for segment in self.segments:
+            for trace in self.segments[segment]:
+                #TODO: Fix this hack
+                if trace == 'combined':
+                    continue
+                if trace not in X:
+                    X[trace] = []
+                    Y[trace] = []
+                    Yerr[trace] = []
+                for x in self.segments[segment][trace]:
+                    X[trace].append(x)
+                    _hist = self.segments[segment][trace][x]
+                    Y[trace].append(_hist['mean'])
+                    _sem = float(_hist['std'])/np.sqrt(len(self.opts.in_files)-1 or 1)
+                    _t_val = _sem * stdtrit( len(self.opts.in_files)-1 or 1, 1 - self.opts.alpha )
+                    Yerr[trace].append(_t_val)
+        for trace in Y:
+            ax.errorbar(X[trace],
+                        Y[trace],
+                        yerr=Yerr[trace],
+                        lw=1.25,
+                        elinewidth=0.25,
+                        capsize=0.5,
+                        label='Trace %s' % (trace+1))
+        handles, labels = ax.get_legend_handles_labels()
+        handles = [h[0] if isinstance(h, container.ErrorbarContainer) else h for h in handles]
+        ax.legend(handles, labels)
     def PlotR(self, ax):
         if self.opts.logr:
             ax.set_title("Semilog Plot of |R|")
@@ -107,7 +143,9 @@ class Plotter():
         Y, Yerr = [],[]
         for x in self.XY:
             Y.append(self.XY[x]['R']["hist"]["mean"])
-            Yerr.append(self.XY[x]['R']["hist"]["std"])
+            _sem = float(self.XY[x]['R']["hist"]["std"])/np.sqrt(len(self.opts.in_files)-1 or 1)
+            _t_val = _sem * stdtrit( len(self.opts.in_files)-1 or 1, 1 - self.opts.alpha )
+            Yerr.append(_t_val)
         ax.errorbar(list(self.XY), Y,  yerr=Yerr, marker='o', lw=0.0, color='k')
 
     def PlotRFit(self,ax):
@@ -244,7 +282,8 @@ class Plotter():
         elif self.opts.plots == 'R':
             self.PlotRFit(ax1)
             self.PlotR(ax2)
-        self.PlotVtrans(ax4)
+        #self.PlotVtrans(ax4)
+        self.PlotSegmentedGauss(ax4)
         if self.opts.histplots == 'NDC':
             self.PlotNDC(ax3)
         elif self.opts.histplots == 'G':

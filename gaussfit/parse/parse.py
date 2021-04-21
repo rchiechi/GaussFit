@@ -131,7 +131,7 @@ class Parse():
         writer.WriteVT()
         writer.WriteGNUplot('VTplot')
         writer.WriteGauss()
-        writer.WriteSegmentedHistograms()
+        writer.WriteSegmentedGauss()
         writer.WriteFilteredGauss()
         writer.WriteGNUplot('JVplot')
         writer.WriteGNUplot('NDCplot')
