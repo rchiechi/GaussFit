@@ -235,7 +235,7 @@ class Writer():
                          "%0.4f"%self.XY[x]['filtered_hist']['kurtpval']]
                 writer.writerow(row)
 
-    def WriteSegmentedHistograms(self):
+    def WriteSegmentedGauss(self):
         '''Write histograms of values of J broken out by segment to catch
         hysteretic behavior without smearing it out.'''
 
