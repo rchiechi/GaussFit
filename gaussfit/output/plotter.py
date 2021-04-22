@@ -114,7 +114,9 @@ class Plotter():
                     X[trace] = []
                     Y[trace] = []
                     Yerr[trace] = []
-                for x in self.segments[segment][trace]:
+                _x = self.segments[segment][trace]
+                _x.sort()
+                for x in _x:
                     X[trace].append(x)
                     _hist = self.segments[segment][trace][x]
                     Y[trace].append(_hist['mean'])
@@ -293,5 +295,3 @@ class Plotter():
         #self.PlotData('FN', ax3, 'x', ms=2)
         #self.PlotData('Y', ax1, '-')
         #self.PlotDJDV(ax1)
-
-
