@@ -289,7 +289,7 @@ class Plotter():
             self.PlotR(ax2)
         #self.PlotVtrans(ax4)
         self.PlotSegmentedGauss(ax4)
-        ax4.ylim(ax2.ylim())
+        ax4.set_ylim(ax2.get_ylim())
         if self.opts.histplots == 'NDC':
             self.PlotNDC(ax3)
         elif self.opts.histplots == 'G':
