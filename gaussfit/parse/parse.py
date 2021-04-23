@@ -88,8 +88,9 @@ class Parse():
     NDCHists = OrderedDict()
     filtered = []
     R = {}
-    traces = {}
+    # traces = {}
     segments = {}
+    nofirsttrace = {}
 
     def __init__(self,opts,handler=None,lock=None):
         self.opts = opts
@@ -529,6 +530,8 @@ class Parse():
             if self.df.V.value_counts()[0] % 3 != 0:
                 self.logger.warning("Dataset does not seem to have four segments.")
             segments = {}
+            # bytrace = {}
+            nofirsttrace = {}
             self.logger.info("Breaking out traces by segments of 0V -> Vmin/max.")
         except KeyError:
             self.logger.error("Could not segment data by 0's.")
@@ -571,13 +574,26 @@ class Parse():
                 if _trace not in segments[_seg]:
                     segments[_seg][_trace] = {}
 
+                # if _trace not in bytrace:
+                #     bytrace[_trace] = {}
+
                 if V not in segments[_seg][_trace]:
                     segments[_seg][_trace][V] = []
+                
                 if V not in segments[_seg]['combined']:
                     segments[_seg]['combined'][V] = []
+
+                if V not in bytrace[_trace]:
+                    bytrace[_trace][V] = []
                 _last_V = V
                 segments[_seg][_trace][V].append(J)
                 segments[_seg]['combined'][V].append(J)
+                # bytrace[_trace][V].append(J)
+
+                if V not in nofirsttrace:
+                    nofirsttrace[V] =[]
+                if _trace > 0:
+                    nofirsttrace[V].append(J)
 
         if len(segments.keys()) != 4:
             self.error = True
@@ -600,12 +616,26 @@ class Parse():
                         np.array(segments[_seg][_trace][_V]), label='Segmented')
             for _V in segments[_seg]['combined']:
                 if _V not in segmenthists[_seg]['combined']:
-                        segmenthists[_seg]['combined'][_V] = {}
+                    segmenthists[_seg]['combined'][_V] = {}
                 segmenthists[_seg]['combined'][_V] = self.__dohistogram(
-                        np.array(segments[_seg]['combined'][_V]), label='Segmented')
+                    np.array(segments[_seg]['combined'][_V]), label='Segmented')
+
+        nofirsttracehists = {}
+        for _V in nofirsttrace:
+            nofirsttracehists[_V] = self.__dohistogram(
+                np.array(nofirsttracehists[_V]), label='NoFirstTrace')
+
+        # tracehists = {}
+        # for _trace in bytrace:
+        #     if _trace not in tracehists:
+        #         tracehists[_trace] = {}
+        #     for _V in bytrace[_trace]:
+        #         tracehists[_trace][_V] = self.__dohistogram(
+        #                 np.array(bytrace[_trace][_V]), label='ByTrace')
 
         self.segments = segmenthists
-
+        self.nofirsttrace = nofirsttracehists
+        # self.bytrace = tracehists
 
     def __dodjdv(self):
         '''
