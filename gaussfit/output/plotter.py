@@ -103,6 +103,7 @@ class Plotter():
         ax.set_title("Semilog Plots of |J| by Trace")
         ax.set_ylabel(r'Current Density $log_{10}|J(\mathrm{A cm}^{-2})|$')
         ax.set_xlabel(r'Potential (V)')
+        ax.set_ylim(-8,-1)
         X,Y={},{}
         Yerr={}
         for segment in self.segments:
