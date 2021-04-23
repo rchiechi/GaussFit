@@ -623,7 +623,7 @@ class Parse():
         nofirsttracehists = {}
         for _V in nofirsttrace:
             nofirsttracehists[_V] = self.__dohistogram(
-                np.array(nofirsttracehists[_V]), label='NoFirstTrace')
+                np.array(nofirsttrace[_V]), label='NoFirstTrace')
 
         # tracehists = {}
         # for _trace in bytrace:
