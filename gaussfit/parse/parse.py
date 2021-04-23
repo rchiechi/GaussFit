@@ -583,8 +583,8 @@ class Parse():
                 if V not in segments[_seg]['combined']:
                     segments[_seg]['combined'][V] = []
 
-                if V not in bytrace[_trace]:
-                    bytrace[_trace][V] = []
+                # if V not in bytrace[_trace]:
+                #     bytrace[_trace][V] = []
                 _last_V = V
                 segments[_seg][_trace][V].append(J)
                 segments[_seg]['combined'][V].append(J)
