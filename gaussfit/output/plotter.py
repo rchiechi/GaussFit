@@ -114,9 +114,9 @@ class Plotter():
                     X[trace] = []
                     Y[trace] = []
                     Yerr[trace] = []
-                _x = self.segments[segment][trace]
-                _x.sort()
-                for x in _x:
+                # _x = list(self.segments[segment][trace].keys())
+                # _x.sort()
+                for x in self.segments[segment][trace]:
                     X[trace].append(x)
                     _hist = self.segments[segment][trace][x]
                     Y[trace].append(_hist['mean'])
@@ -127,7 +127,8 @@ class Plotter():
             ax.errorbar(X[trace],
                         Y[trace],
                         yerr=Yerr[trace],
-                        lw=1.25,
+                        marker='o',
+                        lw=0,
                         elinewidth=0.25,
                         capsize=0.5,
                         label='Trace %s' % (trace+1))
