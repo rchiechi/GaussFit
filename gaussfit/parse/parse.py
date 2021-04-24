@@ -90,7 +90,7 @@ class Parse():
     R = {}
     # traces = {}
     segments = {}
-    nofirsttrace = {}
+    # nofirsttrace = {}
 
     def __init__(self,opts,handler=None,lock=None):
         self.opts = opts
@@ -264,7 +264,7 @@ class Parse():
         self.__findsegments()
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.loghandler.flush()
-        self.__findtraces()
+        nofirsttraces = self.__findtraces()
 
         if self.error:
             self.logger.error('Cannot compute statistics from these traces.')
@@ -293,6 +293,8 @@ class Parse():
             self.XY[x] = { "Y":group['J'],
                    "LogY":group['logJ'],
                    "hist":self.__dohistogram(group['logJ'],"J"),
+                   "LogY_nofirst": nofirsttraces[x],
+                   "hist_nofirst": self.__dohistogram(nofirsttraces[x],"J"),
                    "filtered_hist":self.__dohistogram(lag[x]['filtered'],"lag"),
                    "lag":lag[x]['lagplot'],
                    "FN": group['FN'],
@@ -620,10 +622,10 @@ class Parse():
                 segmenthists[_seg]['combined'][_V] = self.__dohistogram(
                     np.array(segments[_seg]['combined'][_V]), label='Segmented')
 
-        nofirsttracehists = {}
-        for _V in nofirsttrace:
-            nofirsttracehists[_V] = self.__dohistogram(
-                np.array(nofirsttrace[_V]), label='NoFirstTrace')
+        # nofirsttracehists = {}
+        # for _V in nofirsttrace:
+        #     nofirsttracehists[_V] = self.__dohistogram(
+        #         np.array(nofirsttrace[_V]), label='NoFirstTrace')
 
         # tracehists = {}
         # for _trace in bytrace:
@@ -634,7 +636,7 @@ class Parse():
         #                 np.array(bytrace[_trace][_V]), label='ByTrace')
 
         self.segments = segmenthists
-        self.nofirsttrace = nofirsttracehists
+        return nofirsttrace
         # self.bytrace = tracehists
 
     def __dodjdv(self):
