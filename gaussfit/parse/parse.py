@@ -623,9 +623,8 @@ class Parse():
                     np.array(segments[_seg]['combined'][_V]), label='Segmented')
 
         # nofirsttracehists = {}
-        # for _V in nofirsttrace:
-        #     nofirsttracehists[_V] = self.__dohistogram(
-        #         np.array(nofirsttrace[_V]), label='NoFirstTrace')
+        for _V in nofirsttrace:
+            nofirsttrace[_V] = np.array(nofirsttrace[_V])
 
         # tracehists = {}
         # for _trace in bytrace:
