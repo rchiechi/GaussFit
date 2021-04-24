@@ -261,10 +261,10 @@ class Parse():
             return
         self.logger.info("* * * * * * Finding segments   * * * * * * * *")
         self.loghandler.flush()
-        self.__findsegments()
+        nofirsttraces = self.__findsegments()
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.loghandler.flush()
-        nofirsttraces = self.__findtraces()
+        self.__findtraces()
 
         if self.error:
             self.logger.error('Cannot compute statistics from these traces.')
