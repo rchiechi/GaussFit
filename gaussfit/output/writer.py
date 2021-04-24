@@ -94,8 +94,6 @@ class Writer():
         with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             headers = []
-            #for x in self.XY: headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x, \
-            #        "Skew (%0.4f)"%x, "Kurtosis (%0.4f)"%x, "Skew test (%0.4f)"%x, "Skew pvalue (%0.4f)"%x]
             for x in self.XY:
                 headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
             writer.writerow(headers)
@@ -106,6 +104,22 @@ class Writer():
                         "%s"%self.XY[x]['hist']['freq'][i],
                         "%0.4f"%self.XY[x]['hist']['fit'][i]]
                 writer.writerow(row)
+
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms_noFirstTraces.txt")
+        with open(_fn, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile, dialect='JV')
+            headers = []
+            for x in self.XY:
+                headers += ["Log |J| (%0.4f)"%x, "Frequency (%0.4f)"%x, "Fit (%0.4f)"%x]
+            writer.writerow(headers)
+            for i in range(0, len( self.XY[list(self.XY.keys())[0]]['hist_nofirst']['bin'] ) ):
+                row = []
+                for x in self.XY:
+                    row += ["%0.4f"%self.XY[x]['hist_nofirst']['bin'][i],
+                        "%s"%self.XY[x]['hist_nofirst']['freq'][i],
+                        "%0.4f"%self.XY[x]['hist_nofirst']['fit'][i]]
+                writer.writerow(row)
+
 
         _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Histograms_stats.txt")
         with open(_fn, 'w', newline='') as csvfile:
@@ -390,6 +404,27 @@ class Writer():
                         '%0.4f'%self.XY[x]['hist']['std'],
                         '%0.4f'% _sem,
                         '%0.4f'% (_sem * stdtrit( len(self.opts.in_files)-1 or 1, 1 - self.opts.alpha )) ])
+                        
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Gauss_noFirstTraces.txt")
+        with open(_fn, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile, dialect='JV')
+            writer.writerow(["Potential (V)",
+                            "Log|J|",
+                            "Standard Deviation",
+                            "Standard Error of the Mean",
+                            "%s%% confidence interval" % (100*(1 - self.opts.alpha)) ])
+
+            for x in self.XY:
+                _sem = self.XY[x]['hist_nofirst']['std']/np.sqrt(len(self.opts.in_files)-1 or 1)
+                writer.writerow([
+                        '%0.4f'%x,
+                        '%0.4f'%self.XY[x]['hist_nofirst']['mean'],
+                        '%0.4f'%self.XY[x]['hist_nofirst']['std'],
+                        '%0.4f'% _sem,
+                        '%0.4f'% (_sem * stdtrit( len(self.opts.in_files)-1 or 1, 1 - self.opts.alpha )) ])
+                        
+                        
+                                                
         _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_RGauss.txt")
         with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
