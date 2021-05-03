@@ -554,7 +554,7 @@ class Parse():
             _n_traces = int(self.df.V.value_counts()[0] / 3)
 
             for _i in self.df.loc[_fn].index:
-                J = self.df.loc[_fn]['logJ'][_i]
+                J = self.df.loc[_fn]['J'][_i]
                 V = self.df.loc[_fn]['V'][_i]
 
                 if _trace > _n_traces:
@@ -617,12 +617,12 @@ class Parse():
                     if _V not in segmenthists[_seg][_trace]:
                         segmenthists[_seg][_trace][_V] = {}
                     segmenthists[_seg][_trace][_V] = self.__dohistogram(
-                        np.array(segments[_seg][_trace][_V]), label='Segmented')
+                        [np.log10(abs(_j)) for _j in np.array(segments[_seg][_trace][_V])], label='Segmented')
             for _V in segments[_seg]['combined']:
                 if _V not in segmenthists[_seg]['combined']:
                     segmenthists[_seg]['combined'][_V] = {}
                 segmenthists[_seg]['combined'][_V] = self.__dohistogram(
-                    np.array(segments[_seg]['combined'][_V]), label='Segmented')
+                   [np.log10(abs(_j)) for _j in  np.array(segments[_seg]['combined'][_V])], label='Segmented')
 
         # nofirsttracehists = {}
         for _V in nofirsttrace:
