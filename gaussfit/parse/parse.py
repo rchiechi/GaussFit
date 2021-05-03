@@ -287,7 +287,6 @@ class Parse():
         self.logger.info("* * * * * * Computing |R|  * * * * * * * * *")
         self.loghandler.flush()
         R = self.dorect(xy)
-        R_nofirst = self.dorect(nofirsttraces)
         self.logger.info("* * * * * * Computing Gaussian  * * * * * * * * *")
         self.loghandler.flush()
         for x, group in xy:
