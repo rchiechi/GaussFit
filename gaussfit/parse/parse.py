@@ -24,7 +24,7 @@ Description:
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
-#pylint: disable=line-too-long
+# pylint: disable=line-too-long
 
 import sys
 import os
@@ -36,17 +36,17 @@ from collections import OrderedDict
 from .util import signedgmean, gauss, getdistances, printFN, lorenz
 from ..colors import RED, WHITE, GREEN, TEAL, YELLOW, RS
 from ..logger import DelayedHandler
-#import concurrent.futures
+# import concurrent.futures
 
 try:
     import pandas as pd
-    from scipy.optimize import curve_fit,OptimizeWarning
+    from scipy.optimize import curve_fit, OptimizeWarning
     import scipy.interpolate
-    from scipy.stats import linregress,skew,skewtest,kurtosis,kurtosistest
+    from scipy.stats import linregress, skew,skewtest,kurtosis,kurtosistest
     import scipy.misc
     import numpy as np
     # SciPy throws a useless warning for noisy J/V traces
-    warnings.filterwarnings('ignore','.*Covariance of the parameters.*',OptimizeWarning)
+    warnings.filterwarnings('ignore', '.*Covariance of the parameters.*', OptimizeWarning)
 
 except ImportError as msg:
     print("\n\t\t%s> > > Error importing numpy/pandas/scipy! %s%s%s < < <%s"
@@ -54,12 +54,12 @@ except ImportError as msg:
     print("Try pip3 install <module>")
     sys.exit()
 
-warnings.filterwarnings('ignore','.*divide by zero.*',RuntimeWarning)
-warnings.filterwarnings('ignore','.*',UserWarning)
+warnings.filterwarnings('ignore', '.*divide by zero.*',RuntimeWarning)
+warnings.filterwarnings('ignore', '.*',UserWarning)
 #warnings.filterwarnings('ignore','.*invalid value encountered in log.*',RuntimeWarning)
 #warnings.filterwarnings('ignore','.*invalid value encountered in true_divide.*',RuntimeWarning)
-warnings.filterwarnings('ignore','.*invalid value encountered.*',RuntimeWarning)
-warnings.filterwarnings('ignore','.*Mean of empty slice.*', RuntimeWarning)
+warnings.filterwarnings('ignore', '.*invalid value encountered.*',RuntimeWarning)
+warnings.filterwarnings('ignore', '.*Mean of empty slice.*', RuntimeWarning)
 #warnings.filterwarnings('error','.*Degrees of freedom <= 0 for slice.*', RuntimeWarning)
 #warnings.filterwarnings('ignore','.*impossible result.*',UserWarning)
 
@@ -182,9 +182,11 @@ class Parse():
                         frames[f] = pd.read_csv(f,sep=self.opts.delim,
                                 usecols=(_x,_y))[[_x,_y]]
                         frames[f].rename(columns = {_x:'V', _y:'J'}, inplace = True)
+                        # self.logger.debug("Renaming headers %s -> V, %s -> J" % (_x, _y))
                     elif self.opts.X > self.opts.Y:
                         raise pd.errors.ParserError("xcol cannot be greater than ycol without column headers.")
                     else:
+                        # self.logger.debug("No headers, manually setting V/J")
                         frames[f] = pd.read_csv(f,sep=self.opts.delim,
                                                 usecols=(self.opts.xcol,
                                                         self.opts.ycol),
@@ -198,10 +200,15 @@ class Parse():
             self.logger.info("Parsing all columns of data.")
             for f in fns:
                 try:
-                    _df = pd.read_csv(f,sep=self.opts.delim,index_col=self.opts.xcol,header=0)
+                    _df = pd.read_csv(f,sep=self.opts.delim,
+                        index_col=self.opts.xcol,
+                        header=0,
+                        error_bad_lines=False,
+                        warn_bad_lines=False)
                     i = 0
                     for col in _df:
                         frames['%s_%.2d' % (f,i)] = pd.DataFrame({'V':_df.index,'J':_df[col]})
+                        # self.logger.debug("Adding frame %s_%.2d" % (f,i) )
                         i += 1
                 except OSError as msg:
                     self.logger.warning("Skipping %s because %s" , f,str(msg))
@@ -220,6 +227,7 @@ class Parse():
             sys.exit()
         # Create main dataframe and parse it
         self.df = pd.concat(frames)
+        # print(self.df)
         self.__parse(parse)
 
     def readpandas(self,df,parse):
@@ -294,14 +302,20 @@ class Parse():
                    "Y":group['J'],
                    "LogY":group['logJ'],
                    "hist":self.__dohistogram(group['logJ'],"J"),
-                   "Y_nofirst": nofirsttraces[x],
-                   "LogY_nofirst": [np.log10(abs(_x)) for _x in nofirsttraces[x]],
-                   "hist_nofirst": self.__dohistogram(nofirsttraces[x],"J"),
+                   "Y_nofirst": [0],
+                   "LogY_nofirst": [0],
+                   "hist_nofirst": self.__dohistogram(np.array([0]),"J"),
                    "filtered_hist":self.__dohistogram(lag[x]['filtered'],"lag"),
                    "lag":lag[x]['lagplot'],
                    "FN": group['FN'],
                    "R": R[x]
                     }
+        if nofirsttraces:
+            for x, group in xy:
+                self.XY[x]["Y_nofirst"] = nofirsttraces[x]
+                self.XY[x]["LogY_nofirst"] = [np.log10(abs(_x)) for _x in nofirsttraces[x]]
+                self.XY[x]["hist_nofirst"] = self.__dohistogram(nofirsttraces[x],"J")
+                    
         self.logger.info("* * * * * * Computing |V^2/J|  * * * * * * * * *")
         self.loghandler.flush()
         for x in self.XY:
@@ -526,10 +540,10 @@ class Parse():
         # NOTE this is a crude hack because I forgot how Pandas works
         if self.opts.tracebyfile:
             self.logger.error("Cannot generate segments from non-EGaIn dataset.")
-            return
+            return {}
         if self.opts.ycol < 0:
             self.logger.warning("Cannot find segments when all columns are parsed.")
-            return
+            return {}
         try:
             if self.df.V.value_counts()[0] % 3 != 0:
                 self.logger.warning("Dataset does not seem to have four segments.")

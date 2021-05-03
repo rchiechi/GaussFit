@@ -182,9 +182,9 @@ if len(Opts.in_files) and not Opts.outfile:
         Opts.outfile = Opts.in_files[0]
 
 
-# if Opts.Xcol > Opts.Ycol:
-#       print(RED+"Due to funniness with pandas, Xcol must be greater thatn Ycol."+RS)
-#       sys.exit()
+if Opts.xcol == Opts.ycol:
+       print(RED+"Xcol and Ycol must be different."+RS)
+       sys.exit()
 
 if Opts.xcol < 1:
     print(RED+"Xcolum must be greater than 0."+RS)
