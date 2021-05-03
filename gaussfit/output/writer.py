@@ -483,12 +483,12 @@ class Writer():
             for x in self.XY:
                 writer.writerow(['%f'%x,'%f'%self.XY[x]['VT']])
 
-    def WriteData(self):
+    def WriteData(self, log=False):
         '''Write LogJ or LogY (where Y is the generic Y-axis data) plotted against potential.'''
-        #if log:
-        key,label ='LogY','LogJ'
-        #else:
-        #    key, label ='Y','J'
+        if log:
+            key,label ='LogY','LogJ'
+        else:
+            key, label ='Y','J'
         _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+".txt")
         with open(_fn,'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
@@ -496,7 +496,7 @@ class Writer():
             for x in self.XY:
                 writer.writerow(["%0.4f"%x]+list(self.XY[x][key]))
 
-        key ='LogY_nofirst'
+        key += '_nofirst'
         _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+"_nofirst.txt")
         with open(_fn,'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
