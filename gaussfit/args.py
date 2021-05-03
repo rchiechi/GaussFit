@@ -180,14 +180,13 @@ if len(Opts.in_files) and not Opts.outfile:
         Opts.outfile = os.path.basename(Opts.in_files[0])[:-4]
     else:
         Opts.outfile = Opts.in_files[0]
-Opts.xcol -= 1
-Opts.ycol -= 1
+
 
 # if Opts.Xcol > Opts.Ycol:
 #       print(RED+"Due to funniness with pandas, Xcol must be greater thatn Ycol."+RS)
 #       sys.exit()
 
-if Opts.xcol < 0:
+if Opts.xcol < 1:
     print(RED+"Xcolum must be greater than 0."+RS)
     sys.exit()
 
@@ -195,6 +194,9 @@ if Opts.xcol < 0:
 if Opts.ycol < 0:
     print(RED+"Ycolum must be greater than 0."+RS)
     sys.exit()
+
+Opts.xcol -= 1
+Opts.ycol -= 1
 
 if not Opts.in_files and not Opts.gui and 0 in (len(Opts.setA),len(Opts.setB)):
     parser.print_help()
