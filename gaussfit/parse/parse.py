@@ -617,12 +617,12 @@ class Parse():
                     if _V not in segmenthists[_seg][_trace]:
                         segmenthists[_seg][_trace][_V] = {}
                     segmenthists[_seg][_trace][_V] = self.__dohistogram(
-                        [np.log10(abs(_j)) for _j in np.array(segments[_seg][_trace][_V])], label='Segmented')
+                        np.array([np.log10(abs(_j)) for _j in segments[_seg][_trace][_V]]), label='Segmented')
             for _V in segments[_seg]['combined']:
                 if _V not in segmenthists[_seg]['combined']:
                     segmenthists[_seg]['combined'][_V] = {}
                 segmenthists[_seg]['combined'][_V] = self.__dohistogram(
-                   [np.log10(abs(_j)) for _j in  np.array(segments[_seg]['combined'][_V])], label='Segmented')
+                   np.array([np.log10(abs(_j)) for _j in segments[_seg]['combined'][_V]]), label='Segmented')
 
         # nofirsttracehists = {}
         for _V in nofirsttrace:
