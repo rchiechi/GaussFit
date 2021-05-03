@@ -290,10 +290,12 @@ class Parse():
         self.logger.info("* * * * * * Computing Gaussian  * * * * * * * * *")
         self.loghandler.flush()
         for x, group in xy:
-            self.XY[x] = { "Y":group['J'],
+            self.XY[x] = { 
+                   "Y":group['J'],
                    "LogY":group['logJ'],
                    "hist":self.__dohistogram(group['logJ'],"J"),
-                   "LogY_nofirst": nofirsttraces[x],
+                   "Y_nofirst": nofirsttraces[x],
+                   "LogY_nofirst": [np.log10(abs(_x)) for _x in nofirsttraces[x]],
                    "hist_nofirst": self.__dohistogram(nofirsttraces[x],"J"),
                    "filtered_hist":self.__dohistogram(lag[x]['filtered'],"lag"),
                    "lag":lag[x]['lagplot'],
