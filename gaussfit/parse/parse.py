@@ -675,13 +675,13 @@ class Parse():
         spls_norm = OrderedDict()
         splhists = OrderedDict()
         spl_normhists = OrderedDict()
-        ndc_cut, ndc_tot = 0,0
+        ndc_cut, ndc_tot = 0, 0
         filtered = [('Potential', 'Fit', 'Y')]
         for x in linx:
             spls[x] = []
-            splhists[x] = {'spl':[],'hist':{}}
+            splhists[x] = {'spl': [], 'hist': {}}
             spls_norm[x] = []
-            spl_normhists[x] = {'spl':[],'hist':{}}
+            spl_normhists[x] = {'spl': [], 'hist': {}}
         for trace in self.avg.index.levels[0]:
             try:
                 spl = scipy.interpolate.UnivariateSpline(
@@ -797,7 +797,7 @@ class Parse():
                                                         self.avg.loc[trace]['FN'][self.avg.loc[trace].index > 0].values,
                                                         kind='linear', fill_value='extrapolate')
                     splneg = scipy.interpolate.interp1d(np.array(self.avg.loc[trace].index[self.avg.loc[trace].index < 0]),
-                                                        self.avg.loc[trace]['FN'][self.avg.loc[trace].index < 0 ].values,
+                                                        self.avg.loc[trace]['FN'][self.avg.loc[trace].index < 0].values,
                                                         kind='linear', fill_value='extrapolate')
                     xy = {'X': [], 'Y': []}
                     for x in xneg:
@@ -816,7 +816,7 @@ class Parse():
                     if err[0]:
                         try:
                             splpos = scipy.interpolate.UnivariateSpline(
-                                fndf['X'][pidx-20:pidx+20].values, fndf['Y'][pidx-20:pidx+20].values, k=4 )
+                                fndf['X'][pidx-20:pidx+20].values, fndf['Y'][pidx-20:pidx+20].values, k=4)
                             pos_min_x += list(np.array(splpos.derivative().roots()))
                         except Exception as msg:  # pylint: disable=broad-except
                             # TODO: Figure out how to catch all the scipy errors
@@ -838,7 +838,6 @@ class Parse():
         neg_min_x = np.array(list(filter(np.isfinite, neg_min_x)))
         pos_min_x = np.array(list(filter(np.isfinite, pos_min_x)))
         self.FN["neg"], self.FN["pos"] = self.__dohistogram(neg_min_x, "Vtrans(-)", True), self.__dohistogram(pos_min_x, "Vtrans(+)", True)
-
 
     def __dohistogram(self, Y, label="", density=False):
         '''
