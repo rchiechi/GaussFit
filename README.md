@@ -10,7 +10,7 @@ The `autonobs` command will try to guess time intervals and use those as degrees
 
 The commands for `GaussFit.py` and `Stats.py` are identical (with a few special options for `Stats.py`); launching with `-G` will get you a GUI in either case.
 
-Although we have done some testing of the statsticaly functions, do not rely on this software without using some robust, external test of the veracity of the output!
+Although we have done some testing of the statistically functions, do not rely on this software without using some robust, external test of the veracity of the output!
 
 ### Input file format
 
@@ -65,6 +65,12 @@ To do both:
 
 ```
 GaussFit.py -o <output name> -p (-G) <files>
+```
+
+A default configuration file will be created on first-run. To see where it is:
+
+```
+GaussFit.py -h
 ```
 
 ### Issues
