@@ -566,9 +566,9 @@ class Parse():
             if self.df.loc[_fn]['V'][0] != 0.0:
                 self.logger.warning("J/V didn't start at 0V for %s", _fn)
 
-            _seg = -1
-            _trace = -1
-            _last_V = 0
+            _seg = 0
+            _trace = 0
+            _last_V = None
             _n_traces = int(self.df.V.value_counts()[0] / 3)
 
             for _i in self.df.loc[_fn].index:
@@ -580,7 +580,6 @@ class Parse():
                 if _trace > _n_traces:
                     self.logger.warning("Parsing trace %s, when there should only be %s",
                                         _trace, _n_traces)
-
                 if _last_V == 0:
                     if V == 0:
                         _seg = 0
