@@ -392,7 +392,11 @@ class Parse():
             for i in range(0, (len(Y)-len(Y) % 2), 2):
                 _lag[0].append(Y[i])
                 _lag[1].append(Y[i+1])
-            m, b, r, _, _ = linregress(_lag[0], _lag[1])
+            try:
+                m, b, r, _, _ = linregress(_lag[0], _lag[1])
+            except FloatingPointError:
+                self.logger.warn("Erro computing lag for J = %s", _lag[0])
+                continue
             # self.logger.debug("R-squared: %s" % (r**2))
             distances = getdistances((m, b), _lag[0], _lag[1])
             min_distance = min(distances)
@@ -543,55 +547,62 @@ class Parse():
             self.logger.error("Cannot generate segments from non-EGaIn dataset.")
             return {}
         if self.opts.ycol < 0:
-            self.logger.warning("Cannot find segments when all columns are parsed.")
-            return {}
+            self.logger.warning("Parsing segments when all columns are parsed may produce weird results!")
+            # return {}
         try:
-            if self.df.V.value_counts()[0] % 3 != 0:
-                self.logger.warning("Dataset does not seem to have four segments.")
-            segments = {}
-            # bytrace = {}
-            nofirsttrace = {}
-            self.logger.info("Breaking out traces by segments of 0V -> Vmin/max.")
+            if self.df.V.value_counts()[0] % int(self.opts.segments-1) != 0:
+                self.logger.warning("Dataset does not seem to have %s segments.", int(self.opts.segments))
         except KeyError:
-            self.logger.error("Could not segment data by 0's.")
-            return
-
+            self.logger.warning("Could not segment data by 0's.")
+            return {}
+        self.logger.info("Breaking out traces by segments of 0V -> Vmin/max.")
+        segments = {}
+        nofirsttrace = {}
+        max_column_width = 0
         # n_segments = guessSegments(self.df)
         # self.logger.info("Guessing %s segments", n_segments)
 
         for _fn in self.df.index.levels[0]:
-            # TODO when parsing all columns of data, this throws:
-            #  'ValueError: The truth value of a Series is ambiguous. Use a.empty, a.bool(), a.item(), a.any() or a.all().'
-            # For now segmenter will just refuse to run when all columns are parsed.
-            if self.df.loc[_fn]['V'][0] != 0.0:
-                self.logger.warning("J/V didn't start at 0V for %s", _fn)
+            _seg = None
+            _trace = None
+            if self.opts.ycol > 0:
+                _n_traces = int(self.df.V.value_counts()[0] / 3)
+                if self.df.loc[_fn]['V'][0] != 0.0:
+                    self.logger.warning("J/V didn't start at 0V for %s", _fn)
+            else:
+                _n_traces = len(self.df.index.levels[0])
 
-            _seg = 0
-            _trace = 0
-            _last_V = None
-            _n_traces = int(self.df.V.value_counts()[0] / 3)
-
-            for _i in self.df.loc[_fn].index:
+            _idx = [_idx for _idx in self.df.loc[_fn].index]
+            for _n, _i in enumerate(_idx):
                 J = self.df.loc[_fn]['J'][_i]
                 V = self.df.loc[_fn]['V'][_i]
                 _Vmax = self.df.loc[_fn]['V'].max()
                 _Vmin = self.df.loc[_fn]['V'].min()
+                _last_V, _next_V = None, None
+
+                if _n > 0:
+                    _last_V = self.df.loc[_fn]['V'][_idx[_n-1]]
+                if _n+1 < len(_idx):
+                    _next_V = self.df.loc[_fn]['V'][_idx[_n+1]]
+
+                if _last_V is None:  # First trace
+                    _seg = 0
+                    _trace = 0
+                elif _next_V is None:  # Last trace
+                    pass
+                elif V == 0 and _next_V != 0:  # Crossing zero
+                    _seg += 1
+                elif V in (_Vmax, _Vmin) and _next_V not in (_Vmax, _Vmin) and V != 0:  # Turnaround at ends
+                    _seg += 1
+
+                if _seg in (-1, self.opts.segments):  # New trace starts with new segment
+                    # print("_seg is 4\nLast V: %s\nThis V: %s\nNext V: %s\n" % (_last_V, V, _next_V))
+                    _seg = 0
+                    _trace += 1
 
                 if _trace > _n_traces:
                     self.logger.warning("Parsing trace %s, when there should only be %s",
                                         _trace, _n_traces)
-                if _last_V == 0:
-                    if V == 0:
-                        _seg = 0
-                        _trace += 1
-                    else:
-                        _seg += 1
-                elif V in (_Vmax, _Vmin) and _last_V in (_Vmax, _Vmin) and V != 0:
-                    _seg += 1
-
-                if _seg in (-1, self.opts.segments):
-                    _seg = 0
-                    _trace += 1
 
                 if _seg not in segments:
                     segments[_seg] = {'combined': {}}
@@ -619,10 +630,13 @@ class Parse():
                     nofirsttrace[V] = []
                 if _trace > 0:
                     nofirsttrace[V].append(J)
+                if V != 0:
+                    if len(nofirsttrace[V]) > max_column_width:
+                        max_column_width = len(nofirsttrace[V])
 
-        if len(segments.keys()) != 4:
+        if len(segments.keys()) != self.opts.segments:
             self.error = True
-            self.logger.warning('Parsed %i segments from an EGaIn dataset!', len(segments.keys()))
+            self.logger.error('Expected %i segments, but found %i!', self.opts.segments, len(segments.keys()))
         else:
             self.logger.info('Found %s segments.', len(segments.keys()))
 
@@ -645,17 +659,18 @@ class Parse():
                 segmenthists[_seg]['combined'][_V] = self.__dohistogram(
                     np.array([np.log10(abs(_j)) for _j in segments[_seg]['combined'][_V]]), label='Segmented')
 
-        # nofirsttracehists = {}
+        # If there are more zeros than other V's, we cannot align them properly
+        # _pad = 0
+        # for _V in nofirsttrace:
+        #     if nofirsttrace[_V] != 0:
+        #         if len(nofirsttrace[_V]) > _pad:
+        #             _pad = len(nofirsttrace[_V])
         for _V in nofirsttrace:
+            if _V == 0:
+                if len(nofirsttrace[_V]) > max_column_width:
+                    nofirsttrace[_V] = np.zeros(max_column_width)
+                    self.logger.warning("Setting J = 0 for all V = 0 in nofirsttrace.")
             nofirsttrace[_V] = np.array(nofirsttrace[_V])
-
-        # tracehists = {}
-        # for _trace in bytrace:
-        #     if _trace not in tracehists:
-        #         tracehists[_trace] = {}
-        #     for _V in bytrace[_trace]:
-        #         tracehists[_trace][_V] = self.__dohistogram(
-        #                 np.array(bytrace[_trace][_V]), label='ByTrace')
 
         self.segments = segmenthists
         return nofirsttrace
