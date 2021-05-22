@@ -269,7 +269,7 @@ class Writer():
                 writer = csv.writer(csvfile, dialect='JV')
                 headers = ["Potential (V)"]
                 _maxtrace = 0
-                for trace in self.segments[segment]:
+                for trace in _segments[segment]:
                     #TODO: Fix this hack
                     if not isinstance(trace, int):
                         continue
@@ -278,8 +278,8 @@ class Writer():
                                 "Standard Deviation",
                                 "Standard Error of the Mean",
                                 "%s%% confidence interval" % (100*(1-self.opts.alpha))]
-                    for x in self.segments[segment][trace]:
-                        _hist = self.segments[segment][trace][x]
+                    for x in _segments[segment][trace]:
+                        _hist = _segments[segment][trace][x]
                         if x not in rows:
                             rows[x] = []
                         rows[x].append("%0.4f" % _hist['mean'])
@@ -309,8 +309,8 @@ class Writer():
                            "Standard Deviation",
                            "Standard Error of the Mean",
                            "%s%% confidence interval" % (100*(1-self.opts.alpha))]
-                for x in self.segments[segment]['combined']:
-                    _hist = self.segments[segment]['combined'][x]
+                for x in _segments[segment]['combined']:
+                    _hist = _segments[segment]['combined'][x]
                     if x not in rows:
                         rows[x] = []
                     rows[x].append("%0.4f" % _hist['mean'])
