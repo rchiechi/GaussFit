@@ -90,6 +90,7 @@ class Parse():
     R = {}
     # traces = {}
     segments = {}
+    segments_nofirst = {}
     # nofirsttrace = {}
 
     def __init__(self, opts, handler=None, lock=None):
@@ -133,6 +134,7 @@ class Parse():
         writer.WriteGNUplot('VTplot')
         writer.WriteGauss()
         writer.WriteSegmentedGauss()
+        writer.WriteSegmentedGauss('nofirst')
         writer.WriteFilteredGauss()
         writer.WriteGNUplot('JVplot')
         writer.WriteGNUplot('NDCplot')
@@ -557,6 +559,8 @@ class Parse():
             return {}
         self.logger.info("Breaking out traces by segments of 0V -> Vmin/max.")
         segments = {}
+        segments_combined = {}
+        segments_combined_nofirst = {}
         nofirsttrace = {}
         max_column_width = 0
         # n_segments = guessSegments(self.df)
@@ -604,32 +608,41 @@ class Parse():
                     self.logger.warning("Parsing trace %s, when there should only be %s",
                                         _trace, _n_traces)
 
+                # if _seg not in segments:
+                #     segments[_seg] = {'combined': {},
+                #                       'combined_nofirst': {}
+                #                       }
                 if _seg not in segments:
-                    segments[_seg] = {'combined': {}}
-
+                    segments[_seg] = {}
+                    segments_combined[_seg] = {}
+                    segments_combined_nofirst[_seg] = {}
                 if _trace not in segments[_seg]:
                     segments[_seg][_trace] = {}
-
+                    # segments_combined[_seg] = {}
+                    # if _trace > 0:
+                    #     segments_combined_nofirst[_seg] = {}
+                
                 # if _trace not in bytrace:
                 #     bytrace[_trace] = {}
 
                 if V not in segments[_seg][_trace]:
                     segments[_seg][_trace][V] = []
+                    segments_combined[_seg][V] = []
+                    segments_combined_nofirst[_seg][V] = []
 
-                if V not in segments[_seg]['combined']:
-                    segments[_seg]['combined'][V] = []
-
+                    
                 # if V not in bytrace[_trace]:
                 #     bytrace[_trace][V] = []
                 _last_V = V
                 segments[_seg][_trace][V].append(J)
-                segments[_seg]['combined'][V].append(J)
+                segments_combined[_seg][V].append(J)
                 # bytrace[_trace][V].append(J)
 
                 if V not in nofirsttrace:
                     nofirsttrace[V] = []
                 if _trace > 0:
                     nofirsttrace[V].append(J)
+                    segments_combined_nofirst[_seg][V].append(J)
                 if V != 0:
                     if len(nofirsttrace[V]) > max_column_width:
                         max_column_width = len(nofirsttrace[V])
@@ -641,24 +654,35 @@ class Parse():
             self.logger.info('Found %s segments.', len(segments.keys()))
 
         segmenthists = {}
+        segmenthists_nofirst = {}
         for _seg in segments:
             if _seg not in segmenthists:
-                segmenthists[_seg] = {'combined': {}}
+                segmenthists[_seg] = {'combined':{}}
+                segmenthists_nofirst[_seg] = {'combined':{}}
             for _trace in segments[_seg]:
                 self.logger.debug('Segment: %s, Trace: %s', _seg, _trace)
                 if _trace not in segmenthists[_seg]:
                     segmenthists[_seg][_trace] = {}
+                    if _trace > 0:
+                        segmenthists_nofirst[_seg][_trace] = {}
                 for _V in segments[_seg][_trace]:
                     if _V not in segmenthists[_seg][_trace]:
                         segmenthists[_seg][_trace][_V] = {}
                     segmenthists[_seg][_trace][_V] = self.__dohistogram(
                         np.array([np.log10(abs(_j)) for _j in segments[_seg][_trace][_V]]), label='Segmented')
-            for _V in segments[_seg]['combined']:
+                    if _trace > 0:
+                        segmenthists_nofirst[_seg][_trace][_V] = segmenthists[_seg][_trace][_V]
+            for _V in segments_combined[_seg]:
                 if _V not in segmenthists[_seg]['combined']:
                     segmenthists[_seg]['combined'][_V] = {}
                 segmenthists[_seg]['combined'][_V] = self.__dohistogram(
-                    np.array([np.log10(abs(_j)) for _j in segments[_seg]['combined'][_V]]), label='Segmented')
-
+                    np.array([np.log10(abs(_j)) for _j in segments_combined[_seg][_V]]), label='Segmented')
+            for _V in segments_combined_nofirst[_seg]:
+                if _V not in segmenthists_nofirst[_seg]['combined']:
+                    segmenthists_nofirst[_seg]['combined'][_V] = {}
+                segmenthists_nofirst[_seg]['combined'][_V] = self.__dohistogram(
+                    np.array([np.log10(abs(_j)) for _j in segments_combined_nofirst[_seg][_V]]), label='Segmented')
+        # segmenthists['nofirst'] = segmenthists_nofirst
         # If there are more zeros than other V's, we cannot align them properly
         # _pad = 0
         # for _V in nofirsttrace:
@@ -673,6 +697,7 @@ class Parse():
             nofirsttrace[_V] = np.array(nofirsttrace[_V])
 
         self.segments = segmenthists
+        self.segments_nofirst = segmenthists_nofirst
         return nofirsttrace
         # self.bytrace = tracehists
 

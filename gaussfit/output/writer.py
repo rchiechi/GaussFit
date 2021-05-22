@@ -249,23 +249,31 @@ class Writer():
                          "%0.4f"%self.XY[x]['filtered_hist']['kurtpval']]
                 writer.writerow(row)
 
-    def WriteSegmentedGauss(self):
+    def WriteSegmentedGauss(self, key=None):
         '''Write histograms of values of J broken out by segment to catch
         hysteretic behavior without smearing it out.'''
 
         if not self.segments:
             logger.warning("No segments found.")
             return
-        for segment in self.segments:
+
+        if key == 'nofirst':
+            _segments = self.segments_nofirst
+            _label = 'Segment_NoFirst'
+        else:
+            _segments = self.segments
+            _label = 'Segment'
+
+        for segment in _segments:
             rows = {}
-            _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Gauss_Segment_%s.txt" % str(segment+1))
+            _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Gauss_%s_%s.txt" % (_label, str(segment+1)))
             with open(_fn, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile, dialect='JV')
                 headers = ["Potential (V)"]
                 _maxtrace = 0
                 for trace in self.segments[segment]:
                     #TODO: Fix this hack
-                    if trace == 'combined':
+                    if not isinstance(trace, int):
                         continue
                     _maxtrace += 1
                     headers += ["Log|J|",
@@ -293,9 +301,9 @@ class Writer():
                     writer.writerow(["%0.4f"%x]+rows[x])
 
         #TODO: Don't just repeat the whole code block
-        for segment in self.segments:
+        for segment in _segments:
             rows = {}
-            _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Gauss_Segments_Combined_%s.txt" % str(segment+1))
+            _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_Gauss_%s_Combined_%s.txt" % (_label, str(segment+1)))
             with open(_fn, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile, dialect='JV')
                 headers = ["Potential (V)",
