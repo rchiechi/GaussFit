@@ -88,6 +88,9 @@ class PreferencesFrame(tk.Frame):
              {'name': 'Segments', 'text': "Number of segments:",
                'tooltip': "Total number of segments in each J/V trace (4 for EGaIn usually)",
               'frame':self.RightOptionsFrame},
+            {'name': 'Degrees of Freedom', 'text': "Number of degrees of freedom:",
+               'tooltip': "Manually provide degrees of freedom instead of guessing from number of input files.",
+              'frame':self.RightOptionsFrame},
         ]
 
         i = 0
@@ -103,7 +106,7 @@ class PreferencesFrame(tk.Frame):
             entry.bind("<Tab>", self.checkOptions)
             entry.grid(column=0,row=i+1)
             createToolTip(entry, _l['tooltip'])
-            setattr(self, 'Entry'+_l['name'], entry)
+            setattr(self, 'Entry'+_l['name'].replace(' ',''), entry)
             i += 2
 
         self.checkOptions()
@@ -112,7 +115,7 @@ class PreferencesFrame(tk.Frame):
         self.checkOptions()
         self.master.destroy()
 
-    def checkOptions(self, event=None): # pylint: disable=W0613
+    def checkOptions(self, event=None):  # pylint: disable=W0613
         for n in (('Smooth',1e-12),('Bins',50),('Heatmapbins',25)):
             try:
                 var = getattr(self,'Entry'+n[0]).get()
@@ -140,6 +143,7 @@ class PreferencesFrame(tk.Frame):
         self.checkAlphaEntry()
         self.checkMaxREntry()
         self.checkSegmentsEntry()
+        self.checkDegreesofFreedomEntry()
 
     def checkVcutoffEntry(self):
         try:
@@ -220,3 +224,13 @@ class PreferencesFrame(tk.Frame):
             pass
         self.EntrySegments.delete(0, END)
         self.EntrySegments.insert(0, self.opts.segments)
+        
+    def checkDegreesofFreedomEntry(self):
+        try:
+            _degfree = int(self.EntrySegments.get())
+            if _degfree > 0:
+                self.opts.degree = _degfree
+        except ValueError:
+            pass
+        self.EntryDegreesofFreedom.delete(0, END)
+        self.EntryDegreesofFreedom.insert(0, self.opts.degfree)

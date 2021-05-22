@@ -144,9 +144,10 @@ parser.add_argument('--lagcutoff', default=0.1, type=float,
                     help="Minimum euclidian distance from line to be considered as scatter.")
 parser.add_argument('--alpha', type=float, default=0.025,
                     help="Alpha value to use for computing confidence intervals (p-cutoff = 1-Alpha).")
-parser.add_argument('--segments', type=float, default=4,
+parser.add_argument('--segments', type=int, default=4,
                     help="Number of segments in each J/V trace.")
-
+parser.add_argument('--degfree', type=int, default=0,
+                    help="Number of degrees of freedom (useful with --ycol=0). Set to 0 to infer from number of input files.")
 
 _cachedir = user_config_dir(__package__)
 if not os.path.exists(_cachedir):
@@ -199,6 +200,9 @@ if Opts.ycol < 0:
 
 Opts.xcol -= 1
 Opts.ycol -= 1
+
+if Opts.degfree < 1:
+    Opts.degfree = len(Opts.in_files)-1
 
 if not Opts.in_files and not Opts.gui and 0 in (len(Opts.setA),len(Opts.setB)):
     parser.print_help()

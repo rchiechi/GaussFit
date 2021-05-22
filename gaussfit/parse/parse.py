@@ -275,7 +275,7 @@ class Parse():
         self.__findtraces()
 
         if self.error:
-            self.logger.error('Cannot compute statistics from these traces.')
+            self.logger.error('Cannot compute statistics from these traces. (Did you set segments correctly?)')
             self.loghandler.flush()
             return  # Bail if we can't parse traces
 

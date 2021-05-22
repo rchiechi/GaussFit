@@ -121,8 +121,8 @@ class Plotter():
                     X[trace].append(x)
                     _hist = self.segments[segment][trace][x]
                     Y[trace].append(_hist['mean'])
-                    _sem = float(_hist['std'])/np.sqrt(len(self.opts.in_files)-1 or 1)
-                    _t_val = _sem * stdtrit( len(self.opts.in_files)-1 or 1, 1 - self.opts.alpha )
+                    _sem = float(_hist['std'])/np.sqrt(self.opts.degfree - 1 or 1)
+                    _t_val = _sem * stdtrit( self.opts.degfree - 1 or 1, 1 - self.opts.alpha )
                     Yerr[trace].append(_t_val)
         for trace in Y:
             ax.errorbar(X[trace],
@@ -148,8 +148,8 @@ class Plotter():
         Y, Yerr = [],[]
         for x in self.XY:
             Y.append(self.XY[x]['R']["hist"]["mean"])
-            _sem = float(self.XY[x]['R']["hist"]["std"])/np.sqrt(len(self.opts.in_files)-1 or 1)
-            _t_val = _sem * stdtrit( len(self.opts.in_files)-1 or 1, 1 - self.opts.alpha )
+            _sem = float(self.XY[x]['R']["hist"]["std"])/np.sqrt(self.opts.degfree - 1 or 1)
+            _t_val = _sem * stdtrit( self.opts.degfree - 1 or 1, 1 - self.opts.alpha )
             Yerr.append(_t_val)
         ax.errorbar(list(self.XY), Y,  yerr=Yerr, marker='o', lw=0.0, color='k')
 
