@@ -497,7 +497,7 @@ class Writer():
                 writer.writerow(["%0.4f"%x]+list(self.XY[x][key]))
 
         key += '_nofirst'
-        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+"_nofirst.txt")
+        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_"+label+"_noFirst.txt")
         with open(_fn,'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             writer.writerow(["Potential (V)"] + ['Y_%d'%x for x in range(1,len(self.XY[list(self.XY.keys())[0]][key] )+1)])
