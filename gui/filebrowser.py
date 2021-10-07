@@ -128,7 +128,7 @@ class ChooseFiles(tk.Frame):
 
 
     def __createOptions(self):
-        '''Create the widgest for options and use setattr to assign them to self.'''
+        '''Create the widgets for options and use setattr to assign them to self.'''
         self.checks = [
               {'name':'plot','text':'Plot','row':1,
                 'tooltip':"Show summary plots after parsing."},
@@ -143,7 +143,9 @@ class ChooseFiles(tk.Frame):
               {'name':'lorenzian','text':'Lorenzian','row':6,
                 'tooltip':'Fit a Lorenzian instead of a Gaussian.'},
               {'name':'tracebyfile','text':'AFM Data','row':7,
-                'tooltip':'Each file contains one (foward/backward) trace.'}
+                'tooltip':'Each file contains one (foward/backward) trace.'},
+              {'name':'nolag','text':'No lag plots.','row':8,
+                'tooltip':'Some data (often AFM) produces bad lag plots very slowly.'}
               ]
 
         for _c in self.checks:
