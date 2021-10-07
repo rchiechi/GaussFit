@@ -541,6 +541,8 @@ class Writer():
 
     def WriteLag(self):
         '''Write the lag plots of the J/V data.'''
+        if self.opts.nolag:
+            return
         _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_lag.txt")
         lenrow = len(self.XY[list(self.XY)[0]]['lag'][0])
         with open(_fn, 'w', newline='') as csvfile:

@@ -284,8 +284,8 @@ class Parse():
         xy = []
         for x, group in self.df.groupby('V'):
             xy.append((x, group))
-
-        self.logger.info("* * * * * * Computing Lag  * * * * * * * * *")
+        if not self.opts.nolag:
+            self.logger.info("* * * * * * Computing Lag  * * * * * * * * *")
         self.loghandler.flush()
         lag = self.dolag(xy)
         self.logger.info("* * * * * * Computing dY/dX  * * * * * * * *")
@@ -386,6 +386,10 @@ class Parse():
         Make a lag plot of Y
         '''
         lag = {}
+        if self.opts.nolag:
+            for x, group in xy:
+                lag[x] = {'lagplot': np.array([[], []]), 'filtered': np.array([])}
+            return lag
         for x, group in xy:
             lag[x] = {'lagplot': np.array([[], []]), 'filtered': np.array([])}
             Y = group['logJ']

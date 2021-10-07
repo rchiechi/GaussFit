@@ -124,6 +124,8 @@ parser.add_argument('-R','--logr', default=True, action='store_false',
                     help="Compute |R| instead of log|R| for histograms of rectification.")
 parser.add_argument('-L','--lorenzian', default=False, action='store_true',
                     help="Fit data to a Lorenzian instead of a Gaussian.")
+parser.add_argument('--nolag', action='store_true', default=False,
+                    help="Do NOT compute lag plots.")
 parser.add_argument('-N','--nobs', type=int, default=0,
                     help="Number of observations for statistical tests on J (but not Gmean!).")
 parser.add_argument('--maxfev', type=int, default=10000,
