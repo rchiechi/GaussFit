@@ -408,9 +408,9 @@ class Parse():
             min_distance = min(distances)
             self.logger.debug("Distance from lag: %s", min_distance)
             if min_distance > self.opts.lagcutoff:
-                self.logger.warning("Found a high degree of scatter in lag plot (%0.4f)", min_distance)
+                self.logger.debug("Found a high degree of scatter in lag plot (%0.4f)", min_distance)
             if r**2 < 0.9:
-                self.logger.warning("Poor line-fit to lag plot (R-squared: %s)", (r**2))
+                self.logger.debug("Poor line-fit to lag plot (R-squared: %s)", (r**2))
             tossed = 0
             for _t in enumerate(distances):
                 if _t[1] < self.opts.lagcutoff:
@@ -900,6 +900,13 @@ class Parse():
         routine, which defeats the purpose of machine-fitting
         '''
 
+        def __handlematherror(msg):
+            # TODO we can now split out the file name with the bad data in it!
+            self.logger.warning("Encountered this error while constructing histogram: %s", str(msg), exc_info=False)
+            bins = np.array([0., 0., 0., 0.])
+            freq = np.array([0., 0., 0., 0.])
+            return bins, freq
+
         try:
             yrange = (Y.min(), Y.max())
         except ValueError as msg:
@@ -922,10 +929,9 @@ class Parse():
             # TODO Why not offer density plots as an option?
             freq, bins = np.histogram(Y, range=yrange, bins=nbins, density=density)
         except ValueError as msg:
-            # TODO we can now split out the file name with the bad data in it!
-            self.logger.warning("Encountered this error while constructing histogram: %s", str(msg), exc_info=False)
-            bins = np.array([0., 0., 0., 0.])
-            freq = np.array([0., 0., 0., 0.])
+            bins, freq = __handlematherror(msg)
+        except FloatingPointError as msg:
+            bins, freq = __handlematherror(msg)
 
         if len(Y):
             Ym = signedgmean(Y)
@@ -952,15 +958,15 @@ class Parse():
         except ValueError as msg:
             self.logger.warning("|%s| Skipping data with ridiculous numbers in it (%s)", label, str(msg), exc_info=False)
             # coeff=p0
+        except FloatingPointError as msg:
+            self.logger.error("|%s| Encountered floating point error fitting Guasian: %s", label, str(msg), exc_info=False)
 
-        # if covar is not None:
-        #     try:
-        #         self.logger.debug('Covariance: %s ', np.sqrt(np.diag(covar)) )
-        #     except FloatingPointError:
-        #         self.logger.debug('Could not compute sqrt of covariance: %s', np.diag(covar))
-
-        skewstat, skewpval = skewtest(freq)
-        kurtstat, kurtpval = kurtosistest(freq)
+        try:
+            skewstat, skewpval = skewtest(freq)
+            kurtstat, kurtpval = kurtosistest(freq)
+        except ValueError as msg:
+            self.logger.error("|%s| Could not perform skewtest: %s", label, str(msg), exc_info=False)
+            skewstat, skewpval, kurtstat, kurtpval = 0.0, 0.0, 0.0, 0.0
         return {"bin": bin_centers, "freq": freq, "mean": coeff[1], "std": coeff[2],
                 "var": coeff[2], "bins": bins, "fit": hist_fit, "Gmean": Ym, "Gstd": Ys,
                 "skew": skew(freq), "kurtosis": kurtosis(freq), "skewstat": skewstat, "skewpval": skewpval,
