@@ -66,6 +66,7 @@ class ChooseFiles(tk.Frame):
         self.opts = opts
         self.gothreads = []
         self.checks = []
+        self.degfreedom = {'init': self.opts.degfree, 'user': self.opts.degfree}
         self.master.tk_setPalette(background=GREY,
             activeBackground=GREY)
         self.master.title("RCCLab EGaIn Data Parser")
@@ -354,7 +355,16 @@ class ChooseFiles(tk.Frame):
         self.opts.histplots = self.OptionsHistPlotsString.get()
         self.opts.heatmapd = int(self.OptionsHeatmapdString.get())
 
-
     def checkOutputFileName(self, event=None): # pylint: disable=unused-argument
         self.opts.outfile = self.OutputFileName.get()
         self.UpdateFileListBoxFrameLabel()
+
+    def preParse(self):
+        '''We need to check a couple of things right before we start parsing'''
+        self.degfreedom = self.opts.degfree # Store self.opts.degfree before parsing
+        if self.opts.degfree == 0 and len(self.opts.in_files):
+            self.opts.degfree = len(self.opts.in_files)-1
+
+    def postParse(self):
+        '''We need to check a couple of things right after we finish parsing'''
+        self.opts.degfree = self.degfreedom # Retore self.opts.degfree after parsing
