@@ -253,6 +253,7 @@ class ChooseFiles(tk.Frame):
 
     def Parse(self):
         '''Start the parser in a background thread and wait for it to complete.'''
+        self.preParse()
         if self.gothreads:
             self.ButtonParse['state']=DISABLED #pylint: disable=E1101
             for _t in self.gothreads:
@@ -282,6 +283,7 @@ class ChooseFiles(tk.Frame):
                 self.ButtonParse.after('500',self.Parse) #pylint: disable=E1101
             else:
                 self.logger.warning("No input files!")
+        self.postParse()
         self.handler.flush()
 
     def RemoveFileClick(self):
