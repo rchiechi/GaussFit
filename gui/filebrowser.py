@@ -67,6 +67,7 @@ class ChooseFiles(tk.Frame):
         self.gothreads = []
         self.checks = []
         self.degfreedom = {'init': self.opts.degfree, 'user': self.opts.degfree}
+        self.outdir = ''
         self.master.tk_setPalette(background=GREY,
             activeBackground=GREY)
         self.master.title("RCCLab EGaIn Data Parser")
@@ -314,6 +315,8 @@ class ChooseFiles(tk.Frame):
                         ('Text files','*.txt'),('All files', '*')])
         if len(self.opts.in_files):
             self.last_input_path = os.path.split(self.opts.in_files[0])[0]
+            if not self.outdir:
+                self.opts.out_dir = self.last_input_path
             self.updateFileListBox()
             if not self.opts.outfile:
                 self.OutputFileName.delete(0,END)
@@ -326,9 +329,10 @@ class ChooseFiles(tk.Frame):
 
     def SpawnOutputDialogClick(self):
         outdir = filedialog.askdirectory(title="Select Output File(s)",
-                initialdir=self.opts.out_dir)
+                                         initialdir=self.opts.out_dir)
         if os.path.exists(outdir):
             self.opts.out_dir = outdir
+            self.outdir = self.opts.out_dir  # So we know the user set the output dir
             self.UpdateFileListBoxFrameLabel()
 
     def UpdateFileListBoxFrameLabel(self):
