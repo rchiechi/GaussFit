@@ -175,13 +175,8 @@ class ChooseFiles(tk.Frame):
         self.OptionsPlotsString = StringVar()
         self.OptionsPlotsString.set(self.opts.plots)
         self.OptionPlots = tk.OptionMenu(self.RightOptionsFrame,
-<<<<<<< HEAD
-            self.OptionsPlotsString, self.opts.plots,'J','R',
-            command=self.checkOptions)
-=======
                                          self.OptionsPlotsString,'J','R',
                                          command=self.checkOptions)
->>>>>>> 0169c401f8b0a7b0398e11b1c2d9c397e706086d
         self.OptionPlots.grid(column=0,row=rowidx+3,sticky=W)
 
         tk.Label(self.RightOptionsFrame, text="Histogram to plot:").grid(
@@ -189,14 +184,9 @@ class ChooseFiles(tk.Frame):
         self.OptionsHistPlotsString = StringVar()
         self.OptionsHistPlotsString.set(self.opts.histplots)
         self.OptionHistPlots = tk.OptionMenu(self.RightOptionsFrame,
-<<<<<<< HEAD
-            self.OptionsHistPlotsString, self.opts.histplots, 'NDC','G',
-            command=self.checkOptions)
-        createToolTip(self.OptionHistPlots, '(Normalized) Differential Conductance')
-=======
-                                             self.OptionsHistPlotsString,'NDC','G',
+                                             self.OptionsHistPlotsString, self.opts.histplots, 'NDC','G',
                                              command=self.checkOptions)
->>>>>>> 0169c401f8b0a7b0398e11b1c2d9c397e706086d
+        createToolTip(self.OptionHistPlots, '(Normalized) Differential Conductance')
         self.OptionHistPlots.grid(column=0,row=rowidx+5,sticky=W)
 
         tk.Label(self.RightOptionsFrame, text="Derivative for heatmap:").grid(
@@ -204,14 +194,9 @@ class ChooseFiles(tk.Frame):
         self.OptionsHeatmapdString = StringVar()
         self.OptionsHeatmapdString.set(self.opts.heatmapd)
         self.OptionHeatmapd = tk.OptionMenu(self.RightOptionsFrame,
-<<<<<<< HEAD
-            self.OptionsHeatmapdString, self.opts.heatmapd,'0','1','2',
-            command=self.checkOptions)
-        createToolTip(self.OptionHeatmapd, '0 is equivalent to LogJ, 1 is Log|dJ/dV|, etc.')
-=======
-                                            self.OptionsHeatmapdString,'0','1','2',
+                                            self.OptionsHeatmapdString, self.opts.heatmapd,'0','1','2',
                                             command=self.checkOptions)
->>>>>>> 0169c401f8b0a7b0398e11b1c2d9c397e706086d
+        createToolTip(self.OptionHeatmapd, '0 is equivalent to LogJ, 1 is Log|dJ/dV|, etc.')
         self.OptionHeatmapd.grid(column=0,row=rowidx+7,sticky=W)
 
         self.checkOptions()
