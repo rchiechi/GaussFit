@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 '''
-Copyright (C) 2018 Ryan Chiechi <r.c.chiechi@rug.nl>
+Copyright (C) 2022 Ryan Chiechi <ryan.chiechi@ncsu.edu>
 Description:
 
     This is the main parsing logic for GaussFit. It was built up over

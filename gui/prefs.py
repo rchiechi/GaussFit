@@ -227,10 +227,11 @@ class PreferencesFrame(tk.Frame):
         
     def checkDegreesofFreedomEntry(self):
         try:
-            _degfree = int(self.EntrySegments.get())
-            if _degfree > 0:
-                self.opts.degree = _degfree
+            _degfree = int(self.EntryDegreesofFreedom.get())
+            if _degfree >= 0:
+                self.opts.degfree = _degfree
         except ValueError:
             pass
         self.EntryDegreesofFreedom.delete(0, END)
         self.EntryDegreesofFreedom.insert(0, self.opts.degfree)
+        

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 '''
-Copyright (C) 2018 Ryan Chiechi <r.c.chiechi@rug.nl>
+Copyright (C) 2022 Ryan Chiechi <ryan.chiechi@ncsu.edu>
 Description:
         Parse all of the command line arguments for GaussFit.py
         and Stats.py
@@ -188,8 +188,8 @@ if len(Opts.in_files) and not Opts.outfile:
 
 
 if Opts.xcol == Opts.ycol:
-       print(RED+"Xcol and Ycol must be different."+RS)
-       sys.exit()
+    print(RED+"Xcol and Ycol must be different."+RS)
+    sys.exit()
 
 if Opts.xcol < 1:
     print(RED+"Xcolum must be greater than 0."+RS)
@@ -203,7 +203,7 @@ if Opts.ycol < 0:
 Opts.xcol -= 1
 Opts.ycol -= 1
 
-if Opts.degfree < 1:
+if Opts.degfree < 1 and len(Opts.in_files):
     Opts.degfree = len(Opts.in_files)-1
 
 if not Opts.in_files and not Opts.gui and 0 in (len(Opts.setA),len(Opts.setB)):

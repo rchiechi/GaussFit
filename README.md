@@ -3,7 +3,7 @@
 ## Synopsis
 
 This is a set of python scripts to parse raw I/V data, perform statistical analyses, generate plots and output parsed data as CSV files.
-Most functions and options are available via a `tkinter` gui that you can call with `GaussFit.py -G`. The outputs of `GaussFit.py` have been tested extensively and, while the code is a mess, the results can be considered reliable provided all warning messages are heeded.
+Most functions and options are available via a `tkinter` GUI that you can call with `GaussFit.py -G`. The outputs of `GaussFit.py` have been tested extensively and, while the code is a mess, the results can be considered reliable provided all warning messages are heeded.
 
 The `Stats.py` part is very much a work in progress, but it should, at the very least compute p-values using each file as a degree of freedom.
 The `autonobs` command will try to guess time intervals and use those as degrees of freedom, but it relies on metadata in the input files and has only been tested with output containing this metadata in a very specific format.
@@ -23,7 +23,7 @@ GaussFit writes everything to text files in the "parsed" sub-directory for audit
 ### Caveats
 
 Input files containing _I/V_ sweeps with different voltage step-sizes will cause problems with Gaussian fits unless you have a ton of data. Say you have 1,000 traces with 0.5 V steps and 100 with 0.25 V steps. You will end up with 1,100 points in the histogram at each 0.5 V
-interval and only 100 at each 0.25 V interval, thus the reliatbility of the fits (and size of the error bars) will vary considerably.
+interval and only 100 at each 0.25 V interval, thus the reliability of the fits (and size of the error bars) will vary considerably.
 
 Currently GaussFit only fits single Gaussian (or Lorentzian) functions. Thus, bimodal data need to be separated beforehand to avoid variances.
 
