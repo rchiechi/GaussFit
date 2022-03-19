@@ -132,14 +132,14 @@ parser.add_argument('--maxfev', type=int, default=10000,
                     help="Maximum interations for fitting histograms.")
 parser.add_argument('--plots', type=str, default='J', choices=['J','R'],
                     help="Log data to plot.")
-parser.add_argument('--histplots', type=str, default='NDC', choices=['NDC','G'],
-                    help="Derivative data to plot.")
-parser.add_argument('-T','--threads', type=int,default=8,
+parser.add_argument('--histplots', type=str, default='NDC', choices=['NDC', 'G'],
+                    help="Heatmap data to plot.")
+parser.add_argument('-T', '--threads', type=int, default=8,
                     help="Use n threads for parsing for marginal speed boost.")
 parser.add_argument('--autonobs', default=False, action='store_true',
                     help="Try to find reasonable values of N automatically.")
 parser.add_argument('--heatmapd', type=int, default=1,
-                    help="Derivative order of heatmap plot (0, 1, 2) default: 1.")
+                    help="Derivative order of heatmap plot (0, 1, 2) default: 1. 0 is equivalent to LogJ.")
 parser.add_argument('--tracebyfile', default=False, action='store_true',
                     help="Each input file contains one trace.")
 parser.add_argument('--lagcutoff', default=0.1, type=float,

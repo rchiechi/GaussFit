@@ -246,7 +246,6 @@ class Plotter():
         ax.axis([xmin, xmax, ymin, ymax])
         ax.pcolormesh(X,Y,Z, cmap = self.plt.get_cmap('rainbow'))
 
-
     def PlotHist(self,ax):
         ax.set_title("Gaussian Fit and Raw Data")
         ax.set_xlabel('Potential (V)')

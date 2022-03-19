@@ -176,7 +176,7 @@ class ChooseFiles(tk.Frame):
         self.OptionsPlotsString = StringVar()
         self.OptionsPlotsString.set(self.opts.plots)
         self.OptionPlots = tk.OptionMenu(self.RightOptionsFrame,
-            self.OptionsPlotsString,'J','R',
+            self.OptionsPlotsString, self.opts.plots,'J','R',
             command=self.checkOptions)
         self.OptionPlots.grid(column=0,row=rowidx+3,sticky=W)
 
@@ -187,6 +187,7 @@ class ChooseFiles(tk.Frame):
         self.OptionHistPlots = tk.OptionMenu(self.RightOptionsFrame,
             self.OptionsHistPlotsString, self.opts.histplots, 'NDC','G',
             command=self.checkOptions)
+        createToolTip(self.OptionHistPlots, '(Normalized) Differential Conductance')
         self.OptionHistPlots.grid(column=0,row=rowidx+5,sticky=W)
 
 
@@ -195,8 +196,9 @@ class ChooseFiles(tk.Frame):
         self.OptionsHeatmapdString = StringVar()
         self.OptionsHeatmapdString.set(self.opts.heatmapd)
         self.OptionHeatmapd = tk.OptionMenu(self.RightOptionsFrame,
-            self.OptionsHeatmapdString,'0','1','2',
+            self.OptionsHeatmapdString, self.opts.heatmapd,'0','1','2',
             command=self.checkOptions)
+        createToolTip(self.OptionHeatmapd, '0 is equivalent to LogJ, 1 is Log|dJ/dV|, etc.')
         self.OptionHeatmapd.grid(column=0,row=rowidx+7,sticky=W)
 
         self.checkOptions()

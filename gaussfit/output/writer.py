@@ -462,14 +462,14 @@ class Writer():
                                  '%0.4f' % self.GHists[x]['hist']['mean'],
                                  '%0.4f' % self.GHists[x]['hist']['std'],
                                  "%0.4f" % _t_val])
-        _fn = os.path.join(self.opts.out_dir,self.opts.outfile+"_NDCGauss.txt")
+        _fn = os.path.join(self.opts.out_dir, self.opts.outfile+"_NDCGauss.txt")
         with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             writer.writerow(["Potential (V)",
                              "dJ/dV * V/J",
                              "Standard Deviation",
                              "%s%% confidence interval" % (100*(1 - self.opts.alpha))])
-            for x in self.GHists:
+            for x in self.NDCHists:
                 _sem = float(self.NDCHists[x]['hist']['std'])/np.sqrt(self.opts.degfree - 1 or 1)
                 _t_val = _sem * stdtrit( self.opts.degfree - 1 or 1, 1 - self.opts.alpha)
                 writer.writerow(['%0.4f' % x,
@@ -590,6 +590,8 @@ class Writer():
             Hists = self.GHists
         elif label == 'NDCMatrix':
             Hists = self.NDCHists
+        elif label == 'LogJMatrix':
+            Hists = self.XY
         else:
             return
 

@@ -83,7 +83,7 @@ class Parse():
     compliance_traces = []
     ohmic = []
     DJDV = {}
-    GHists = {}
+    GHists = OrderedDict()
     NDC = []
     NDCHists = OrderedDict()
     filtered = []
@@ -160,7 +160,9 @@ class Parse():
             writer.WriteGMatrix('GMatrix')
             writer.WriteGNUplot('GMatrix', ['parula.pal'])
             writer.WriteGMatrix('NDCMatrix')
-            writer.WriteGNUplot('NDCMatrix')
+            writer.WriteGNUplot('NDCMatrix', ['parula.pal'])
+            writer.WriteGMatrix('LogJMatrix')
+            writer.WriteGNUplot('LogJMatrix', ['parula.pal'])
         except IndexError:
             print("Error outputting GMatrix")
         writer.logger.info("Done!")
@@ -311,7 +313,11 @@ class Parse():
                 "lag": lag[x]['lagplot'],
                 "FN": group['FN'],
                 "R": R[x]}
-
+        if self.opts.heatmapd == 0:
+            self.GHists = OrderedDict()
+            for x in self.XY:
+                self.GHists[x] = {}
+                self.GHists[x]['hist'] = self.XY[x]['hist']
         if nofirsttraces:
             for x, group in xy:
                 self.XY[x]["Y_nofirst"] = nofirsttraces[x]
