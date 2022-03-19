@@ -588,6 +588,8 @@ class Writer():
         '''Write a matlab-style colormap maxtrix of G or NDC.'''
         if label == 'GMatrix':
             Hists = self.GHists
+            if self.opts.heatmapd == 0:
+                return
         elif label == 'NDCMatrix':
             Hists = self.NDCHists
         elif label == 'LogJMatrix':
