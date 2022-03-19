@@ -185,7 +185,7 @@ class ChooseFiles(tk.Frame):
         self.OptionsHistPlotsString = StringVar()
         self.OptionsHistPlotsString.set(self.opts.histplots)
         self.OptionHistPlots = tk.OptionMenu(self.RightOptionsFrame,
-            self.OptionsHistPlotsString,'NDC','G',
+            self.OptionsHistPlotsString, self.opts.histplots, 'NDC','G',
             command=self.checkOptions)
         self.OptionHistPlots.grid(column=0,row=rowidx+5,sticky=W)
 
