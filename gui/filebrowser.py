@@ -24,16 +24,19 @@ import platform
 import logging
 import tkinter.ttk as tk
 from tkinter import filedialog
-from tkinter import Text, IntVar, StringVar, Listbox
+from tkinter import Text, IntVar, StringVar, Listbox, Label
 from tkinter import N, S, E, W, X, Y  # pylint: disable=unused-import
 from tkinter import TOP, BOTTOM, LEFT, RIGHT  # pylint: disable=unused-import
 from tkinter import END, BOTH, VERTICAL, HORIZONTAL  # pylint: disable=unused-import
 from tkinter import EXTENDED, RAISED, DISABLED, NORMAL  # pylint: disable=unused-import
+from tkinter import PhotoImage
 from tkinter.font import Font
 from gui.prefs import PreferencesWindow
 from gui.colors import BLACK, YELLOW, WHITE, RED, TEAL, GREEN, BLUE, GREY  # pylint: disable=unused-import
 from gui.tooltip import createToolTip
 from gaussfit.logger import GUIHandler
+
+absdir = os.path.dirname(os.path.abspath(__file__))
 
 
 class ChooseFiles(tk.Frame):
@@ -44,6 +47,9 @@ class ChooseFiles(tk.Frame):
 
     def __init__(self, opts, master=None):
         tk.Frame.__init__(self, master)
+        bgimg = PhotoImage(file=os.path.join(absdir, 'RCCLabFluidic.png'))
+        limg = Label(master, i=bgimg, background=GREY)
+        limg.pack(side=TOP)
         self.boolmap = {1: True, 0: False}
         try:
             self.last_input_path = os.getcwd()
@@ -56,7 +62,7 @@ class ChooseFiles(tk.Frame):
         self.outdir = ''
         self.master.tk_setPalette(background=GREY, activeBackground=GREY)
         self.master.title("RCCLab EGaIn Data Parser")
-        self.master.geometry('700x800+250-250')
+        self.master.geometry('700x850+250-250')
         self.pack(fill=BOTH)
         self.__createWidgets()
         self.ToFront()
