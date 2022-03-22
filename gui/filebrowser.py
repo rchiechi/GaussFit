@@ -21,9 +21,7 @@ Description:
 '''
 import os
 import platform
-import threading
 import logging
-
 import tkinter.ttk as tk
 from tkinter import filedialog
 from tkinter import Text, IntVar, StringVar, Listbox
@@ -32,31 +30,17 @@ from tkinter import TOP, BOTTOM, LEFT, RIGHT  # pylint: disable=unused-import
 from tkinter import END, BOTH, VERTICAL, HORIZONTAL  # pylint: disable=unused-import
 from tkinter import EXTENDED, RAISED, DISABLED, NORMAL  # pylint: disable=unused-import
 from tkinter.font import Font
-
 from gui.prefs import PreferencesWindow
 from gui.colors import BLACK, YELLOW, WHITE, RED, TEAL, GREEN, BLUE, GREY  # pylint: disable=unused-import
 from gui.tooltip import createToolTip
-from gaussfit import Parse
-from gaussfit.output import Writer, Plotter
 from gaussfit.logger import GUIHandler
-
-
-class ParseThread(threading.Thread):
-    '''A Thread object to run the parse in so it
-       doesn't block the main GUI thread.'''
-
-    def __init__(self, opts, parser):
-        threading.Thread.__init__(self)
-        self.parser = parser
-        self.opts = opts
-
-    def run(self):
-        self.parser.readfiles(self.opts.in_files)
 
 
 class ChooseFiles(tk.Frame):
     '''The main frame for adding/removing files, accessing setttings
        and parsing.'''
+
+    from gui.libparse import GUIParse
 
     def __init__(self, opts, master=None):
         tk.Frame.__init__(self, master)
@@ -241,46 +225,11 @@ class ChooseFiles(tk.Frame):
 
     def ParseClick(self):
         self.checkOptions()
-        self.Parse()
+        self.GUIParse()
 
     def SettingsClick(self):
         self.checkOptions()
         PreferencesWindow(self.master, self.opts)
-
-    def Parse(self):
-        '''Start the parser in a background thread and wait for it to complete.'''
-        self.preParse()
-        if self.gothreads:
-            self.ButtonParse['state'] = DISABLED  # pylint: disable=E1101
-            for _t in self.gothreads:
-                if _t.is_alive():
-                    self.ButtonParse.after('500', self.Parse)  # pylint: disable=E1101
-                    return
-            self.logger.info("Parse complete!")
-            gothread = self.gothreads.pop()
-            self.ButtonParse['state'] = NORMAL  # pylint: disable=E1101
-            if self.opts.write and not gothread.parser.error:
-                writer = Writer(gothread.parser)
-                Parse.doOutput(writer)
-            if self.opts.plot and not gothread.parser.error:
-                try:
-                    import matplotlib.pyplot as plt  # pylint: disable=C0415
-                    plotter = Plotter(gothread.parser, plt)
-                    self.logger.info("Generating plots...")
-                    plotter.DoPlots()
-                    plt.show(block=False)
-                except ImportError as msg:
-                    self.logger.error("Cannot import matplotlib! %s", str(msg), exc_info=False)
-        else:
-            if self.opts.in_files:
-                parser = Parse(self.opts, handler=self.handler)
-                self.gothreads.append(ParseThread(self.opts, parser))
-                self.gothreads[-1].start()
-                self.ButtonParse.after('500', self.Parse)  # pylint: disable=E1101
-            else:
-                self.logger.warning("No input files!")
-        self.postParse()
-        self.handler.flush()
 
     def RemoveFileClick(self):
         self.checkOptions()
@@ -324,6 +273,8 @@ class ChooseFiles(tk.Frame):
     def SpawnOutputDialogClick(self):
         outdir = filedialog.askdirectory(title="Select Output File(s)",
                                          initialdir=self.opts.out_dir)
+        if not outdir:
+            return
         if os.path.exists(outdir):
             self.opts.out_dir = outdir
             self.outdir = self.opts.out_dir  # So we know the user set the output dir
@@ -332,7 +283,7 @@ class ChooseFiles(tk.Frame):
     def UpdateFileListBoxFrameLabel(self):
         self.FileListBoxFrameLabelVar.set("Output to: %s/%s_*.txt" % (self.opts.out_dir, self.opts.outfile))
 
-    def checkOptions(self, event=None):  # pylint: disable=W0613
+    def checkOptions(self, event=None):
         for c in self.checks:
             setattr(self.opts, c['name'], self.boolmap[getattr(self, c['name']).get()])
 
@@ -345,25 +296,15 @@ class ChooseFiles(tk.Frame):
 
         if not self.opts.write:
             self.opts.plot = True
-            self.plot.set(1)  # pylint: disable=E1101
-            self.Check_plot["state"] = DISABLED  # pylint: disable=E1101
+            self.plot.set(1)
+            self.Check_plot["state"] = DISABLED
         else:
-            self.Check_plot["state"] = NORMAL  # pylint: disable=E1101
+            self.Check_plot["state"] = NORMAL
 
         self.opts.plots = self.OptionsPlotsString.get()
         self.opts.histplots = self.OptionsHistPlotsString.get()
         self.opts.heatmapd = int(self.OptionsHeatmapdString.get())
 
-    def checkOutputFileName(self, event=None):  # pylint: disable=unused-argument
+    def checkOutputFileName(self, event=None):
         self.opts.outfile = self.OutputFileName.get()
         self.UpdateFileListBoxFrameLabel()
-
-    def preParse(self):
-        '''We need to check a couple of things right before we start parsing'''
-        self.degfreedom = self.opts.degfree  # Store self.opts.degfree before parsing
-        if self.opts.degfree == 0 and len(self.opts.in_files):
-            self.opts.degfree = len(self.opts.in_files)-1
-
-    def postParse(self):
-        '''We need to check a couple of things right after we finish parsing'''
-        self.opts.degfree = self.degfreedom  # Restore self.opts.degfree after parsing

@@ -149,73 +149,73 @@ class PreferencesFrame(tk.Frame):
 
     def checkVcutoffEntry(self):
         try:
-            vcutoff = float(self.EntryVcutoff.get())  # pylint: disable=E1101
+            vcutoff = float(self.EntryVcutoff.get())
             if vcutoff != -1:
                 vcutoff = abs(vcutoff)
             self.opts.vcutoff = vcutoff
         except ValueError:
             self.opts.vcutoff = -1
 
-        self.EntryVcutoff.delete(0, END)  # pylint: disable=E1101
+        self.EntryVcutoff.delete(0, END)
         if self.opts.vcutoff > 0:
-            self.EntryVcutoff.insert(0, self.opts.vcutoff)  # pylint: disable=E1101
+            self.EntryVcutoff.insert(0, self.opts.vcutoff)
         else:
-            self.EntryVcutoff.insert(0, "Vmax")  # pylint: disable=E1101
+            self.EntryVcutoff.insert(0, "Vmax")
 
     def checkLagcutoffEntry(self):
         try:
-            lagcutoff = float(self.EntryLagcutoff.get())  # pylint: disable=E1101
+            lagcutoff = float(self.EntryLagcutoff.get())
             self.opts.lagcutoff = abs(lagcutoff)
         except ValueError:
             self.opts.lagcutoff = 0.1
 
-        self.EntryLagcutoff.delete(0, END)  # pylint: disable=E1101
-        self.EntryLagcutoff.insert(0, self.opts.lagcutoff)  # pylint: disable=E1101
+        self.EntryLagcutoff.delete(0, END)
+        self.EntryLagcutoff.insert(0, self.opts.lagcutoff)
 
     def checkColumnEntry(self):
         try:
-            x, y = self.EntryColumns.get().split(",")  # pylint: disable=E1101
+            x, y = self.EntryColumns.get().split(",")
             self.opts.xcol, self.opts.ycol = int(x)-1, int(y)-1
         except ValueError:
             pass
-        self.EntryColumns.delete(0, END)  # pylint: disable=E1101
-        self.EntryColumns.insert(0, ",".join((str(self.opts.xcol+1), str(self.opts.ycol+1))))  # pylint: disable=E1101
+        self.EntryColumns.delete(0, END)
+        self.EntryColumns.insert(0, ",".join((str(self.opts.xcol+1), str(self.opts.ycol+1))))
 
     def checkGminmaxEntry(self):
         try:
-            x, y = self.EntryGminmax.get().split(",")  # pylint: disable=E1101
+            x, y = self.EntryGminmax.get().split(",")
             self.opts.mlow, self.opts.mhi = int(x), int(y)
         except ValueError:
             pass
-        self.EntryGminmax.delete(0, END)  # pylint: disable=E1101
-        self.EntryGminmax.insert(0, ",".join((str(self.opts.mlow), str(self.opts.mhi))))  # pylint: disable=E1101
+        self.EntryGminmax.delete(0, END)
+        self.EntryGminmax.insert(0, ",".join((str(self.opts.mlow), str(self.opts.mhi))))
 
     def checkNDCminmaxEntry(self):
         try:
-            x, y = self.EntryNDCminmax.get().split(",")  # pylint: disable=E1101
+            x, y = self.EntryNDCminmax.get().split(",")
             self.opts.ndc_mlow, self.opts.ndc_mhi = float(x), float(y)
         except ValueError:
             pass
-        self.EntryNDCminmax.delete(0, END)  # pylint: disable=E1101
-        self.EntryNDCminmax.insert(0, ",".join((str(self.opts.ndc_mlow), str(self.opts.ndc_mhi))))  # pylint: disable=E1101
+        self.EntryNDCminmax.delete(0, END)
+        self.EntryNDCminmax.insert(0, ",".join((str(self.opts.ndc_mlow), str(self.opts.ndc_mhi))))
 
     def checkAlphaEntry(self):
         try:
-            alpha = float(self.EntryAlpha.get())  # pylint: disable=E1101
+            alpha = float(self.EntryAlpha.get())
             if 0 < alpha < 1:
                 self.opts.alpha = alpha
         except ValueError:
             pass
-        self.EntryAlpha.delete(0, END)  # pylint: disable=E1101
-        self.EntryAlpha.insert(0, self.opts.alpha)  # pylint: disable=E1101
+        self.EntryAlpha.delete(0, END)
+        self.EntryAlpha.insert(0, self.opts.alpha)
 
     def checkMaxREntry(self):
         try:
-            self.opts.maxr = float(self.EntryMaxR.get())  # pylint: disable=E1101
+            self.opts.maxr = float(self.EntryMaxR.get())
         except ValueError:
             pass
-        self.EntryMaxR.delete(0, END)  # pylint: disable=E1101
-        self.EntryMaxR.insert(0, self.opts.maxr)  # pylint: disable=E1101
+        self.EntryMaxR.delete(0, END)
+        self.EntryMaxR.insert(0, self.opts.maxr)
 
     def checkSegmentsEntry(self):
         try:

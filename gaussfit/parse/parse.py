@@ -119,7 +119,7 @@ class Parse():
         if not 0 < self.opts.alpha < 1:
             self.logger.error("Alpha must be between 0 and 1")
             sys.exit()
-    
+
     def readfiles(self, fns, parse=True):
         '''Walk through input files and parse
         them into attributes '''
