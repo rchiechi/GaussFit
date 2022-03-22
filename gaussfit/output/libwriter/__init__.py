@@ -14,3 +14,4 @@ from .WriteLag import WriteLag
 from .WriteRData import WriteRData
 from .WriteGHistogram import WriteGHistogram
 from .WriteGMatrix import WriteGMatrix
+from .doOutput import doOutput

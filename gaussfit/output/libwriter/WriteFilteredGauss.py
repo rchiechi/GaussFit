@@ -1,16 +1,9 @@
 import os
-import warnings
 import csv
-from shutil import copyfile
 import logging
-from gaussfit.colors import GREEN, TEAL, YELLOW, WHITE
-try:
-    import numpy as np
-    from scipy.special import stdtrit
-except ImportError:
-    pass  # We catch numpy import errors in Parser.py
+import numpy as np
+from scipy.special import stdtrit
 
-warnings.filterwarnings('ignore', '.*comparison.*', FutureWarning)
 logger = logging.getLogger('output')
 
 

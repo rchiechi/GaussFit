@@ -22,6 +22,7 @@ Description:
 import os
 import datetime
 import csv
+import warnings
 from shutil import copyfile
 import logging
 from gaussfit.colors import GREEN, TEAL, YELLOW, WHITE
@@ -32,25 +33,27 @@ loghandler.setFormatter(logging.Formatter(
     fmt=GREEN+os.path.basename('%(name)s'+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
 logger.addHandler(loghandler)
 
+warnings.filterwarnings('ignore', '.*comparison.*', FutureWarning)
+
 
 class Writer():
     '''The main Writer class for creating text files of parsed data.'''
-    from .libwriter import WriteHistograms
-    from .libwriter import WriteFilteredHistograms
-    from .libwriter import WriteSegmentedGauss
-    from .libwriter import WriteVtrans
-    from .libwriter import WriteFN
-    from .libwriter import WriteFilteredGauss
-    from .libwriter import WriteGauss
-    from .libwriter import WriteVT
-    from .libwriter import WriteData
-    from .libwriter import WriteDJDV
-    from .libwriter import WriteNDC
-    from .libwriter import WriteFiltered
-    from .libwriter import WriteLag
-    from .libwriter import WriteRData
-    from .libwriter import WriteGHistogram
-    from .libwriter import WriteGMatrix
+    from gaussfit.output.libwriter import WriteHistograms
+    from gaussfit.output.libwriter import WriteFilteredHistograms
+    from gaussfit.output.libwriter import WriteSegmentedGauss
+    from gaussfit.output.libwriter import WriteVtrans
+    from gaussfit.output.libwriter import WriteFN
+    from gaussfit.output.libwriter import WriteFilteredGauss
+    from gaussfit.output.libwriter import WriteGauss
+    from gaussfit.output.libwriter import WriteVT
+    from gaussfit.output.libwriter import WriteData
+    from gaussfit.output.libwriter import WriteDJDV
+    from gaussfit.output.libwriter import WriteNDC
+    from gaussfit.output.libwriter import WriteFiltered
+    from gaussfit.output.libwriter import WriteLag
+    from gaussfit.output.libwriter import WriteRData
+    from gaussfit.output.libwriter import WriteGHistogram
+    from gaussfit.output.libwriter import WriteGMatrix
 
     def __init__(self, parser):
         self.parser = parser

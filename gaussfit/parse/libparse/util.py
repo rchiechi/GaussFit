@@ -1,21 +1,31 @@
 '''Utility functions for the main parser class.'''
 
+import sys
 import numpy as np
 from scipy.stats import gmean
+from gaussfit.colors import RED, RS
+
+
+def throwimportwarning(msg):
+    print("\n\t\t%s> > > Error importing numpy/pandas/scipy! %s%s%s < < <%s" % (
+          RED, RS, str(msg), RED, RS))
+    print("Try pip3 install <module>")
+    sys.exit()
+
 
 def getdistances(coeff, X, Y):
-    _a = [[],[]]
-    _b = [X,Y]
+    _a = [[], []]
+    _b = [X, Y]
     for x in np.linspace(min(X), max(X), 500):
         _a[0].append(x)
-        _a[1].append(linear(x,*coeff))
+        _a[1].append(linear(x, *coeff))
     A = np.array(_a)
     B = np.array(_b)
     distances = []
     # rotate three times to get J-pairs in order
-    for p in np.rot90(B,k=3):
+    for p in np.rot90(B, k=3):
         _d = []
-        for q in np.rot90(A,k=3):
+        for q in np.rot90(A, k=3):
             _d.append(np.sqrt((p[0]-q[0])**2 + (p[1]-q[1])**2))
         distances.append(min(_d))
     return distances
@@ -33,6 +43,7 @@ def signedgmean(Y):
         Ym = gmean(abs(Y))
     return Ym
 
+
 def gauss(x, *p):
     '''
     Return a gaussian function
@@ -40,12 +51,14 @@ def gauss(x, *p):
     A, mu, sigma = p
     return A*np.exp(-(x-mu)**2/(2.*sigma**2))
 
+
 def linear(x, *p):
     '''
     Return a line
     '''
-    m,b = p
+    m, b = p
     return (m*x)+b
+
 
 def lorenz(x, *p):
     '''
@@ -53,6 +66,7 @@ def lorenz(x, *p):
     '''
     A, mu, B = p
     return A/((x-mu)**2 + B**2)
+
 
 def printFN(logger, FN):
     '''
@@ -84,4 +98,3 @@ def printFN(logger, FN):
 #     else:
 #         return -1
 #     # TODO: logic to handle cases other than 0 -> V_min/max -> 0 -> V_min/max -> 0
-    

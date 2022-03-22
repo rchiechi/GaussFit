@@ -1,14 +1,9 @@
 import os
-import warnings
 import csv
 import logging
-try:
-    import numpy as np
-    from scipy.interpolate import griddata
-except ImportError:
-    pass  # We catch numpy import errors in Parser.py
+import numpy as np
+from scipy.interpolate import griddata
 
-warnings.filterwarnings('ignore', '.*comparison.*', FutureWarning)
 logger = logging.getLogger('output')
 
 

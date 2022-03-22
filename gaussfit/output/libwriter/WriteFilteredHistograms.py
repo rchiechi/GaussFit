@@ -1,9 +1,7 @@
 import os
-import warnings
 import csv
 import logging
 
-warnings.filterwarnings('ignore', '.*comparison.*', FutureWarning)
 logger = logging.getLogger('output')
 
 

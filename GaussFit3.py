@@ -22,8 +22,9 @@ Description:
 '''
 import cProfile
 from gaussfit import Parse, Opts
-from gaussfit.output import Writer,Plotter
+from gaussfit.output import Writer, Plotter
 from gaussfit import colors
+from gaussfit.output.libwriter import doOutput
 
 try:
     import matplotlib.pyplot as plt
@@ -31,8 +32,7 @@ try:
 except ImportError as msg:
     print("Cannot import matplotlib! %s", str(msg), exc_info=False)
     CAN_PLOT = False
-#from gaussfit.args import Opts
-#from gaussfit.parse import Parse
+
 
 def do_cprofile(func):
     '''
@@ -49,7 +49,8 @@ def do_cprofile(func):
             profile.print_stats()
     return profiled_func
 
-#@do_cprofile
+
+# @do_cprofile
 def do_gaussfit(opts):
     '''
     Call this function to execute the parsing engine
@@ -59,14 +60,15 @@ def do_gaussfit(opts):
     parser.readfiles(opts.in_files)
     if opts.write and not parser.error:
         writer = Writer(parser)
-        Parse.doOutput(writer)
+        doOutput(writer)
     if opts.plot and not parser.error:
         if CAN_PLOT:
-            plotter = Plotter(parser,plt)
+            plotter = Plotter(parser, plt)
             plotter.DoPlots()
             plt.show()
         else:
             print(colors.RED+"Unable to show plots without matplotlib."+colors.RS)
+
 
 _opts = Opts
 
