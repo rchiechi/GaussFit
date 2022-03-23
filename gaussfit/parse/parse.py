@@ -32,6 +32,8 @@ import logging
 import warnings
 import threading
 import time
+import pickle
+from multiprocessing import Process, Pipe
 from collections import OrderedDict
 from gaussfit.parse.libparse.util import signedgmean, gauss, getdistances, printFN, lorenz, throwimportwarning
 from gaussfit.colors import RED, WHITE, GREEN, TEAL, YELLOW, RS
@@ -91,10 +93,8 @@ class Parse():
     NDCHists = OrderedDict()
     filtered = []
     R = {}
-    # traces = {}
     segments = {}
     segments_nofirst = {}
-    # nofirsttrace = {}
 
     def __init__(self, opts, handler=None, lock=None):
         self.opts = opts
@@ -224,9 +224,13 @@ class Parse():
         # we stop here when just self.df is complete
         if not parse:
             return
+        children = []
         self.logger.info("* * * * * * Finding segments   * * * * * * * *")
         self.loghandler.flush()
-        nofirsttraces = self.findsegments()
+        parent_conn, child_conn = Pipe(duplex=False)
+        __p = Process(target=self.findsegments, args=(child_conn,))
+        __p.start()
+        children.append([parent_conn, __p])
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.loghandler.flush()
         self.findtraces()
@@ -242,7 +246,10 @@ class Parse():
         if not self.opts.nolag:
             self.logger.info("* * * * * * Computing Lag  * * * * * * * * *")
         self.loghandler.flush()
-        lag = self.dolag(xy)
+        parent_conn, child_conn = Pipe(duplex=False)
+        __p = Process(target=self.dolag, args=(child_conn, xy,))
+        __p.start()
+        children.append([parent_conn, __p])
         self.logger.info("* * * * * * Computing dY/dX  * * * * * * * *")
         self.loghandler.flush()
         self.dodjdv()
@@ -254,6 +261,8 @@ class Parse():
         R = self.dorect(xy)
         self.logger.info("* * * * * * Computing Gaussian  * * * * * * * * *")
         self.loghandler.flush()
+        lag = pickle.loads(children[1][0].recv())
+        children[1][1].join()
         for x, group in xy:
             self.XY[x] = {
                 "Y": group['J'],
@@ -271,11 +280,14 @@ class Parse():
             for x in self.XY:
                 self.GHists[x] = {}
                 self.GHists[x]['hist'] = self.XY[x]['hist']
-        if nofirsttraces:
+
+        self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.loads(children[0][0].recv())
+        children[0][1].join()
+        if nofirsttrace:
             for x, group in xy:
-                self.XY[x]["Y_nofirst"] = nofirsttraces[x]
-                self.XY[x]["LogY_nofirst"] = [np.log10(abs(_x)) for _x in nofirsttraces[x]]
-                self.XY[x]["hist_nofirst"] = self.dohistogram(nofirsttraces[x], "J")
+                self.XY[x]["Y_nofirst"] = nofirsttrace[x]
+                self.XY[x]["LogY_nofirst"] = [np.log10(abs(_x)) for _x in nofirsttrace[x]]
+                self.XY[x]["hist_nofirst"] = self.dohistogram(nofirsttrace[x], "J")
 
         self.logger.info("* * * * * * Computing |V^2/J|  * * * * * * * * *")
         self.loghandler.flush()

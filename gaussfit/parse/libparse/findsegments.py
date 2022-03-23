@@ -1,7 +1,8 @@
 import numpy as np
+import pickle
 
 
-def findsegments(self):
+def findsegments(self, conn):
     '''
     Break out each trace into four segments of
     0V -> Vmax, Vmax -> 0, 0V -> Vmin, Vmin -> 0V.
@@ -143,8 +144,9 @@ def findsegments(self):
                 nofirsttrace[_V] = np.zeros(max_column_width)
                 self.logger.warning("Setting J = 0 for all V = 0 in nofirsttrace.")
         nofirsttrace[_V] = np.array(nofirsttrace[_V])
-
-    self.segments = segmenthists
-    self.segments_nofirst = segmenthists_nofirst
-    return nofirsttrace
+    conn.send(pickle.dumps((segmenthists, segmenthists_nofirst, nofirsttrace)))
+    conn.close()
+    # self.segments = segmenthists
+    # self.segments_nofirst = segmenthists_nofirst
+    # self.nofirsttraces = nofirsttrace
     # self.bytrace = tracehists

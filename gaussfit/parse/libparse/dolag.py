@@ -1,3 +1,4 @@
+import pickle
 from gaussfit.parse.libparse.util import throwimportwarning, getdistances
 try:
     import numpy as np
@@ -6,7 +7,7 @@ except ImportError as msg:
     throwimportwarning(msg)
 
 
-def dolag(self, xy):
+def dolag(self, conn, xy):
     '''
     Make a lag plot of Y
     '''
@@ -49,4 +50,5 @@ def dolag(self, xy):
             self.logger.info("Lag filtered excluded %s data points at %s V", tossed, x)
         lag[x]['lagplot'] = np.array(_lag)
         lag[x]['filtered'] = np.array(_filtered)
-    return lag
+    conn.send(pickle.dumps(lag))
+    # return lag
