@@ -35,7 +35,7 @@ import time
 import pickle
 from multiprocessing import Process, Pipe
 from collections import OrderedDict
-from gaussfit.parse.libparse.util import signedgmean, gauss, getdistances, printFN, lorenz, throwimportwarning
+from gaussfit.parse.libparse.util import printFN, throwimportwarning
 from gaussfit.colors import RED, WHITE, GREEN, TEAL, YELLOW, RS
 from gaussfit.logger import DelayedHandler
 # import concurrent.futures
@@ -281,7 +281,7 @@ class Parse():
                 self.GHists[x] = {}
                 self.GHists[x]['hist'] = self.XY[x]['hist']
 
-        self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.loads(children[0][0].recv())
+        self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.loads(children[0][0].recv())
         children[0][1].join()
         if nofirsttrace:
             for x, group in xy:

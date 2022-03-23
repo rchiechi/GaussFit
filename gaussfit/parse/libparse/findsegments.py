@@ -6,21 +6,23 @@ def findsegments(self, conn):
     '''
     Break out each trace into four segments of
     0V -> Vmax, Vmax -> 0, 0V -> Vmin, Vmin -> 0V.
-    '''
+    '''   
     # TODO set num_segments in opts
     # NOTE this is a crude hack because I forgot how Pandas works
     if self.opts.tracebyfile:
         self.logger.error("Cannot generate segments from non-EGaIn dataset.")
+        self.loghandler.flush()
         return {}
     if self.opts.ycol < 0:
         self.logger.warning("Parsing segments when all columns are parsed may produce weird results!")
-        # return {}
     try:
         if self.df.V.value_counts()[0] % int(self.opts.segments-1) != 0:
             self.logger.warning("Dataset does not seem to have %s segments.", int(self.opts.segments))
     except KeyError:
         self.logger.warning("Could not segment data by 0's.")
+        self.loghandler.flush()
         return {}
+    error = False
     self.logger.info("Breaking out traces by segments of 0V -> Vmin/max.")
     segments = {}
     segments_combined = {}
@@ -97,7 +99,7 @@ def findsegments(self, conn):
                     max_column_width = len(nofirsttrace[V])
 
     if len(segments.keys()) != self.opts.segments:
-        self.error = True
+        error = True
         self.logger.error('Expected %i segments, but found %i!', self.opts.segments, len(segments.keys()))
     else:
         self.logger.info('Found %s segments.', len(segments.keys()))
@@ -144,7 +146,8 @@ def findsegments(self, conn):
                 nofirsttrace[_V] = np.zeros(max_column_width)
                 self.logger.warning("Setting J = 0 for all V = 0 in nofirsttrace.")
         nofirsttrace[_V] = np.array(nofirsttrace[_V])
-    conn.send(pickle.dumps((segmenthists, segmenthists_nofirst, nofirsttrace)))
+    self.loghandler.flush()
+    conn.send(pickle.dumps((error, segmenthists, segmenthists_nofirst, nofirsttrace)))
     conn.close()
     # self.segments = segmenthists
     # self.segments_nofirst = segmenthists_nofirst
