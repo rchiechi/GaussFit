@@ -32,7 +32,9 @@ import logging
 import warnings
 import threading
 import time
+import pickle
 from multiprocessing import Process, Pipe
+from tempfile import NamedTemporaryFile
 from collections import OrderedDict
 from gaussfit.parse.libparse.util import printFN, throwimportwarning
 from gaussfit.colors import RED, WHITE, GREEN, TEAL, YELLOW, RS
@@ -230,13 +232,15 @@ class Parse():
         children = []
         self.logger.info("* * * * * * Finding segments   * * * * * * * *")
         self.loghandler.flush()
-        if not self.called_from_gui:
-            parent_conn, child_conn = Pipe(duplex=False)
-            __p = Process(target=self.findsegments, args=(child_conn,))
-            __p.start()
-            children.append([parent_conn, __p])
+        if self.called_from_gui:
+            parent_conn = NamedTemporaryFile()
+            child_conn = parent_conn
         else:
-            nofirsttrace = self.findsegments(None)
+            parent_conn, child_conn = Pipe(duplex=False)
+        __p = Process(target=self.findsegments, args=(child_conn,))
+        __p.start()
+        children.append([parent_conn, __p])
+
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.loghandler.flush()
         self.findtraces()
@@ -252,13 +256,15 @@ class Parse():
         if not self.opts.nolag:
             self.logger.info("* * * * * * Computing Lag  * * * * * * * * *")
         self.loghandler.flush()
-        if not self.called_from_gui:
-            parent_conn, child_conn = Pipe(duplex=False)
-            __p = Process(target=self.dolag, args=(child_conn, xy,))
-            __p.start()
-            children.append([parent_conn, __p])
+        if self.called_from_gui:
+            parent_conn = NamedTemporaryFile()
+            child_conn = parent_conn
         else:
-            lag = self.dolag(None, xy)
+            parent_conn, child_conn = Pipe(duplex=False)
+        __p = Process(target=self.dolag, args=(child_conn, xy,))
+        __p.start()
+        children.append([parent_conn, __p])
+
         self.logger.info("* * * * * * Computing dY/dX  * * * * * * * *")
         self.loghandler.flush()
         self.dodjdv()
@@ -270,7 +276,10 @@ class Parse():
         R = self.dorect(xy)
         self.logger.info("* * * * * * Computing Gaussian  * * * * * * * * *")
         self.loghandler.flush()
-        if not self.called_from_gui:
+        if self.called_from_gui:
+            children[1][1].join()
+            lag = pickle.load(children[1][0])
+        else:
             lag = children[1][0].recv()
             children[1][1].join()
         for x, group in xy:
@@ -290,7 +299,10 @@ class Parse():
             for x in self.XY:
                 self.GHists[x] = {}
                 self.GHists[x]['hist'] = self.XY[x]['hist']
-        if not self.called_from_gui:
+        if self.called_from_gui:
+            children[0][1].join()
+            self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.load(children[0][0])
+        else:
             self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = children[0][0].recv()
             children[0][1].join()
         if nofirsttrace:

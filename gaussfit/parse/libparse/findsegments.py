@@ -1,4 +1,6 @@
 import numpy as np
+import pickle
+import sys
 
 
 def findsegments(self, conn):
@@ -6,6 +8,8 @@ def findsegments(self, conn):
     Break out each trace into four segments of
     0V -> Vmax, Vmax -> 0, 0V -> Vmin, Vmin -> 0V.
     '''
+    __sendattr = getattr(conn, "send", None)
+    use_pipe = callable(__sendattr)
     # TODO set num_segments in opts
     # NOTE this is a crude hack because I forgot how Pandas works
     if self.opts.tracebyfile:
@@ -143,10 +147,15 @@ def findsegments(self, conn):
                 nofirsttrace[_V] = np.zeros(max_column_width)
                 self.logger.warning("Setting J = 0 for all V = 0 in nofirsttrace.")
         nofirsttrace[_V] = np.array(nofirsttrace[_V])
-    if conn is not None:
+    if use_pipe:
+        self.loghandler.flush()
         conn.send((error, segmenthists, segmenthists_nofirst, nofirsttrace))
         conn.close()
-    self.loghandler.flush()
-    self.segments = segmenthists
-    self.segments_nofirst = segmenthists_nofirst
-    return nofirsttrace
+    else:
+        with open(conn.name, 'w+b') as fh:
+            pickle.dump((error, segmenthists, segmenthists_nofirst, nofirsttrace), fh)
+        sys.exit()
+    # self.loghandler.flush()
+    # self.segments = segmenthists
+    # self.segments_nofirst = segmenthists_nofirst
+    # return nofirsttrace
