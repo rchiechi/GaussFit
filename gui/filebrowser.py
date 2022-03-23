@@ -22,7 +22,6 @@ Description:
 import os
 import platform
 import logging
-import psutil
 import tkinter.ttk as tk
 from tkinter import filedialog
 from tkinter import Text, IntVar, StringVar, Listbox, Label
@@ -36,6 +35,11 @@ from gui.prefs import PreferencesWindow
 from gui.colors import BLACK, YELLOW, WHITE, RED, TEAL, GREEN, BLUE, GREY  # pylint: disable=unused-import
 from gui.tooltip import createToolTip
 from gaussfit.logger import GUIHandler
+try:
+    import psutil
+    HASPSUTIL = True
+except ImportError:
+    HASPSUTIL = False
 
 absdir = os.path.dirname(os.path.abspath(__file__))
 
@@ -296,8 +300,9 @@ class ChooseFiles(tk.Frame):
         self.FileListBoxFrameLabelVar.set("Output to: %s/%s_*.txt" % (self.opts.out_dir, self.opts.outfile))
 
     def UpdateLabelcpu(self):
-        self.LabelcpuString.set("CPU: %0.1f %%" % psutil.cpu_percent())
-        self.Labelcpu.after(500, self.UpdateLabelcpu)
+        if HASPSUTIL:
+            self.LabelcpuString.set("CPU: %0.1f %%" % psutil.cpu_percent())
+            self.Labelcpu.after(500, self.UpdateLabelcpu)
 
     def checkOptions(self, event=None):
         for c in self.checks:
