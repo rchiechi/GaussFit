@@ -32,7 +32,6 @@ import logging
 import warnings
 import threading
 import time
-import pickle
 from multiprocessing import Process, Pipe
 from collections import OrderedDict
 from gaussfit.parse.libparse.util import printFN, throwimportwarning
@@ -95,12 +94,14 @@ class Parse():
     R = {}
     segments = {}
     segments_nofirst = {}
+    called_from_gui = False
 
     def __init__(self, opts, handler=None, lock=None):
         self.opts = opts
         # Pass a lock when calling inside a thread
         if lock is not None:
             self.lock = lock
+            self.called_from_gui = True
         else:
             self.lock = threading.Lock()
         # Pass your own log hanlder, e.g., when calling from a GUI
@@ -197,6 +198,8 @@ class Parse():
         '''Read a pandas.DataFrame and compute Fowler-Nordheim
         values, log10 the J or I values and create a dictionary
         indexed by unique voltages.'''
+        if self.called_from_gui:
+            self.logger.warn("Called from GUI, cannot use multiprocessing.")
         if (self.df.V.dtype, self.df.J.dtype) != ('float64', 'float64'):
             self.logger.error("Parsed data does not appear to contain numerical data!")
             self.error = True
@@ -227,10 +230,13 @@ class Parse():
         children = []
         self.logger.info("* * * * * * Finding segments   * * * * * * * *")
         self.loghandler.flush()
-        parent_conn, child_conn = Pipe(duplex=False)
-        __p = Process(target=self.findsegments, args=(child_conn,))
-        __p.start()
-        children.append([parent_conn, __p])
+        if not self.called_from_gui:
+            parent_conn, child_conn = Pipe(duplex=False)
+            __p = Process(target=self.findsegments, args=(child_conn,))
+            __p.start()
+            children.append([parent_conn, __p])
+        else:
+            nofirsttrace = self.findsegments(None)
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.loghandler.flush()
         self.findtraces()
@@ -246,10 +252,13 @@ class Parse():
         if not self.opts.nolag:
             self.logger.info("* * * * * * Computing Lag  * * * * * * * * *")
         self.loghandler.flush()
-        parent_conn, child_conn = Pipe(duplex=False)
-        __p = Process(target=self.dolag, args=(child_conn, xy,))
-        __p.start()
-        children.append([parent_conn, __p])
+        if not self.called_from_gui:
+            parent_conn, child_conn = Pipe(duplex=False)
+            __p = Process(target=self.dolag, args=(child_conn, xy,))
+            __p.start()
+            children.append([parent_conn, __p])
+        else:
+            lag = self.dolag(None, xy)
         self.logger.info("* * * * * * Computing dY/dX  * * * * * * * *")
         self.loghandler.flush()
         self.dodjdv()
@@ -261,8 +270,9 @@ class Parse():
         R = self.dorect(xy)
         self.logger.info("* * * * * * Computing Gaussian  * * * * * * * * *")
         self.loghandler.flush()
-        lag = pickle.loads(children[1][0].recv())
-        children[1][1].join()
+        if not self.called_from_gui:
+            lag = children[1][0].recv()
+            children[1][1].join()
         for x, group in xy:
             self.XY[x] = {
                 "Y": group['J'],
@@ -280,9 +290,9 @@ class Parse():
             for x in self.XY:
                 self.GHists[x] = {}
                 self.GHists[x]['hist'] = self.XY[x]['hist']
-
-        self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.loads(children[0][0].recv())
-        children[0][1].join()
+        if not self.called_from_gui:
+            self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = children[0][0].recv()
+            children[0][1].join()
         if nofirsttrace:
             for x, group in xy:
                 self.XY[x]["Y_nofirst"] = nofirsttrace[x]

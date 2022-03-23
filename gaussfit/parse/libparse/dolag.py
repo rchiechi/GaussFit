@@ -1,4 +1,3 @@
-import pickle
 from gaussfit.parse.libparse.util import throwimportwarning, getdistances
 try:
     import numpy as np
@@ -27,7 +26,7 @@ def dolag(self, conn, xy):
         try:
             m, b, r, _, _ = linregress(_lag[0], _lag[1])
         except FloatingPointError:
-            self.logger.warn("Erro computing lag for J = %s", _lag[0])
+            self.logger.warn("Error computing lag for J = %s", _lag[0])
             continue
         # self.logger.debug("R-squared: %s" % (r**2))
         distances = getdistances((m, b), _lag[0], _lag[1])
@@ -50,7 +49,9 @@ def dolag(self, conn, xy):
             self.logger.info("Lag filtered excluded %s data points at %s V", tossed, x)
         lag[x]['lagplot'] = np.array(_lag)
         lag[x]['filtered'] = np.array(_filtered)
+
+    if conn is not None:
+        conn.send(lag)
+        conn.close()
     self.loghandler.flush()
-    conn.send(pickle.dumps(lag))
-    conn.close()
-    # return lag
+    return lag

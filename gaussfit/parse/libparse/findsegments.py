@@ -1,5 +1,4 @@
 import numpy as np
-import pickle
 
 
 def findsegments(self, conn):
@@ -31,7 +30,6 @@ def findsegments(self, conn):
     max_column_width = 0
     # n_segments = guessSegments(self.df)
     # self.logger.info("Guessing %s segments", n_segments)
-
     for _fn in self.df.index.levels[0]:
         _seg = None
         _trace = None
@@ -97,7 +95,6 @@ def findsegments(self, conn):
             if V != 0:
                 if len(nofirsttrace[V]) > max_column_width:
                     max_column_width = len(nofirsttrace[V])
-
     if len(segments.keys()) != self.opts.segments:
         error = True
         self.logger.error('Expected %i segments, but found %i!', self.opts.segments, len(segments.keys()))
@@ -133,7 +130,7 @@ def findsegments(self, conn):
                 segmenthists_nofirst[_seg]['combined'][_V] = {}
             segmenthists_nofirst[_seg]['combined'][_V] = self.dohistogram(
                 np.array([np.log10(abs(_j)) for _j in segments_combined_nofirst[_seg][_V]]), label='Segmented')
-    # segmenthists['nofirst'] = segmenthists_nofirst
+    # segmenthistSs['nofirst'] = segmenthists_nofirst
     # If there are more zeros than other V's, we cannot align them properly
     # _pad = 0
     # for _V in nofirsttrace:
@@ -146,10 +143,10 @@ def findsegments(self, conn):
                 nofirsttrace[_V] = np.zeros(max_column_width)
                 self.logger.warning("Setting J = 0 for all V = 0 in nofirsttrace.")
         nofirsttrace[_V] = np.array(nofirsttrace[_V])
+    if conn is not None:
+        conn.send((error, segmenthists, segmenthists_nofirst, nofirsttrace))
+        conn.close()
     self.loghandler.flush()
-    conn.send(pickle.dumps((error, segmenthists, segmenthists_nofirst, nofirsttrace)))
-    conn.close()
-    # self.segments = segmenthists
-    # self.segments_nofirst = segmenthists_nofirst
-    # self.nofirsttraces = nofirsttrace
-    # self.bytrace = tracehists
+    self.segments = segmenthists
+    self.segments_nofirst = segmenthists_nofirst
+    return nofirsttrace
