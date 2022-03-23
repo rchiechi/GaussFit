@@ -99,7 +99,7 @@ class Parse():
     def __init__(self, opts, handler=None, lock=None):
         self.opts = opts
         # Pass a lock when calling inside a thread
-        if lock:
+        if lock is not None:
             self.lock = lock
         else:
             self.lock = threading.Lock()

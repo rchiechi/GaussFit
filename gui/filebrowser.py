@@ -22,6 +22,7 @@ Description:
 import os
 import platform
 import logging
+import threading
 import tkinter.ttk as tk
 from tkinter import filedialog
 from tkinter import Text, IntVar, StringVar, Listbox, Label
@@ -55,6 +56,7 @@ class ChooseFiles(tk.Frame):
     plots = []
     outdir = ''
     boolmap = {1: True, 0: False}
+    lock = threading.Lock
 
     def __init__(self, opts, master=None):
         tk.Frame.__init__(self, master)

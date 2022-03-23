@@ -63,13 +63,13 @@ def dohistogram(self, Y, label="", density=False):
     covar = None  # pylint: disable=unused-variable
     hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
     try:
-        with self.lock:
-            if self.opts.lorenzian:
-                coeff, covar = curve_fit(lorenz, bin_centers, freq, p0=p0, maxfev=self.opts.maxfev)
-                hist_fit = lorenz(bin_centers, *coeff)
-            else:
-                coeff, covar = curve_fit(gauss, bin_centers, freq, p0=p0, maxfev=self.opts.maxfev)
-                hist_fit = gauss(bin_centers, *coeff)
+        # with self.lock:
+        if self.opts.lorenzian:
+            coeff, covar = curve_fit(lorenz, bin_centers, freq, p0=p0, maxfev=self.opts.maxfev)
+            hist_fit = lorenz(bin_centers, *coeff)
+        else:
+            coeff, covar = curve_fit(gauss, bin_centers, freq, p0=p0, maxfev=self.opts.maxfev)
+            hist_fit = gauss(bin_centers, *coeff)
     except RuntimeError:
         if self.opts.maxfev > 100:
             self.logger.warning("|%s| Fit did not converge", label, exc_info=False)

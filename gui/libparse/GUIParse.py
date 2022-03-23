@@ -37,7 +37,7 @@ def GUIParse(self):
     else:
         if self.opts.in_files:
             preParse()
-            parser = Parse(self.opts, handler=self.handler)
+            parser = Parse(self.opts, handler=self.handler, lock=self.lock)
             self.gothreads.append(ParseThread(self.opts, parser))
             self.gothreads[-1].start()
             self.ButtonParse.after('500', self.GUIParse)

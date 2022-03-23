@@ -6,7 +6,7 @@ def findsegments(self, conn):
     '''
     Break out each trace into four segments of
     0V -> Vmax, Vmax -> 0, 0V -> Vmin, Vmin -> 0V.
-    '''   
+    '''
     # TODO set num_segments in opts
     # NOTE this is a crude hack because I forgot how Pandas works
     if self.opts.tracebyfile:
