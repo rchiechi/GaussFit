@@ -22,6 +22,7 @@ Description:
 import os
 import platform
 import logging
+import psutil
 import tkinter.ttk as tk
 from tkinter import filedialog
 from tkinter import Text, IntVar, StringVar, Listbox, Label
@@ -44,25 +45,27 @@ class ChooseFiles(tk.Frame):
        and parsing.'''
 
     from gui.libparse import GUIParse
+    from gui.libparse import GUIPlot
+
+    gothreads = []
+    plots = []
+    outdir = ''
+    boolmap = {1: True, 0: False}
 
     def __init__(self, opts, master=None):
         tk.Frame.__init__(self, master)
         bgimg = PhotoImage(file=os.path.join(absdir, 'RCCLabFluidic.png'))
         limg = Label(master, i=bgimg, background=GREY)
         limg.pack(side=TOP)
-        self.boolmap = {1: True, 0: False}
         try:
             self.last_input_path = os.getcwd()
         except KeyError:
             self.last_input_path = os.path.expanduser('~')
         self.opts = opts
-        self.gothreads = []
-        self.checks = []
         self.degfreedom = {'init': self.opts.degfree, 'user': self.opts.degfree}
-        self.outdir = ''
         self.master.tk_setPalette(background=GREY, activeBackground=GREY)
         self.master.title("RCCLab EGaIn Data Parser")
-        self.master.geometry('700x850+250-250')
+        self.master.geometry('800x850+250-250')
         self.pack(fill=BOTH)
         self.__createWidgets()
         self.ToFront()
@@ -88,8 +91,10 @@ class ChooseFiles(tk.Frame):
         self.__createOptions()
 
         self.ButtonFrame.pack(side=BOTTOM, fill=None)
-        self.FileListBoxFrame.pack(side=TOP, fil=BOTH, expand=True)
-        # self.LeftOptionsFrame.pack(side=LEFT,fill=Y)
+        self.LabelcpuString = StringVar()
+        self.Labelcpu = tk.Label(self.ButtonFrame, textvariable=self.LabelcpuString)
+        self.Labelcpu.pack(side=RIGHT)
+        self.FileListBoxFrame.pack(side=TOP, fill=BOTH, expand=True)
         self.RightOptionsFrame.pack(side=RIGHT, fill=Y)
         self.LoggingFrame.pack(side=BOTTOM, fill=BOTH)
         self.logger = logging.getLogger('parser.gui')
@@ -99,6 +104,7 @@ class ChooseFiles(tk.Frame):
         self.logger.info("Config file:%s", self.opts.configfile)
         self.handler.flush()
         self.updateFileListBox()
+        self.UpdateLabelcpu()
 
     def __createButtons(self):
 
@@ -288,6 +294,10 @@ class ChooseFiles(tk.Frame):
 
     def UpdateFileListBoxFrameLabel(self):
         self.FileListBoxFrameLabelVar.set("Output to: %s/%s_*.txt" % (self.opts.out_dir, self.opts.outfile))
+
+    def UpdateLabelcpu(self):
+        self.LabelcpuString.set("CPU: %0.1f %%" % psutil.cpu_percent())
+        self.Labelcpu.after(500, self.UpdateLabelcpu)
 
     def checkOptions(self, event=None):
         for c in self.checks:
