@@ -80,7 +80,7 @@ class Parse():
     from gaussfit.parse.libparse import dohistogram
     from gaussfit.parse.libparse import dolag
 
-    # Class variabls
+    # Class variables
     error = False
     parsed = False
     df = pd.DataFrame()
