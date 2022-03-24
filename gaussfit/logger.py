@@ -1,5 +1,6 @@
 import sys
 import logging
+from multiprocessing import Queue
 from collections import Counter
 
 
@@ -10,10 +11,10 @@ class DelayedHandler(logging.Handler):
 
     buff = []
 
-    def __init__(self, delay=False):
+    def __init__(self):
         logging.Handler.__init__(self)
         self.createLock()
-        self._delay = delay
+        self._delay = False
 
     def emit(self, message):  # Overwrites the default handler's emit method
         self.buff.append(message)
@@ -45,6 +46,8 @@ class DelayedHandler(logging.Handler):
             self.buff = []
         emitted = []
         for message in self.buff:
+            if not str(message).strip():
+                continue
             # FIFO
             fmsg = self.format(message)
             if fmsg not in emitted:
@@ -70,8 +73,8 @@ class GUIHandler(DelayedHandler):
 
     from tkinter import NORMAL, DISABLED, END
 
-    def __init__(self, console, delay=False):
-        DelayedHandler.__init__(self, delay)
+    def __init__(self, console):
+        DelayedHandler.__init__(self)
         self.setFormatter(logging.Formatter('%(levelname)s %(message)s'))
         self.console = console  # Any text widget, you can use the class above or not
 
@@ -80,3 +83,13 @@ class GUIHandler(DelayedHandler):
         self.console.insert(self.END, message+"\n")  # Inserting the logger message in the widget
         self.console["state"] = self.DISABLED
         self.console.see(self.END)
+
+
+class DelayedMultiprocessHandler(DelayedHandler):
+
+    def __init__(self, que):
+        DelayedHandler.__init__(self)
+        self.que = que
+
+    def _emit(self, message, level):
+        self.que.put(message)

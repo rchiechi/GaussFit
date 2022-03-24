@@ -59,6 +59,7 @@ def dolag(self, conn, xy):
         conn.send(lag)
         conn.close()
     else:
+        self.loghandler.flush()
         with open(conn.name, 'w+b') as fh:
             pickle.dump(lag, fh)
         sys.exit()

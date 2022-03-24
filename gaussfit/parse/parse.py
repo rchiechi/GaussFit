@@ -29,10 +29,12 @@ Description:
 import sys
 import os
 import logging
+from logging.handlers import QueueListener, QueueHandler
 import warnings
 import threading
 import time
 import pickle
+from queue import Queue
 from multiprocessing import Process, Pipe
 from tempfile import NamedTemporaryFile
 from collections import OrderedDict
@@ -97,6 +99,8 @@ class Parse():
     segments = {}
     segments_nofirst = {}
     called_from_gui = False
+    loglistener = None
+    logger = logging.getLogger('parser')
 
     def __init__(self, opts, handler=None, lock=None):
         self.opts = opts
@@ -107,15 +111,19 @@ class Parse():
         else:
             self.lock = threading.Lock()
         # Pass your own log hanlder, e.g., when calling from a GUI
-        # But make sure it supports a flush() method!
+        # But make sure it supports flush(), setDelay() and unsetDelay() methods!
         if not handler:
             self.loghandler = DelayedHandler()
             self.loghandler.setFormatter(logging.Formatter(
                 fmt=GREEN+os.path.basename(
                     '%(name)s'+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
+            logqueue = Queue(-1)
+            queuehanlder = QueueHandler(logqueue)
+            self.loglistener = QueueListener(logqueue, self.loghandler)
+            self.logger.addHandler(queuehanlder)
+            self.loglistener.start()
         else:
             self.loghandler = handler
-        self.logger = logging.getLogger('parser')
         self.logger.addHandler(self.loghandler)
         self.logger.setLevel(getattr(logging, self.opts.loglevel.upper()))
 
@@ -200,8 +208,7 @@ class Parse():
         '''Read a pandas.DataFrame and compute Fowler-Nordheim
         values, log10 the J or I values and create a dictionary
         indexed by unique voltages.'''
-        if self.called_from_gui:
-            self.logger.warn("Called from GUI, cannot use multiprocessing.")
+
         if (self.df.V.dtype, self.df.J.dtype) != ('float64', 'float64'):
             self.logger.error("Parsed data does not appear to contain numerical data!")
             self.error = True
@@ -321,6 +328,9 @@ class Parse():
             printFN(self.logger, self.FN)
         self.loghandler.unsetDelay()
         self.parsed = True
+        __listener = getattr(self, 'loglistener')
+        if callable(__listener):
+            self.loglistener.stop()
 
     def wait(self):
         '''

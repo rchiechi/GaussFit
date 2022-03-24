@@ -1,8 +1,11 @@
+from tempfile import NamedTemporaryFile
 from tkinter import DISABLED, NORMAL
 from gaussfit.output import Writer
 from gaussfit import Parse
 from gui.libparse import ParseThread
 from gaussfit.output.libwriter import doOutput
+from multiprocessing import Queue
+from gaussfit.logger import DelayedMultiprocessHandler
 
 
 def GUIParse(self):
@@ -10,6 +13,7 @@ def GUIParse(self):
 
     def preParse():
         '''We need to check a couple of things right before we start parsing'''
+        self.logque = Queue(-1)
         self.ButtonParse['state'] = DISABLED
         self.degfreedom = self.opts.degfree
         if self.opts.degfree == 0 and len(self.opts.in_files):
@@ -24,6 +28,9 @@ def GUIParse(self):
         for _t in self.gothreads:
             if _t.is_alive():
                 self.ButtonParse.after('500', self.GUIParse)
+                while not self.logque.empty():
+                    self.logger.info(self.logque.get_nowait())
+                self.handler.flush()
                 return
         self.logger.info("Parse complete!")
         gothread = self.gothreads.pop()
@@ -37,7 +44,7 @@ def GUIParse(self):
     else:
         if self.opts.in_files:
             preParse()
-            parser = Parse(self.opts, handler=self.handler, lock=self.lock)
+            parser = Parse(self.opts, handler=DelayedMultiprocessHandler(self.logque), lock=self.lock)
             self.gothreads.append(ParseThread(self.opts, parser))
             self.gothreads[-1].start()
             self.ButtonParse.after('500', self.GUIParse)
