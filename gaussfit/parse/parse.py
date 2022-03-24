@@ -34,14 +34,17 @@ import warnings
 import threading
 import time
 import pickle
-from queue import Queue
-from multiprocessing import Process, Pipe
 from tempfile import NamedTemporaryFile
 from collections import OrderedDict
 from gaussfit.parse.libparse.util import printFN, throwimportwarning
-from gaussfit.colors import RED, WHITE, GREEN, TEAL, YELLOW, RS
+from gaussfit.colors import WHITE, GREEN, TEAL, YELLOW
 from gaussfit.logger import DelayedHandler
 # import concurrent.futures
+from multiprocessing import Process, Pipe, Queue
+import platform  # avoids TypeError: cannot pickle '_thread.lock' object error
+if platform.system() != "Linux":
+    from multiprocessing import set_start_method
+    set_start_method("fork")
 
 try:
     import pandas as pd
