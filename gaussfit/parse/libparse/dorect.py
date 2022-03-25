@@ -13,6 +13,8 @@ def dorect(self, xy):
     and build a histogram of rectification, R
     also construct the unique Voltage list
     '''
+    self.logger.info("* * * * * * Computing |R|  * * * * * * * * *")
+    self.loghandler.flush()
     r = OrderedDict()
     R = OrderedDict()
     for x, _ in xy:
