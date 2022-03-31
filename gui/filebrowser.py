@@ -86,7 +86,7 @@ class ChooseFiles(tk.Frame):
         self.FileListBoxFrame = tk.Frame(self)
 
         yScroll = tk.Scrollbar(self.LoggingFrame, orient=VERTICAL)
-        self.Logging = Text(self.LoggingFrame, height=20, width=0,
+        self.Logging = Text(self.LoggingFrame, height=40, width=0,
                             bg=BLACK, fg=WHITE, yscrollcommand=yScroll.set)
         yScroll['command'] = self.Logging.yview
         self.Logging.pack(side=LEFT, fill=BOTH, expand=True)
