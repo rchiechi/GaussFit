@@ -7,8 +7,12 @@ import csv
 import numpy as np
 from matplotlib import pyplot as plt
 
-csv.register_dialect('JV', delimiter='\t', quoting=csv.QUOTE_MINIMAL)
-datasets = []
+######################################################################
+# If you want to plot R or NDC or whatever, change these labels
+YLABEL = r'$log|J A cm^{-2}|$'
+XLABEL = r'Potential (V)'
+######################################################################
+
 
 def parse(in_file):
     data = {'X': [], 'Y': [], 'Yerror': [], 'Yupper': [], 'Ylower': []}
@@ -29,6 +33,10 @@ def parse(in_file):
     for key in ('X', 'Y', 'Yerror'):
         data[key] = np.array(data[key])
     return data
+
+
+csv.register_dialect('JV', delimiter='\t', quoting=csv.QUOTE_MINIMAL)
+datasets = []
 
 for in_file in sys.argv[1:]:
     datasets.append(parse(in_file))
@@ -65,8 +73,8 @@ for data in datasets:
 ax = plt.gca()
 
 ax.legend(loc=3)
-ax.set_ylabel(r'$log|J A cm^{-2}|$', **label_style)
-ax.set_xlabel(r'Potential (V)', **label_style)
+ax.set_ylabel(XLABEL, **label_style)
+ax.set_xlabel(YLABEL, **label_style)
 
 plt.rcParams["figure.figsize"] = [10.0, 6.0]
 plt.tick_params(**major_tick_style)
