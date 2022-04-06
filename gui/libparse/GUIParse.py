@@ -4,7 +4,7 @@ from gaussfit.output import Writer
 from gaussfit import Parse
 from gui.libparse import ParseThread
 from gaussfit.output.libwriter import doOutput
-from queue import Queue
+from multiprocessing import Queue
 from gaussfit.logger import DelayedMultiprocessHandler
 
 

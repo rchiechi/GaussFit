@@ -2,7 +2,7 @@ import sys
 import logging
 # from multiprocessing import Queue
 from collections import Counter
-
+import queue
 
 # TODO Isn't this done with QueueHandler?
 class DelayedHandler(logging.Handler):
@@ -92,4 +92,7 @@ class DelayedMultiprocessHandler(DelayedHandler):
         self.que = que
 
     def _emit(self, message, level):
-        self.que.put(message)
+        try:
+            self.que.put(message, timeout=5)
+        except queue.Empty:
+            print("Queue was empty when trying to log %s" % str(message))
