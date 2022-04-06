@@ -53,9 +53,8 @@ def dolag(self, conn, xy):
             self.logger.info("Lag filtered excluded %s data points at %s V", tossed, x)
         lag[x]['lagplot'] = np.array(_lag)
         lag[x]['filtered'] = np.array(_filtered)
-
+    self.loghandler.flush()
     if use_pipe:
-        self.loghandler.flush()
         conn.send(lag)
         conn.close()
     else:

@@ -190,6 +190,9 @@ class Plotter():
                 x.append(v)
                 y.append(self.NDCHists[v]['hist']['bin'][i])
                 z.append(self.NDCHists[v]['hist']['freq'][i])
+        if not x or not y or not z:
+            logger.warn("Not enough data to plot NDC.")
+            return
         x, y, z = np.array(x), np.array(y), np.array(z)
         xmin, xmax = x.min(), x.max()
         ymin, ymax = self.opts.ndc_mlow, self.opts.ndc_mhi

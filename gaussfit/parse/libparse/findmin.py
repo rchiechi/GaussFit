@@ -16,6 +16,8 @@ def findmin(self):
     that gives the most negative value of Y (opts.smooth)
     or simply the most negative value of Y (! opts.smooth)
     '''
+    self.logger.info("* * * * * * Computing Vtrans * * * * * * * *")
+    self.loghandler.flush()
     neg_min_x, pos_min_x = [], []
     vmin, vmax = self.df.V.min(), self.df.V.max()
     xneg, xpos = np.linspace(vmin, 0, 250), np.linspace(vmax, 0, 250)

@@ -8,6 +8,8 @@ def findsegments(self, conn):
     Break out each trace into four segments of
     0V -> Vmax, Vmax -> 0, 0V -> Vmin, Vmin -> 0V.
     '''
+    self.logger.info("* * * * * * Finding segments   * * * * * * * *")
+    self.loghandler.flush()
     __sendattr = getattr(conn, "send", None)
     use_pipe = callable(__sendattr)
     # TODO set num_segments in opts
@@ -141,14 +143,15 @@ def findsegments(self, conn):
     #     if nofirsttrace[_V] != 0:
     #         if len(nofirsttrace[_V]) > _pad:
     #             _pad = len(nofirsttrace[_V])
+    #print("SEGMENTER DONE")
     for _V in nofirsttrace:
         if _V == 0:
             if len(nofirsttrace[_V]) > max_column_width:
                 nofirsttrace[_V] = np.zeros(max_column_width)
                 self.logger.warning("Setting J = 0 for all V = 0 in nofirsttrace.")
         nofirsttrace[_V] = np.array(nofirsttrace[_V])
+    self.loghandler.flush()
     if use_pipe:
-        self.loghandler.flush()
         conn.send((error, segmenthists, segmenthists_nofirst, nofirsttrace))
         conn.close()
     else:

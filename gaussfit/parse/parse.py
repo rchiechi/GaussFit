@@ -31,7 +31,7 @@ import os
 import logging
 from logging.handlers import QueueListener, QueueHandler
 import warnings
-import threading
+# import threading
 import time
 import pickle
 from tempfile import NamedTemporaryFile
@@ -39,8 +39,9 @@ from collections import OrderedDict
 from gaussfit.parse.libparse.util import printFN, throwimportwarning
 from gaussfit.colors import WHITE, GREEN, TEAL, YELLOW
 from gaussfit.logger import DelayedHandler
+from gaussfit.parse.libparse.dummies import dummyListener
 # import concurrent.futures
-from multiprocessing import Process, Pipe, Queue
+from multiprocessing import Process, Queue
 import platform  # avoids TypeError: cannot pickle '_thread.lock' object error
 if platform.system() != "Linux":
     from multiprocessing import set_start_method
@@ -101,18 +102,12 @@ class Parse():
     R = {}
     segments = {}
     segments_nofirst = {}
-    called_from_gui = False
+    # called_from_gui = False
     loglistener = None
     logger = logging.getLogger('parser')
 
-    def __init__(self, opts, handler=None, lock=None):
+    def __init__(self, opts, handler=None):
         self.opts = opts
-        # Pass a lock when calling inside a thread
-        if lock is not None:
-            self.lock = lock
-            self.called_from_gui = True
-        else:
-            self.lock = threading.Lock()
         # Pass your own log hanlder, e.g., when calling from a GUI
         # But make sure it supports flush(), setDelay() and unsetDelay() methods!
         if not handler:
@@ -127,7 +122,8 @@ class Parse():
             self.loglistener.start()
         else:
             self.loghandler = handler
-        self.logger.addHandler(self.loghandler)
+            self.loglistener = dummyListener()
+            self.logger.addHandler(self.loghandler)
         self.logger.setLevel(getattr(logging, self.opts.loglevel.upper()))
 
         if not 0 < self.opts.alpha < 1:
@@ -237,16 +233,16 @@ class Parse():
 
         # In the event that we want to call parsing method by hand
         # we stop here when just self.df is complete
-        if not parse:
-            return
+        if parse:
+            self.__parsedataset()
+
+    def __parsedataset(self):
         children = []
-        self.logger.info("* * * * * * Finding segments   * * * * * * * *")
-        self.loghandler.flush()
-        if self.called_from_gui:
-            parent_conn = NamedTemporaryFile()
-            child_conn = parent_conn
-        else:
-            parent_conn, child_conn = Pipe(duplex=False)
+        # if self.called_from_gui:
+        parent_conn = NamedTemporaryFile()  # multiprocess Pipe is not thread safe
+        child_conn = parent_conn
+        # else:
+        #    parent_conn, child_conn = Pipe(duplex=False)
         __p = Process(target=self.findsegments, args=(child_conn,))
         __p.start()
         children.append([parent_conn, __p])
@@ -255,43 +251,32 @@ class Parse():
         self.loghandler.flush()
         self.findtraces()
 
-        if self.error:
-            self.logger.error('Cannot compute statistics from these traces. (Did you set segments correctly?)')
-            self.loghandler.flush()
-            return  # Bail if we can't parse traces
-
         xy = []
         for x, group in self.df.groupby('V'):
             xy.append((x, group))
         if not self.opts.nolag:
             self.logger.info("* * * * * * Computing Lag  * * * * * * * * *")
         self.loghandler.flush()
-        if self.called_from_gui:
-            parent_conn = NamedTemporaryFile()
-            child_conn = parent_conn
-        else:
-            parent_conn, child_conn = Pipe(duplex=False)
+        # if self.called_from_gui:
+        parent_conn = NamedTemporaryFile()
+        child_conn = parent_conn
+        # else:
+        #    parent_conn, child_conn = Pipe(duplex=False)
         __p = Process(target=self.dolag, args=(child_conn, xy,))
         __p.start()
         children.append([parent_conn, __p])
-
-        self.logger.info("* * * * * * Computing dY/dX  * * * * * * * *")
-        self.loghandler.flush()
         self.dodjdv()
-        self.logger.info("* * * * * * Computing Vtrans * * * * * * * *")
-        self.loghandler.flush()
         self.findmin()
-        self.logger.info("* * * * * * Computing |R|  * * * * * * * * *")
-        self.loghandler.flush()
         R = self.dorect(xy)
-        self.logger.info("* * * * * * Computing Gaussian  * * * * * * * * *")
+
+        #if self.called_from_gui:
+        children[1][1].join()
+        lag = pickle.load(children[1][0])
+        #else:
+        #    lag = children[1][0].recv()
+        #    children[1][1].join()
+        self.logger.info("* * * * * * Computing Gaussians  * * * * * * * * *")
         self.loghandler.flush()
-        if self.called_from_gui:
-            children[1][1].join()
-            lag = pickle.load(children[1][0])
-        else:
-            lag = children[1][0].recv()
-            children[1][1].join()
         for x, group in xy:
             self.XY[x] = {
                 "Y": group['J'],
@@ -309,12 +294,12 @@ class Parse():
             for x in self.XY:
                 self.GHists[x] = {}
                 self.GHists[x]['hist'] = self.XY[x]['hist']
-        if self.called_from_gui:
-            children[0][1].join()
-            self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.load(children[0][0])
-        else:
-            self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = children[0][0].recv()
-            children[0][1].join()
+        # if self.called_from_gui:
+        children[0][1].join()
+        self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.load(children[0][0])
+        # else:
+        #    self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = children[0][0].recv()
+        #    children[0][1].join()
         if nofirsttrace:
             for x, group in xy:
                 self.XY[x]["Y_nofirst"] = nofirsttrace[x]
@@ -330,10 +315,16 @@ class Parse():
         if not self.error:
             printFN(self.logger, self.FN)
         self.loghandler.unsetDelay()
-        self.parsed = True
+
         __listener = getattr(self, 'loglistener')
         if callable(__listener):
             self.loglistener.stop()
+
+        if self.error:
+            self.logger.error('Cannot compute statistics from these traces. (Did you set segments correctly?)')
+            self.loghandler.flush()
+            return  # Bail if we can't parse traces
+        self.parsed = True
 
     def wait(self):
         '''

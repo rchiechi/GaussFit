@@ -8,6 +8,8 @@ def dodjdv(self):
     Fit a spline function to X/Y data,
     compute dY/dX and normalize.
     '''
+    self.logger.info("* * * * * * Computing dY/dX  * * * * * * * *")
+    self.loghandler.flush()
     linx = np.linspace(self.df.V.min(), self.df.V.max(), 200)
     if self.opts.vcutoff > 0:
         self.logger.debug('Using %s cutoff for dj/dv', self.opts.vcutoff)
