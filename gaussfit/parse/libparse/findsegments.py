@@ -150,13 +150,15 @@ def findsegments(self, conn):
                 nofirsttrace[_V] = np.zeros(max_column_width)
                 self.logger.warning("Setting J = 0 for all V = 0 in nofirsttrace.")
         nofirsttrace[_V] = np.array(nofirsttrace[_V])
+    self.logger.info("Findsegments done.")
     self.loghandler.flush()
     if use_pipe:
         conn.send((error, segmenthists, segmenthists_nofirst, nofirsttrace))
         conn.close()
     else:
-        with open(conn.name, 'w+b') as fh:
-            pickle.dump((error, segmenthists, segmenthists_nofirst, nofirsttrace), fh)
+        return error, segmenthists, segmenthists_nofirst, nofirsttrace
+        # with open(conn.name, 'w+b') as fh:
+        #     pickle.dump((error, segmenthists, segmenthists_nofirst, nofirsttrace), fh)
     #    sys.exit()
     # self.loghandler.flush()
     # self.segments = segmenthists

@@ -41,14 +41,19 @@ from gaussfit.colors import WHITE, GREEN, TEAL, YELLOW
 from gaussfit.logger import DelayedHandler
 from gaussfit.parse.libparse.dummies import dummyListener, dummyPopen
 # import concurrent.futures
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, Pipe
 import platform  # avoids TypeError: cannot pickle '_thread.lock' object error
-if platform.system() == "Darwin":
-    from multiprocessing import set_start_method
-    set_start_method("fork")
-elif platform.system() == "Windows":
-    from multiprocessing import set_start_method
-    set_start_method("spawn")
+if platform.system() == 'Linux':
+    USE_MULTIPROCESSING = True
+else:
+    USE_MULTIPROCESSING = False
+
+# if platform.system() == "Darwin":
+#     from multiprocessing import set_start_method
+#     set_start_method("fork")
+# elif platform.system() == "Windows":
+#     from multiprocessing import set_start_method
+#     set_start_method("spawn")
 
 try:
     import pandas as pd
@@ -242,17 +247,18 @@ class Parse():
     def __parsedataset(self):
         children = []
         # if self.called_from_gui:
-        parent_conn = NamedTemporaryFile()  # multiprocess Pipe is not thread safe
-        child_conn = parent_conn
+        # parent_conn = NamedTemporaryFile()  # multiprocess Pipe is not thread safe
+        # child_conn = parent_conn
         # else:
         #    parent_conn, child_conn = Pipe(duplex=False)
-        if platform.system() == 'Linux':
+        if USE_MULTIPROCESSING:
+            parent_conn, child_conn = Pipe(duplex=False)
             __p = Process(target=self.findsegments, args=(child_conn,))
             __p.start()
             children.append([parent_conn, __p])
         else:
-            self.findsegments(child_conn)
-            children.append([parent_conn, dummyPopen()])
+            self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = self.findsegments(None)
+            # children.append([parent_conn, dummyPopen()])
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.loghandler.flush()
         self.findtraces()
@@ -266,21 +272,21 @@ class Parse():
         child_conn = parent_conn
         # else:
         #    parent_conn, child_conn = Pipe(duplex=False)
-        if platform.system() == 'Linux':
+        if USE_MULTIPROCESSING:
+            parent_conn, child_conn = Pipe(duplex=False)
             __p = Process(target=self.dolag, args=(child_conn, xy,))
             __p.start()
             children.append([parent_conn, __p])
         else:
-            self.dolag(child_conn, xy)
-            children.append([parent_conn, dummyPopen()])
+            lag = self.dolag(None, xy)
         self.dodjdv()
         self.findmin()
         R = self.dorect(xy)
 
-        #if self.called_from_gui:
-        children[1][1].join()
-        lag = pickle.load(children[1][0])
-        #else:
+        if USE_MULTIPROCESSING:
+            children[1][1].join()
+            lag = pickle.load(children[1][0])
+        # else:
         #    lag = children[1][0].recv()
         #    children[1][1].join()
         self.logger.info("* * * * * * Computing Gaussians  * * * * * * * * *")
@@ -302,9 +308,9 @@ class Parse():
             for x in self.XY:
                 self.GHists[x] = {}
                 self.GHists[x]['hist'] = self.XY[x]['hist']
-        # if self.called_from_gui:
-        children[0][1].join()
-        self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.load(children[0][0])
+        if USE_MULTIPROCESSING:
+            children[0][1].join()
+            self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.load(children[0][0])
         # else:
         #    self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = children[0][0].recv()
         #    children[0][1].join()
