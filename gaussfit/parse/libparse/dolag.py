@@ -61,8 +61,8 @@ def dolag(self, conn, xy):
         conn.send(lag)
         conn.close()
     else:
-        return lag
         # self.loghandler.flush()
-        # with open(conn.name, 'w+b') as fh:
-        #     pickle.dump(lag, fh)
+        with open(conn.name, 'w+b') as fh:
+            pickle.dump(lag, fh)
         # # sys.exit()
+    return lag
