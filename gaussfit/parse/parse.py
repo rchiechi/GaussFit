@@ -39,7 +39,7 @@ from collections import OrderedDict
 from gaussfit.parse.libparse.util import printFN, throwimportwarning
 from gaussfit.colors import WHITE, GREEN, TEAL, YELLOW
 from gaussfit.logger import DelayedHandler
-from gaussfit.parse.libparse.dummies import dummyListener
+from gaussfit.parse.libparse.dummies import dummyListener, dummyPopen
 # import concurrent.futures
 from multiprocessing import Process, Queue
 import platform  # avoids TypeError: cannot pickle '_thread.lock' object error
@@ -246,10 +246,13 @@ class Parse():
         child_conn = parent_conn
         # else:
         #    parent_conn, child_conn = Pipe(duplex=False)
-        __p = Process(target=self.findsegments, args=(child_conn,))
-        __p.start()
-        children.append([parent_conn, __p])
-
+        if platform.system() == 'Linux':
+            __p = Process(target=self.findsegments, args=(child_conn,))
+            __p.start()
+            children.append([parent_conn, __p])
+        else:
+            self.findsegments(child_conn)
+            children.append([parent_conn, dummyPopen()])
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.loghandler.flush()
         self.findtraces()
@@ -257,17 +260,19 @@ class Parse():
         xy = []
         for x, group in self.df.groupby('V'):
             xy.append((x, group))
-        if not self.opts.nolag:
-            self.logger.info("* * * * * * Computing Lag  * * * * * * * * *")
-        self.loghandler.flush()
+
         # if self.called_from_gui:
         parent_conn = NamedTemporaryFile()
         child_conn = parent_conn
         # else:
         #    parent_conn, child_conn = Pipe(duplex=False)
-        __p = Process(target=self.dolag, args=(child_conn, xy,))
-        __p.start()
-        children.append([parent_conn, __p])
+        if platform.system() == 'Linux':
+            __p = Process(target=self.dolag, args=(child_conn, xy,))
+            __p.start()
+            children.append([parent_conn, __p])
+        else:
+            self.dolag(child_conn, xy)
+            children.append([parent_conn, dummyPopen()])
         self.dodjdv()
         self.findmin()
         R = self.dorect(xy)

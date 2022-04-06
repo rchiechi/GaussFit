@@ -5,4 +5,4 @@ from .findsegments import findsegments
 from .dodjdv import dodjdv
 from .findmin import findmin
 from .dohistogram import dohistogram
-from .dummies import dummyListener
+from .dummies import dummyListener, dummyPopen

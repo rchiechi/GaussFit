@@ -157,7 +157,7 @@ def findsegments(self, conn):
     else:
         with open(conn.name, 'w+b') as fh:
             pickle.dump((error, segmenthists, segmenthists_nofirst, nofirsttrace), fh)
-        sys.exit()
+    #    sys.exit()
     # self.loghandler.flush()
     # self.segments = segmenthists
     # self.segments_nofirst = segmenthists_nofirst

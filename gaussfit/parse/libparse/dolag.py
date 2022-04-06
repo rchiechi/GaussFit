@@ -19,6 +19,8 @@ def dolag(self, conn, xy):
         for x, group in xy:
             lag[x] = {'lagplot': np.array([[], []]), 'filtered': np.array([])}
         return lag
+    self.logger.info("* * * * * * Computing Lag  * * * * * * * * *")
+    self.loghandler.flush()
     for x, group in xy:
         lag[x] = {'lagplot': np.array([[], []]), 'filtered': np.array([])}
         Y = group['logJ']
@@ -61,4 +63,4 @@ def dolag(self, conn, xy):
         self.loghandler.flush()
         with open(conn.name, 'w+b') as fh:
             pickle.dump(lag, fh)
-        sys.exit()
+        # sys.exit()
