@@ -155,7 +155,7 @@ parser.add_argument('--degfree', type=int, default=0,
 
 _cachedir = user_config_dir(__package__)
 if not os.path.exists(_cachedir):
-    os.mkdir(_cachedir)
+    os.mkdirs(_cachedir)
 _configfile = os.path.join(_cachedir, __package__+'.conf')
 config = doconfig(_configfile)
 
