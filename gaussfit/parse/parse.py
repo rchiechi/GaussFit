@@ -43,9 +43,12 @@ from gaussfit.parse.libparse.dummies import dummyListener
 # import concurrent.futures
 from multiprocessing import Process, Queue
 import platform  # avoids TypeError: cannot pickle '_thread.lock' object error
-if platform.system() != "Linux":
+if platform.system() == "Darwin":
     from multiprocessing import set_start_method
     set_start_method("fork")
+elif platform.system() == "Windows":
+    from multiprocessing import set_start_method
+    set_start_method("spawn")
 
 try:
     import pandas as pd
