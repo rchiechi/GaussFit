@@ -41,9 +41,9 @@ from gaussfit.colors import WHITE, GREEN, TEAL, YELLOW
 from gaussfit.logger import DelayedHandler
 from gaussfit.parse.libparse.dummies import dummyListener, dummyPopen
 # import concurrent.futures
-from multiprocessing import Process, Queue, Pipe
 import platform  # avoids TypeError: cannot pickle '_thread.lock' object error
 if platform.system() == 'Linux':
+    from multiprocessing import Process, Queue, Pipe
     USE_MULTIPROCESSING = True
 else:
     USE_MULTIPROCESSING = False
@@ -116,7 +116,7 @@ class Parse():
 
     def __init__(self, opts, handler=None):
         self.opts = opts
-        # Pass your own log hanlder, e.g., when calling from a GUI
+        # Pass your own log handler, e.g., when calling from a GUI
         # But make sure it supports flush(), setDelay() and unsetDelay() methods!
         if not handler:
             self.loghandler = DelayedHandler()

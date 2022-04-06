@@ -2,7 +2,7 @@ import os
 import warnings
 import logging
 from gaussfit.colors import GREEN, TEAL, YELLOW, WHITE
-
+from matplotlib.cm import get_cmap
 
 logger = logging.getLogger('output')
 loghandler = logging.StreamHandler()
@@ -15,7 +15,7 @@ try:
     from scipy.interpolate import griddata
     from scipy.special import stdtrit
     from matplotlib import container
-except ImportError as msg:
+except ImportError:
     pass  # We catch numpy import errors in Parser.py
 warnings.filterwarnings('ignore', '.*comparison.*', FutureWarning)
 
@@ -26,10 +26,14 @@ class Plotter():
     plots using matplotlib.
     '''
 
-    def __init__(self, parser, plt):
+    def __init__(self, parser, plt_or_fig):
         self.parser = parser
         self.opts = self.parser.opts
-        self.plt = plt
+        __figure = getattr(plt_or_fig, 'figure', None)
+        if callable(__figure):
+            self.fig = plt_or_fig.figure(figsize=(16, 10))
+        else:
+            self.fig = plt_or_fig
 
     def __getattr__(self, name):
         try:
@@ -175,7 +179,7 @@ class Plotter():
         X, Y = np.meshgrid(xi, yi)
         Z = griddata((x, y), z, (X, Y), method='nearest')
         ax.axis([xmin, xmax, ymin, ymax])
-        ax.pcolormesh(X, Y, Z, cmap=self.plt.get_cmap('rainbow'))
+        ax.pcolormesh(X, Y, Z, cmap=get_cmap('rainbow'))
 
     def PlotNDC(self, ax):
         ax.set_title("NDC Plot")
@@ -204,7 +208,7 @@ class Plotter():
         X, Y = np.meshgrid(xi, yi)
         Z = griddata((x, y), z, (X, Y), method='nearest')
         ax.axis([xmin, xmax, ymin, ymax])
-        ax.pcolormesh(X, Y, Z, cmap=self.plt.get_cmap('rainbow'))
+        ax.pcolormesh(X, Y, Z, cmap=get_cmap('rainbow'))
 
     def PlotHist(self, ax):
         ax.set_title("Gaussian Fit and Raw Data")
@@ -233,11 +237,10 @@ class Plotter():
         ax.plot(self.XY[key]['hist']['bin'], self.XY[key]['hist']['fit'], lw=2.0, color='b', label='Fit')
 
     def DoPlots(self):
-        fig = self.plt.figure(figsize=(16, 10))
-        ax1 = fig.add_axes([0.06, 0.55, 0.4, 0.4])
-        ax2 = fig.add_axes([0.56, 0.55, 0.4, 0.4])
-        ax3 = fig.add_axes([0.06, 0.05, 0.4, 0.4])
-        ax4 = fig.add_axes([0.56, 0.05, 0.4, 0.4])
+        ax1 = self.fig.add_axes([0.06, 0.55, 0.4, 0.4])
+        ax2 = self.fig.add_axes([0.56, 0.55, 0.4, 0.4])
+        ax3 = self.fig.add_axes([0.06, 0.05, 0.4, 0.4])
+        ax4 = self.fig.add_axes([0.56, 0.05, 0.4, 0.4])
         if self.opts.plots == 'J':
             self.PlotFit(ax1)
             self.PlotData('LogY', ax2, ':', lw=0.25, color='c')
@@ -252,4 +255,5 @@ class Plotter():
         elif self.opts.histplots == 'G':
             self.PlotG(ax3)
         if self.opts.write:
-            fig.savefig(os.path.join(self.opts.out_dir, self.opts.outfile+"_fig.png"), format="png")
+            self.fig.savefig(os.path.join(self.opts.out_dir, self.opts.outfile+"_fig.png"), format="png")
+        # self.fig = fig

@@ -1,12 +1,45 @@
+from tkinter import Toplevel, Button, BOTTOM, TOP, BOTH, X
 from gaussfit.output import Plotter
 try:
     import matplotlib.pyplot as plt
+    from matplotlib.figure import Figure
+    from matplotlib.backends.backend_tkagg import (
+        FigureCanvasTkAgg, NavigationToolbar2Tk)
     HASMATPLOTLIB = True
 except ImportError:
     HASMATPLOTLIB = False
 
+class PlotWindow(Toplevel):
+    '''A new window to hold the plots'''
 
-def GUIPlot(self, parser=None):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.title("Data Preview")
+        # self.prefs = PreferencesFrame(self, opts)
+
+def GUIPlot(self, parser):
+    '''An interactive matplotlib pyplot that
+   doesn't block the main GUI thread.'''
+
+    if not HASMATPLOTLIB:
+        self.logger.warn("Matplot lib is not installed, cannot generate plots!")
+        return
+
+    fig = Figure(figsize=(16, 10), dpi=100)
+    plotter = Plotter(parser, fig)
+    plotter.DoPlots()
+    # button_quit = Button(master=root, text="Close", command=root.destroy)
+    root = PlotWindow(self.master)
+    canvas = FigureCanvasTkAgg(fig, master=root)  # A tk.DrawingArea.
+    canvas.draw()
+    toolbar = NavigationToolbar2Tk(canvas, root, pack_toolbar=False)
+    toolbar.update()
+    toolbar.pack(side=BOTTOM, fill=X)
+    # button_quit.pack(side=BOTTOM)
+    canvas.get_tk_widget().pack(side=TOP, fill=BOTH, expand=1)
+
+
+def GUIPlotMultiprocessing(self, parser=None):
     '''An interactive matplotlib pyplot that
        doesn't block the main GUI thread.'''
 
@@ -26,7 +59,7 @@ def GUIPlot(self, parser=None):
         if self.plots:
             self.master.after('100', self.GUIPlot)
         return
-    self.logger.info("Generating plots...")
+    self.logger.info("Generating plots in background...")
     plotter = Plotter(parser, plt)
     plotter.DoPlots()
     plt.ion()

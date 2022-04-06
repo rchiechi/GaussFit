@@ -85,14 +85,25 @@ class GUIHandler(DelayedHandler):
         self.console.see(self.END)
 
 
-class DelayedMultiprocessHandler(DelayedHandler):
+class DelayedMultiprocessHandler(logging.Handler):
+    '''A dummy-delayed log handler that queues log messages for running
+       in a background thread.'''
 
     def __init__(self, que):
-        DelayedHandler.__init__(self)
+        logging.Handler.__init__(self)
         self.que = que
 
-    def _emit(self, message, level):
+    def emit(self, message):
         try:
             self.que.put(message, timeout=5)
         except queue.Empty:
             print("Queue was empty when trying to log %s" % str(message))
+
+    def setDelay(self):
+        return
+
+    def unsetDelay(self):
+        return
+
+    def flush(self):
+        return

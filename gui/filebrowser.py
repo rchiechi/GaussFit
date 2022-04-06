@@ -24,6 +24,8 @@ import platform
 import logging
 import threading
 import tkinter.ttk as tk
+from tkinter import Tk
+from tkinter import Toplevel
 from tkinter import filedialog
 from tkinter import Text, IntVar, StringVar, Listbox, Label
 from tkinter import N, S, E, W, X, Y  # pylint: disable=unused-import
@@ -41,8 +43,13 @@ try:
     HASPSUTIL = True
 except ImportError:
     HASPSUTIL = False
+# if platform.system() == 'Linux':
+#     USE_MULTIPROCESSING = True
+# else:
+#     USE_MULTIPROCESSING = False
 
 absdir = os.path.dirname(os.path.abspath(__file__))
+absroot = Tk()
 
 
 class ChooseFiles(tk.Frame):
@@ -58,10 +65,12 @@ class ChooseFiles(tk.Frame):
     boolmap = {1: True, 0: False}
     lock = threading.Lock
 
-    def __init__(self, opts, master=None):
-        tk.Frame.__init__(self, master)
+    def __init__(self, opts):
+        self.master = absroot
+        super().__init__(self.master)
+        # tk.Frame.__init__(self, self.master)
         bgimg = PhotoImage(file=os.path.join(absdir, 'RCCLabFluidic.png'))
-        limg = Label(master, i=bgimg, background=GREY)
+        limg = Label(self.master, i=bgimg, background=GREY)
         limg.pack(side=TOP)
         try:
             self.last_input_path = os.getcwd()
@@ -75,7 +84,7 @@ class ChooseFiles(tk.Frame):
         self.pack(fill=BOTH)
         self.__createWidgets()
         self.ToFront()
-        self.mainloop()
+        self.master.mainloop()
 
     def __createWidgets(self):
 

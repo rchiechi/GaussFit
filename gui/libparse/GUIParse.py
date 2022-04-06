@@ -29,7 +29,7 @@ def GUIParse(self):
             if _t.is_alive():
                 self.ButtonParse.after('500', self.GUIParse)
                 while not self.logque.empty():
-                    self.logger.info(self.logque.get_nowait())
+                    self.handler.emit(self.logque.get_nowait())
                 self.handler.flush()
                 return
         self.logger.info("Parse complete!")
