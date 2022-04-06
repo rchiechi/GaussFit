@@ -1,6 +1,6 @@
 import sys
 import logging
-from multiprocessing import Queue
+# from multiprocessing import Queue
 from collections import Counter
 
 
