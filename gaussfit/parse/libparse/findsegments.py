@@ -1,6 +1,5 @@
 import numpy as np
 import pickle
-import sys
 
 
 def findsegments(self, conn):
@@ -12,6 +11,8 @@ def findsegments(self, conn):
     self.loghandler.flush()
     __sendattr = getattr(conn, "send", None)
     use_pipe = callable(__sendattr)
+    __sendattr = getattr(conn, "write", None)
+    use_pickle = callable(__sendattr)
     # TODO set num_segments in opts
     # NOTE this is a crude hack because I forgot how Pandas works
     if self.opts.tracebyfile:
@@ -136,14 +137,6 @@ def findsegments(self, conn):
                 segmenthists_nofirst[_seg]['combined'][_V] = {}
             segmenthists_nofirst[_seg]['combined'][_V] = self.dohistogram(
                 np.array([np.log10(abs(_j)) for _j in segments_combined_nofirst[_seg][_V]]), label='Segmented')
-    # segmenthistSs['nofirst'] = segmenthists_nofirst
-    # If there are more zeros than other V's, we cannot align them properly
-    # _pad = 0
-    # for _V in nofirsttrace:
-    #     if nofirsttrace[_V] != 0:
-    #         if len(nofirsttrace[_V]) > _pad:
-    #             _pad = len(nofirsttrace[_V])
-    #print("SEGMENTER DONE")
     for _V in nofirsttrace:
         if _V == 0:
             if len(nofirsttrace[_V]) > max_column_width:
@@ -155,8 +148,8 @@ def findsegments(self, conn):
     if use_pipe:
         conn.send((error, segmenthists, segmenthists_nofirst, nofirsttrace))
         conn.close()
-    else:
+    elif use_pickle:
         with open(conn.name, 'w+b') as fh:
             pickle.dump((error, segmenthists, segmenthists_nofirst, nofirsttrace), fh)
-
-    return error, segmenthists, segmenthists_nofirst, nofirsttrace
+    else:
+        return error, segmenthists, segmenthists_nofirst, nofirsttrace

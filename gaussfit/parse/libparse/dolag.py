@@ -1,5 +1,4 @@
 import pickle
-import sys
 from gaussfit.parse.libparse.util import throwimportwarning, getdistances
 try:
     import numpy as np
@@ -12,8 +11,11 @@ def dolag(self, conn, xy):
     '''
     Make a lag plot of Y
     '''
+
     __sendattr = getattr(conn, "send", None)
     use_pipe = callable(__sendattr)
+    __sendattr = getattr(conn, "write", None)
+    use_pickle = callable(__sendattr)
     lag = {}
     if self.opts.nolag:
         for x, group in xy:
@@ -60,9 +62,8 @@ def dolag(self, conn, xy):
     if use_pipe:
         conn.send(lag)
         conn.close()
-    else:
-        # self.loghandler.flush()
+    elif use_pickle:
         with open(conn.name, 'w+b') as fh:
             pickle.dump(lag, fh)
-        # # sys.exit()
-    return lag
+    else:
+        return lag

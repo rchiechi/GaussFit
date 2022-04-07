@@ -39,7 +39,7 @@ from collections import OrderedDict
 from gaussfit.parse.libparse.util import printFN, throwimportwarning
 from gaussfit.colors import WHITE, GREEN, TEAL, YELLOW
 from gaussfit.logger import DelayedHandler
-from gaussfit.parse.libparse.dummies import dummyListener, dummyPopen
+from gaussfit.parse.libparse.dummies import dummyListener
 # import concurrent.futures
 import platform  # avoids TypeError: cannot pickle '_thread.lock' object error
 if platform.system() in ('Linux', 'Darwin'):
@@ -249,15 +249,15 @@ class Parse():
 
     def __parsedataset(self):
         children = []
-        parent_conn = NamedTemporaryFile()  # multiprocess Pipe is not thread safe
-        child_conn = parent_conn
         if USE_MULTIPROCESSING:
             # parent_conn, child_conn = Pipe(duplex=False)
+            parent_conn = NamedTemporaryFile()  # multiprocess Pipe is not thread safe
+            child_conn = parent_conn
             __p = Process(target=self.findsegments, args=(child_conn,))
             __p.start()
             children.append([parent_conn, __p])
         else:
-            self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = self.findsegments(child_conn)
+            self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = self.findsegments(None)
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.loghandler.flush()
         self.findtraces()
@@ -269,11 +269,13 @@ class Parse():
         parent_conn = NamedTemporaryFile()
         child_conn = parent_conn
         if USE_MULTIPROCESSING:
+            parent_conn = NamedTemporaryFile()
+            child_conn = parent_conn
             __p = Process(target=self.dolag, args=(child_conn, xy,))
             __p.start()
             children.append([parent_conn, __p])
         else:
-            lag = self.dolag(child_conn, xy)
+            lag = self.dolag(None, xy)
         self.dodjdv()
         self.findmin()
         R = self.dorect(xy)
