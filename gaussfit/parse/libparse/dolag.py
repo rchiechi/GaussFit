@@ -63,7 +63,8 @@ def dolag(self, conn, xy):
         conn.send(lag)
         conn.close()
     elif use_pickle:
-        with open(conn.name, 'w+b') as fh:
-            pickle.dump(lag, fh)
+        # with open(conn.name, 'w+b') as fh:
+        pickle.dump(lag, conn)
+        conn.seek(0)
     else:
         return lag

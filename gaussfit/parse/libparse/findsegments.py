@@ -149,7 +149,9 @@ def findsegments(self, conn):
         conn.send((error, segmenthists, segmenthists_nofirst, nofirsttrace))
         conn.close()
     elif use_pickle:
-        with open(conn.name, 'w+b') as fh:
-            pickle.dump((error, segmenthists, segmenthists_nofirst, nofirsttrace), fh)
+        # with open(conn.name, 'w+b') as fh:
+        pickle.dump((error, segmenthists, segmenthists_nofirst, nofirsttrace), conn)
+        conn.seek(0)
     else:
+        print("Not in a multiprocess environment")
         return error, segmenthists, segmenthists_nofirst, nofirsttrace

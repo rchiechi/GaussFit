@@ -49,14 +49,14 @@ if platform.system() in ('Linux', 'Darwin'):
         from multiprocessing import set_start_method
         set_start_method("fork")
 else:
-    USE_MULTIPROCESSING = False
+    USE_MULTIPROCESSING = True
 
-# if platform.system() == "Darwin":
-#     from multiprocessing import set_start_method
-#     set_start_method("fork")
-# elif platform.system() == "Windows":
-#     from multiprocessing import set_start_method
-#     set_start_method("spawn")
+if platform.system() == "Darwin":
+    from multiprocessing import set_start_method
+    set_start_method("fork")
+elif platform.system() == "Windows":
+    from multiprocessing import set_start_method
+    set_start_method("spawn")
 
 try:
     import pandas as pd
@@ -249,13 +249,13 @@ class Parse():
 
     def __parsedataset(self):
         children = []
+        conn = NamedTemporaryFile(mode='w+b')  # multiprocess Pipe is not thread safe
+        # child_conn = parent_conn
         if USE_MULTIPROCESSING:
             # parent_conn, child_conn = Pipe(duplex=False)
-            parent_conn = NamedTemporaryFile()  # multiprocess Pipe is not thread safe
-            child_conn = parent_conn
-            __p = Process(target=self.findsegments, args=(child_conn,))
+            __p = Process(target=self.findsegments, args=(conn,))
             __p.start()
-            children.append([parent_conn, __p])
+            children.append([conn, __p])
         else:
             self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = self.findsegments(None)
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
@@ -266,14 +266,11 @@ class Parse():
         for x, group in self.df.groupby('V'):
             xy.append((x, group))
 
-        parent_conn = NamedTemporaryFile()
-        child_conn = parent_conn
+        conn = NamedTemporaryFile(mode='w+b')
         if USE_MULTIPROCESSING:
-            parent_conn = NamedTemporaryFile()
-            child_conn = parent_conn
-            __p = Process(target=self.dolag, args=(child_conn, xy,))
+            __p = Process(target=self.dolag, args=(conn, xy,))
             __p.start()
-            children.append([parent_conn, __p])
+            children.append([conn, __p])
         else:
             lag = self.dolag(None, xy)
         self.dodjdv()
