@@ -42,22 +42,22 @@ from gaussfit.logger import DelayedHandler
 from gaussfit.parse.libparse.dummies import dummyListener
 # import concurrent.futures
 import platform  # avoids TypeError: cannot pickle '_thread.lock' object error
-# if platform.system() in ('Linux', 'Darwin'):
-#     from multiprocessing import Process, Queue
-#     USE_MULTIPROCESSING = True
-#     if platform.system() == "Darwin":
-#         from multiprocessing import set_start_method
-#         set_start_method("fork")
-# else:
-#     USE_MULTIPROCESSING = False
-from multiprocessing import Process, Queue
-USE_MULTIPROCESSING = True
-if platform.system() == "Darwin":
-    from multiprocessing import set_start_method
-    set_start_method("fork")
-elif platform.system() == "Windows":
-    from multiprocessing import set_start_method
-    set_start_method("spawn")
+if platform.system() in ('Linux', 'Darwin'):
+    from multiprocessing import Process, Queue
+    USE_MULTIPROCESSING = True
+    if platform.system() == "Darwin":
+        from multiprocessing import set_start_method
+        set_start_method("fork")
+else:
+    USE_MULTIPROCESSING = False
+# from multiprocessing import Process, Queue
+# USE_MULTIPROCESSING = True
+# if platform.system() == "Darwin":
+#     from multiprocessing import set_start_method
+#     set_start_method("fork")
+# elif platform.system() == "Windows":
+#     from multiprocessing import set_start_method
+#     set_start_method("spawn")
 
 try:
     import pandas as pd
