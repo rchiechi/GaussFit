@@ -249,15 +249,15 @@ class Parse():
 
     def __parsedataset(self):
         children = []
+        parent_conn = NamedTemporaryFile()  # multiprocess Pipe is not thread safe
+        child_conn = parent_conn
         if USE_MULTIPROCESSING:
             # parent_conn, child_conn = Pipe(duplex=False)
-            parent_conn = NamedTemporaryFile()  # multiprocess Pipe is not thread safe
-            child_conn = parent_conn
             __p = Process(target=self.findsegments, args=(child_conn,))
             __p.start()
             children.append([parent_conn, __p])
         else:
-            self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = self.findsegments(None)
+            self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = self.findsegments(child_conn)
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.loghandler.flush()
         self.findtraces()
@@ -266,14 +266,14 @@ class Parse():
         for x, group in self.df.groupby('V'):
             xy.append((x, group))
 
+        parent_conn = NamedTemporaryFile()
+        child_conn = parent_conn
         if USE_MULTIPROCESSING:
-            parent_conn = NamedTemporaryFile()
-            child_conn = parent_conn
             __p = Process(target=self.dolag, args=(child_conn, xy,))
             __p.start()
             children.append([parent_conn, __p])
         else:
-            lag = self.dolag(None, xy)
+            lag = self.dolag(child_conn, xy)
         self.dodjdv()
         self.findmin()
         R = self.dorect(xy)
