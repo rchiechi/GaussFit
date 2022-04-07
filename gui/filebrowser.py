@@ -80,7 +80,7 @@ class ChooseFiles(tk.Frame):
         self.degfreedom = {'init': self.opts.degfree, 'user': self.opts.degfree}
         self.master.tk_setPalette(background=GREY, activeBackground=GREY)
         self.master.title("RCCLab EGaIn Data Parser")
-        self.master.geometry('800x850+250-250')
+        self.master.geometry('800x850+250+250')
         self.pack(fill=BOTH)
         self.__createWidgets()
         self.ToFront()
