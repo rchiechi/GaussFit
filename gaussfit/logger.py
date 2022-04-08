@@ -1,6 +1,7 @@
 import sys
 import logging
-from logging.handlers import QueueHandler
+# from logging.handlers import QueueHandler
+import queue
 # import hashlib
 from multiprocessing import Queue
 from collections import Counter
@@ -27,7 +28,7 @@ class DelayedHandler(logging.Handler):
     def __init__(self, buff=None):
         super().__init__()
         self.buff = buff or Queue(-1)
-        # self.createLock()
+        self.createLock()
         self._delay = False
 
     def emit(self, message):  # Overwrites the default handler's emit method
@@ -36,14 +37,17 @@ class DelayedHandler(logging.Handler):
             self.flush()
 
     def _emit(self, message, level):
-        emittoconsole(message, level)
+        with self.lock:
+            emittoconsole(message, level)
 
     def flush(self):
         _buff = []
         while not self.buff.empty():
             try:
-                _buff.append(self.buff.get_nowait())
+                _buff.append(self.buff.get(1))
             except EOFError:
+                return
+            except queue.Empty:
                 return
         try:
             msgs = Counter(map(self.format, _buff))

@@ -110,7 +110,7 @@ class Parse():
         # Pass your own log handler, e.g., when calling from a GUI
         # But make sure it supports flush(), setDelay() and unsetDelay() methods!
         if not handler:
-            self.loghandler = DelayedHandler()
+            self.loghandler = DelayedHandler(self.logqueue)
             self.loghandler.setFormatter(logging.Formatter(
                 fmt=GREEN+os.path.basename(
                     '%(name)s'+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
