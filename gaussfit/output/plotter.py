@@ -257,4 +257,3 @@ class Plotter():
             self.PlotG(ax3)
         if self.opts.write:
             self.fig.savefig(os.path.join(self.opts.out_dir, self.opts.outfile+"_fig.png"), format="png")
-        # self.fig = fig

@@ -21,7 +21,7 @@ def dohistogram(que, Y, **kwargs):
     routine, which defeats the purpose of machine-fitting
     '''
 
-    defaultKwargs = {'label': '', 'density': False}
+    defaultKwargs = {'label': '', 'density': False, 'warnings': False}
     kwargs = {**defaultKwargs, **kwargs}
     logger = logging.getLogger(__package__+".dohistogram")
     logger.addHandler(QueueHandler(que))
@@ -49,10 +49,9 @@ def dohistogram(que, Y, **kwargs):
         nbins = opts.heatmapbins
     else:
         nbins = opts.bins
-    if len(Y) < 10:
+    if len(Y) < 10 and kwargs['warnings']:
         logger.warning("Histogram with only %d points.", len(Y))
     try:
-        # TODO Why not offer density plots as an option?
         freq, bins = np.histogram(Y, range=yrange, bins=nbins, density=kwargs['density'])
     except ValueError as msg:
         bins, freq = __handlematherror(msg)
@@ -68,10 +67,10 @@ def dohistogram(que, Y, **kwargs):
     p0 = [1., Ym, Ys]
     bin_centers = (bins[:-1] + bins[1:])/2
     coeff = p0
-    covar = None  # pylint: disable=unused-variable
+    covar = None
+    assert(covar is None)
     hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
     try:
-        # with self.lock:
         if opts.lorenzian:
             coeff, covar = curve_fit(lorenz, bin_centers, freq, p0=p0, maxfev=opts.maxfev)
             hist_fit = lorenz(bin_centers, *coeff)
@@ -79,11 +78,11 @@ def dohistogram(que, Y, **kwargs):
             coeff, covar = curve_fit(gauss, bin_centers, freq, p0=p0, maxfev=opts.maxfev)
             hist_fit = gauss(bin_centers, *coeff)
     except RuntimeError:
-        if opts.maxfev > 100:
+        if opts.maxfev > 100 and kwargs['warnings']:
             logger.warning("|%s| Fit did not converge", kwargs['label'], exc_info=False)
     except ValueError as msg:
-        logger.warning("|%s| Skipping data with ridiculous numbers in it (%s)", kwargs['label'], str(msg), exc_info=False)
-        # coeff=p0
+        if kwargs['warnings']:
+            logger.warning("|%s| Skipping data with ridiculous numbers in it (%s)", kwargs['label'], str(msg), exc_info=False)
     except FloatingPointError as msg:
         logger.error("|%s| Encountered floating point error fitting Guasian: %s", kwargs['label'], str(msg), exc_info=False)
 

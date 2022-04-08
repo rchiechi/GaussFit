@@ -159,7 +159,9 @@ def _findsegments(conn, que, df):
             if _V not in segmenthists_nofirst[_seg]['combined']:
                 segmenthists_nofirst[_seg]['combined'][_V] = {}
             segmenthists_nofirst[_seg]['combined'][_V] = dohistogram(que,
-                                                                     np.array([np.log10(abs(_j)) for _j in segments_combined_nofirst[_seg][_V]]),
+                                                                     np.array(
+                                                                              [np.log10(abs(_j))
+                                                                               for _j in segments_combined_nofirst[_seg][_V]]),
                                                                      label='segment')
     for _V in nofirsttrace:
         if _V == 0:

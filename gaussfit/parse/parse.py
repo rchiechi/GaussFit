@@ -110,7 +110,7 @@ class Parse():
         # Pass your own log handler, e.g., when calling from a GUI
         # But make sure it supports flush(), setDelay() and unsetDelay() methods!
         if not handler:
-            self.loghandler = DelayedHandler(self.logqueue)
+            self.loghandler = DelayedHandler()
             self.loghandler.setFormatter(logging.Formatter(
                 fmt=GREEN+os.path.basename(
                     '%(name)s'+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
@@ -260,7 +260,7 @@ class Parse():
             self.XY[x] = {
                 "Y": group['J'],
                 "LogY": group['logJ'],
-                "hist": dohistogram(self.logqueue, group['logJ'], label="J"),
+                "hist": dohistogram(self.logqueue, group['logJ'], label="J", warnings=True),
                 "Y_nofirst": [0],
                 "LogY_nofirst": [0],
                 "hist_nofirst": dohistogram(self.logqueue, np.array([0]), label="J"),
@@ -297,7 +297,7 @@ class Parse():
             self.loglistener.stop()
         except EOFError:
             pass
-        
+
         if self.error:
             self.logger.error('Cannot compute statistics from these traces. (Did you set segments correctly?)')
             self.loghandler.flush()

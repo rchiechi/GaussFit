@@ -41,7 +41,7 @@ def _dolag(conn, que, xy):
     __sendattr = getattr(conn, "send", None)
     use_pipe = callable(__sendattr)
     lag = {}
-
+    exclude_warnings = []
     logger = logging.getLogger(__package__+".dolag")
     logger.addHandler(QueueHandler(que))
     for x, group in xy:
@@ -73,11 +73,14 @@ def _dolag(conn, que, xy):
             else:
                 tossed += 1
         if not _filtered:
-            logger.warning("Lag filter excluded all data at %s V", x)
+            # logger.warning("Lag filter excluded all data at %s V", x)
+            exclude_warnings.append(str(x))
         if tossed > 0:
             logger.info("Lag filtered excluded %s data points at %s V", tossed, x)
         lag[x]['lagplot'] = np.array(_lag)
         lag[x]['filtered'] = np.array(_filtered)
+    if exclude_warnings:
+        logger.warning("Lag filter excluded all data at these voltages: %s", ",".join(exclude_warnings))
     logger.info("Lag done.")
     if use_pipe:
         conn.send(lag)

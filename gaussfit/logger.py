@@ -27,7 +27,7 @@ class DelayedHandler(logging.Handler):
 
     def __init__(self, buff=None):
         super().__init__()
-        self.buff = buff or Queue(-1)
+        self.buff = buff or queue.Queue(-1)
         self.createLock()
         self._delay = False
 
@@ -109,7 +109,7 @@ class DelayedMultiprocessHandler(logging.Handler):
 
     def __init__(self, que):
         super().__init__()
-        self.que = que    
+        self.que = que
 
     def emit(self, record):
         self.buff.append(record.lineno)
