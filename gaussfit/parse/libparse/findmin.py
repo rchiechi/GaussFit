@@ -1,4 +1,6 @@
 from gaussfit.parse.libparse.util import throwimportwarning
+from gaussfit.parse.libparse.dohistogram import dohistogram
+
 
 try:
     import numpy as np
@@ -103,4 +105,5 @@ def findmin(self):
         self.logger.warning("Tossed %d compliance traces during FN calculation.", tossed)
     neg_min_x = np.array(list(filter(np.isfinite, neg_min_x)))
     pos_min_x = np.array(list(filter(np.isfinite, pos_min_x)))
-    self.FN["neg"], self.FN["pos"] = self.dohistogram(neg_min_x, "Vtrans(-)", True), self.dohistogram(pos_min_x, "Vtrans(+)", True)
+    self.FN["neg"] = dohistogram(self.logqueue, self.opts, neg_min_x, label="Vtrans(-)", density=True)
+    self.FN["pos"] = dohistogram(self.logqueue, self.opts, pos_min_x, label="Vtrans(+)", density=True)

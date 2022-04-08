@@ -1,4 +1,7 @@
+import logging
+from logging.handlers import QueueHandler
 from gaussfit.parse.libparse.util import throwimportwarning, signedgmean, lorenz, gauss
+from gaussfit.parse.libparse import dohistogram
 try:
     import numpy as np
     from scipy.optimize import curve_fit
@@ -7,7 +10,8 @@ except ImportError as msg:
     throwimportwarning(msg)
 
 
-def dohistogram(self, Y, label="", density=False):
+def dohistogram(que, opts, Y, **kwargs):
+    # label="", density=False):
     '''
     Return a histogram of Y-values and a gaussian
     fit of the histogram, excluding values that
@@ -18,9 +22,14 @@ def dohistogram(self, Y, label="", density=False):
     routine, which defeats the purpose of machine-fitting
     '''
 
+    defaultKwargs = {'label': '', 'density': False}
+    kwargs = {**defaultKwargs, **kwargs}
+    logger = logging.getLogger(__package__+".dohistogram")
+    logger.addHandler(QueueHandler(que))
+
     def __handlematherror(msg):
         # TODO we can now split out the file name with the bad data in it!
-        self.logger.warning("Encountered this error while constructing histogram: %s", str(msg), exc_info=False)
+        logger.warning("Encountered this error while constructing histogram: %s", str(msg), exc_info=False)
         bins = np.array([0., 0., 0., 0.])
         freq = np.array([0., 0., 0., 0.])
         return bins, freq
@@ -28,24 +37,24 @@ def dohistogram(self, Y, label="", density=False):
     try:
         yrange = (Y.min(), Y.max())
     except ValueError as msg:
-        self.logger.error("Error ranging data for histogram: %s", str(msg))
+        logger.error("Error ranging data for histogram: %s", str(msg))
         yrange = (0, 0)
 
-    if label == "J" or label == "lag":
-        Y = Y[Y <= self.opts.compliance]
+    if kwargs['label'] == "J" or kwargs['label'] == "lag":
+        Y = Y[Y <= opts.compliance]
         if yrange != (0, 0):
             yrange = (Y.min()-1, Y.max()+1)
-    if label == "R":
-        Y = Y[Y <= self.opts.maxr]
-    if label in ('DJDV', 'NDC'):
-        nbins = self.opts.heatmapbins
+    if kwargs['label'] == "R":
+        Y = Y[Y <= opts.maxr]
+    if kwargs['label'] in ('DJDV', 'NDC'):
+        nbins = opts.heatmapbins
     else:
-        nbins = self.opts.bins
+        nbins = opts.bins
     if len(Y) < 10:
-        self.logger.warning("Histogram with only %d points.", len(Y))
+        logger.warning("Histogram with only %d points.", len(Y))
     try:
         # TODO Why not offer density plots as an option?
-        freq, bins = np.histogram(Y, range=yrange, bins=nbins, density=density)
+        freq, bins = np.histogram(Y, range=yrange, bins=nbins, density=kwargs['density'])
     except ValueError as msg:
         bins, freq = __handlematherror(msg)
     except FloatingPointError as msg:
@@ -64,26 +73,26 @@ def dohistogram(self, Y, label="", density=False):
     hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
     try:
         # with self.lock:
-        if self.opts.lorenzian:
-            coeff, covar = curve_fit(lorenz, bin_centers, freq, p0=p0, maxfev=self.opts.maxfev)
+        if opts.lorenzian:
+            coeff, covar = curve_fit(lorenz, bin_centers, freq, p0=p0, maxfev=opts.maxfev)
             hist_fit = lorenz(bin_centers, *coeff)
         else:
-            coeff, covar = curve_fit(gauss, bin_centers, freq, p0=p0, maxfev=self.opts.maxfev)
+            coeff, covar = curve_fit(gauss, bin_centers, freq, p0=p0, maxfev=opts.maxfev)
             hist_fit = gauss(bin_centers, *coeff)
     except RuntimeError:
-        if self.opts.maxfev > 100:
-            self.logger.warning("|%s| Fit did not converge", label, exc_info=False)
+        if opts.maxfev > 100:
+            logger.warning("|%s| Fit did not converge", kwargs['label'], exc_info=False)
     except ValueError as msg:
-        self.logger.warning("|%s| Skipping data with ridiculous numbers in it (%s)", label, str(msg), exc_info=False)
+        logger.warning("|%s| Skipping data with ridiculous numbers in it (%s)", kwargs['label'], str(msg), exc_info=False)
         # coeff=p0
     except FloatingPointError as msg:
-        self.logger.error("|%s| Encountered floating point error fitting Guasian: %s", label, str(msg), exc_info=False)
+        logger.error("|%s| Encountered floating point error fitting Guasian: %s", kwargs['label'], str(msg), exc_info=False)
 
     try:
         skewstat, skewpval = skewtest(freq)
         kurtstat, kurtpval = kurtosistest(freq)
     except ValueError as msg:
-        self.logger.error("|%s| Could not perform skewtest: %s", label, str(msg), exc_info=False)
+        logger.error("|%s| Could not perform skewtest: %s", kwargs['label'], str(msg), exc_info=False)
         skewstat, skewpval, kurtstat, kurtpval = 0.0, 0.0, 0.0, 0.0
     return {"bin": bin_centers, "freq": freq, "mean": coeff[1], "std": coeff[2],
             "var": coeff[2], "bins": bins, "fit": hist_fit, "Gmean": Ym, "Gstd": Ys,

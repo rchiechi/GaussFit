@@ -1,10 +1,12 @@
 import sys
 import logging
+# from logging.handlers import QueueListener, QueueHandler
+# import hashlib
 # from multiprocessing import Queue
 from collections import Counter
 import queue
 
-# TODO Isn't this done with QueueHandler?
+
 class DelayedHandler(logging.Handler):
     '''A log handler that buffers messages and
     folds repeat messages into one line.'''
@@ -12,8 +14,8 @@ class DelayedHandler(logging.Handler):
     buff = []
 
     def __init__(self):
-        logging.Handler.__init__(self)
-        self.createLock()
+        super().__init__()
+        # self.createLock()
         self._delay = False
 
     def emit(self, message):  # Overwrites the default handler's emit method

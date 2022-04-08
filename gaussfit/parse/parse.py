@@ -29,28 +29,31 @@ Description:
 import sys
 import os
 import logging
-from logging.handlers import QueueListener, QueueHandler
+from logging.handlers import QueueListener
+from multiprocessing import Queue
 import warnings
 # import threading
 import time
 import pickle
 from tempfile import NamedTemporaryFile
 from collections import OrderedDict
+from gaussfit.args import Opts
 from gaussfit.parse.libparse.util import printFN, throwimportwarning
 from gaussfit.colors import WHITE, GREEN, TEAL, YELLOW
 from gaussfit.logger import DelayedHandler
-from gaussfit.parse.libparse.dummies import dummyListener
+from gaussfit.parse.libparse.dohistogram import dohistogram
+
+# from gaussfit.parse.libparse.dummies import dummyListener
 # import concurrent.futures
 import platform  # avoids TypeError: cannot pickle '_thread.lock' object error
-if platform.system() in ('Linux', 'Darwin'):
-    from multiprocessing import Process, Queue
+if platform.system() in ('Linux', 'Darwin', 'Windows'):
     USE_MULTIPROCESSING = True
-    if platform.system() == "Darwin":
-        from multiprocessing import set_start_method
-        set_start_method("fork")
+#     if platform.system() == "Darwin":
+#         from multiprocessing import set_start_method
+#         set_start_method("fork")
 else:
     USE_MULTIPROCESSING = False
-# from multiprocessing import Process, Queue
+# # from multiprocessing import Process, Queue
 # USE_MULTIPROCESSING = True
 # if platform.system() == "Darwin":
 #     from multiprocessing import set_start_method
@@ -58,6 +61,10 @@ else:
 # elif platform.system() == "Windows":
 #     from multiprocessing import set_start_method
 #     set_start_method("spawn")
+
+# USE_MULTIPROCESSING = True
+# from multiprocessing import set_start_method
+# set_start_method("spawn", force=True)
 
 try:
     import pandas as pd
@@ -88,13 +95,18 @@ class Parse():
     Vtrans, and dJ/DV.
     '''
 
+    if USE_MULTIPROCESSING:
+        from gaussfit.parse.libparse import dolagmultiprocess as dolag
+        from gaussfit.parse.libparse import findsegmentsmultiprocess as findsegments
+    else:
+        from gaussfit.parse.libparse import dolag
+        from gaussfit.parse.libparse import findsegments
     from gaussfit.parse.libparse import findtraces
-    from gaussfit.parse.libparse import findsegments
     from gaussfit.parse.libparse import dodjdv
     from gaussfit.parse.libparse import findmin
     from gaussfit.parse.libparse import dorect
-    from gaussfit.parse.libparse import dohistogram
-    from gaussfit.parse.libparse import dolag
+    # from gaussfit.parse.libparse import dohistogram
+    
 
     # Class variables
     error = False
@@ -114,12 +126,11 @@ class Parse():
     R = {}
     segments = {}
     segments_nofirst = {}
-    # called_from_gui = False
-    loglistener = None
-    logger = logging.getLogger('parser')
+    logger = logging.getLogger(__package__)
+    logqueue = Queue(-1)
 
-    def __init__(self, opts, handler=None):
-        self.opts = opts
+    def __init__(self, handler=None):
+        self.opts = Opts
         # Pass your own log handler, e.g., when calling from a GUI
         # But make sure it supports flush(), setDelay() and unsetDelay() methods!
         if not handler:
@@ -127,16 +138,12 @@ class Parse():
             self.loghandler.setFormatter(logging.Formatter(
                 fmt=GREEN+os.path.basename(
                     '%(name)s'+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
-            logqueue = Queue(-1)
-            queuehanlder = QueueHandler(logqueue)
-            self.loglistener = QueueListener(logqueue, self.loghandler)
-            self.logger.addHandler(queuehanlder)
-            self.loglistener.start()
         else:
             self.loghandler = handler
-            self.loglistener = dummyListener()
-            self.logger.addHandler(self.loghandler)
+        self.logger.addHandler(self.loghandler)
         self.logger.setLevel(getattr(logging, self.opts.loglevel.upper()))
+        self.loglistener = QueueListener(self.logqueue, self.loghandler)
+        self.loglistener.start()
 
         if not 0 < self.opts.alpha < 1:
             self.logger.error("Alpha must be between 0 and 1")
@@ -250,15 +257,19 @@ class Parse():
 
     def __parsedataset(self):
         children = []
-        conn = NamedTemporaryFile(mode='w+b')  # multiprocess Pipe is not thread safe
+        conn = NamedTemporaryFile(delete=False)  # multiprocess Pipe is not thread safe
+        conn.close()
+        # parent_conn, child_conn = Pipe(duplex=False)
         # child_conn = parent_conn
-        if USE_MULTIPROCESSING:
+        # if USE_MULTIPROCESSING:
             # parent_conn, child_conn = Pipe(duplex=False)
-            __p = Process(target=self.findsegments, args=(conn,))
-            __p.start()
-            children.append([conn, __p])
-        else:
-            self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = self.findsegments(None)
+            # __p = Process(target=self.findsegments, args=(conn, self.logqueue,))
+            # __p.start()
+            # children.append([conn, __p])
+        # else:
+            # self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = self.findsegments(None, self.logqueue)
+        children.append([conn.name, self.findsegments(conn.name, self.logqueue)])
+        children[-1][1].start()
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.loghandler.flush()
         self.findtraces()
@@ -267,31 +278,41 @@ class Parse():
         for x, group in self.df.groupby('V'):
             xy.append((x, group))
 
-        conn = NamedTemporaryFile(mode='w+b')
-        if USE_MULTIPROCESSING:
-            __p = Process(target=self.dolag, args=(conn, xy,))
-            __p.start()
-            children.append([conn, __p])
-        else:
-            lag = self.dolag(None, xy)
+        conn = NamedTemporaryFile(delete=False)
+        conn.close()
+        # if USE_MULTIPROCESSING:
+        #     __p = Process(target=self.dolag, args=(conn, self.logqueue, xy,))
+        #     __p.start()
+        #     children.append([conn, __p])
+        # else:
+        #     lag = self.dolag(None, self.logqueue, xy)
+        # conn = TemporaryFile()
+        # parent_conn, child_conn = Pipe()
+        children.append([conn.name, self.dolag(conn.name, self.logqueue, xy)])
+        children[-1][1].start()
         self.dodjdv()
         self.findmin()
         R = self.dorect(xy)
 
-        if USE_MULTIPROCESSING:
-            children[1][1].join()
-            lag = pickle.load(children[1][0])
+        # if USE_MULTIPROCESSING:
+        #     children[1][1].join()
+        #     lag = pickle.load(children[1][0])
+        children[1][1].join()
+        with open(children[1][0], 'r+b') as fh:
+            lag = pickle.load(fh)
+        os.unlink(children[1][0])
+        #lag = children[1][0].recv()
         self.logger.info("* * * * * * Computing Gaussians  * * * * * * * * *")
         self.loghandler.flush()
         for x, group in xy:
             self.XY[x] = {
                 "Y": group['J'],
                 "LogY": group['logJ'],
-                "hist": self.dohistogram(group['logJ'], "J"),
+                "hist": dohistogram(self.logqueue, self.opts, group['logJ'], label="J"),
                 "Y_nofirst": [0],
                 "LogY_nofirst": [0],
-                "hist_nofirst": self.dohistogram(np.array([0]), "J"),
-                "filtered_hist": self.dohistogram(lag[x]['filtered'], "lag"),
+                "hist_nofirst": dohistogram(self.logqueue, self.opts, np.array([0]), label="J"),
+                "filtered_hist": dohistogram(self.logqueue, self.opts, lag[x]['filtered'], label="lag"),
                 "lag": lag[x]['lagplot'],
                 "FN": group['FN'],
                 "R": R[x]}
@@ -300,14 +321,19 @@ class Parse():
             for x in self.XY:
                 self.GHists[x] = {}
                 self.GHists[x]['hist'] = self.XY[x]['hist']
-        if USE_MULTIPROCESSING:
-            children[0][1].join()
-            self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.load(children[0][0])
+        # if USE_MULTIPROCESSING:
+        #     children[0][1].join()
+        #     self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.load(children[0][0])
+        children[0][1].join()
+        with open(children[0][0], 'r+b') as fh:
+            self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.load(fh)
+        os.unlink(children[0][0])
+        # self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = children[0][0].recv()
         if nofirsttrace:
             for x, group in xy:
                 self.XY[x]["Y_nofirst"] = nofirsttrace[x]
                 self.XY[x]["LogY_nofirst"] = [np.log10(abs(_x)) for _x in nofirsttrace[x]]
-                self.XY[x]["hist_nofirst"] = self.dohistogram(nofirsttrace[x], "J")
+                self.XY[x]["hist_nofirst"] = dohistogram(self.logqueue, self.opts, nofirsttrace[x], label="J")
 
         self.logger.info("* * * * * * Computing |V^2/J|  * * * * * * * * *")
         self.loghandler.flush()

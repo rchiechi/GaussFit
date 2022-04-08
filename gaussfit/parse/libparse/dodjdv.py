@@ -1,6 +1,7 @@
 import numpy as np
 from collections import OrderedDict
 import scipy.interpolate
+from gaussfit.parse.libparse.dohistogram import dohistogram
 
 
 def dodjdv(self):
@@ -88,8 +89,8 @@ def dodjdv(self):
         self.logger.info("NDC values not between 0 and 10: %s (%0.2f%%)", ndc_cut, (ndc_cut/ndc_tot)*100)
     self.loghandler.flush()
     for x in splhists:
-        splhists[x]['hist'] = self.dohistogram(np.array(splhists[x]['spl']), label='DJDV')
-        spl_normhists[x]['hist'] = self.dohistogram(np.array(spl_normhists[x]['spl']), label='NDC')
+        splhists[x]['hist'] = dohistogram(self.logqueue, self.opts, np.array(splhists[x]['spl']), label='DJDV')
+        spl_normhists[x]['hist'] = dohistogram(self.logqueue, self.opts, np.array(spl_normhists[x]['spl']), label='NDC')
     self.logger.info("dJdV complete.")
     self.loghandler.flush()
     self.DJDV, self.GHists, self.NDC, self.NDCHists, self.filtered = spls, splhists, spls_norm, spl_normhists, filtered

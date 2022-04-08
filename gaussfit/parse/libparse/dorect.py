@@ -1,4 +1,5 @@
 from gaussfit.parse.libparse.util import throwimportwarning
+from gaussfit.parse.libparse.dohistogram import dohistogram
 from collections import OrderedDict
 
 try:
@@ -43,7 +44,7 @@ def dorect(self, xy):
                 clipped += 1
     for x in reversed(list(r)):
         if x >= 0:
-            R[x] = {'r': np.array(r[x]), 'hist': self.dohistogram(np.array(r[x]), "R")}
+            R[x] = {'r': np.array(r[x]), 'hist': dohistogram(self.logqueue, self.opts, np.array(r[x]), label="R")}
             R[-1*x] = R[x]
         if x not in R:
             self.logger.warning("Unequal +/- voltages in R-plot will be filled with R=1.")
@@ -51,7 +52,7 @@ def dorect(self, xy):
                 y = np.array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])
             else:
                 y = np.array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
-            R[x] = {'r': y, 'hist': self.dohistogram(y, "R")}
+            R[x] = {'r': y, 'hist': dohistogram(self.logqueue, self.opts, y, label="R")}
     if clipped:
         if self.opts.logr:
             rstr = 'log|R|'

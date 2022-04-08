@@ -1,4 +1,7 @@
 import pickle
+import logging
+from logging.handlers import QueueHandler
+from multiprocessing import Process
 from gaussfit.parse.libparse.util import throwimportwarning, getdistances
 try:
     import numpy as np
@@ -7,7 +10,54 @@ except ImportError as msg:
     throwimportwarning(msg)
 
 
-def dolag(self, conn, xy):
+def dolag(self, conn, que, xy):
+    if self.opts.nolag:
+        lag = {}
+        for x, group in xy:
+            lag[x] = {'lagplot': np.array([[], []]), 'filtered': np.array([])}
+        return lag
+    return doLag(conn, que, self.opts, xy)
+
+
+def dolagmultiprocess(self, conn, que, xy):
+    if self.opts.nolag:
+        lag = {}
+        for x, group in xy:
+            lag[x] = {'lagplot': np.array([[], []]), 'filtered': np.array([])}
+        return lag
+    return doLag(conn, que, self.opts, xy)
+
+
+class doLagMultiprocess(Process):
+
+    def __init__(self, conn, que, opts, xy):
+        super().__init__()
+        self.conn = conn
+        self.que = que
+        self.opts = opts
+        self.xy = xy
+
+    def run(self):
+        return _dolag(self.conn, self.que, self.opts, self.xy)
+
+
+class doLag(doLagMultiprocess):
+
+    # def __init__(self, conn, que, opts, xy):
+    #     self.conn = conn
+    #     self.que = que
+    #     self.opts = opts
+    #     self.xy = xy
+
+    def start(self):
+        return _dolag(self.conn, self.que, self.opts, self.xy)
+
+    def join(self):
+        return
+
+
+
+def _dolag(conn, que, opts, xy):
     '''
     Make a lag plot of Y
     '''
@@ -17,12 +67,11 @@ def dolag(self, conn, xy):
     __sendattr = getattr(conn, "write", None)
     use_pickle = callable(__sendattr)
     lag = {}
-    if self.opts.nolag:
-        for x, group in xy:
-            lag[x] = {'lagplot': np.array([[], []]), 'filtered': np.array([])}
-        return lag
-    self.logger.info("* * * * * * Computing Lag  * * * * * * * * *")
-    self.loghandler.flush()
+
+    logger = logging.getLogger(__package__+".dolag")
+    logger.addHandler(QueueHandler(que))
+    logger.info("* * * * * * Computing Lag  * * * * * * * * *")
+    # self.loghandler.flush()
     for x, group in xy:
         lag[x] = {'lagplot': np.array([[], []]), 'filtered': np.array([])}
         Y = group['logJ']
@@ -34,37 +83,37 @@ def dolag(self, conn, xy):
         try:
             m, b, r, _, _ = linregress(_lag[0], _lag[1])
         except FloatingPointError:
-            self.logger.warn("Error computing lag for J = %s", _lag[0])
+            logger.warn("Error computing lag for J = %s", _lag[0])
             continue
-        # self.logger.debug("R-squared: %s" % (r**2))
+        # logger.debug("R-squared: %s" % (r**2))
         distances = getdistances((m, b), _lag[0], _lag[1])
         min_distance = min(distances)
-        self.logger.debug("Distance from lag: %s", min_distance)
-        if min_distance > self.opts.lagcutoff:
-            self.logger.debug("Found a high degree of scatter in lag plot (%0.4f)", min_distance)
+        logger.debug("Distance from lag: %s", min_distance)
+        if min_distance > opts.lagcutoff:
+            logger.debug("Found a high degree of scatter in lag plot (%0.4f)", min_distance)
         if r**2 < 0.9:
-            self.logger.debug("Poor line-fit to lag plot (R-squared: %s)", (r**2))
+            logger.debug("Poor line-fit to lag plot (R-squared: %s)", (r**2))
         tossed = 0
         for _t in enumerate(distances):
-            if _t[1] < self.opts.lagcutoff:
+            if _t[1] < opts.lagcutoff:
                 _filtered.append(_lag[0][_t[0]])
                 _filtered.append(_lag[1][_t[0]])
             else:
                 tossed += 1
         if not _filtered:
-            self.logger.warning("Lag filter excluded all data at %s V", x)
+            logger.warning("Lag filter excluded all data at %s V", x)
         if tossed > 0:
-            self.logger.info("Lag filtered excluded %s data points at %s V", tossed, x)
+            logger.info("Lag filtered excluded %s data points at %s V", tossed, x)
         lag[x]['lagplot'] = np.array(_lag)
         lag[x]['filtered'] = np.array(_filtered)
-    self.logger.info("Lag done.")
-    self.loghandler.flush()
+    logger.info("Lag done.")
+    # self.loghandler.flush()
     if use_pipe:
         conn.send(lag)
         conn.close()
-    elif use_pickle:
-        # with open(conn.name, 'w+b') as fh:
-        pickle.dump(lag, conn)
-        conn.seek(0)
     else:
-        return lag
+        with open(conn, 'w+b') as fh:
+            pickle.dump(lag, fh)
+        # conn.seek(0)
+    # else:
+    #     return lag

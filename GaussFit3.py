@@ -21,7 +21,8 @@ Description:
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 import cProfile
-from gaussfit import Parse, Opts
+from gaussfit import Parse
+from gaussfit.args import Opts
 from gaussfit.output import Writer, Plotter
 from gaussfit import colors
 from gaussfit.output.libwriter import doOutput
@@ -56,7 +57,7 @@ def do_gaussfit(opts):
     Call this function to execute the parsing engine
     i.e., as main()
     '''
-    parser = Parse(opts)
+    parser = Parse()
     parser.readfiles(opts.in_files)
     if opts.write and not parser.error:
         writer = Writer(parser)
@@ -70,11 +71,9 @@ def do_gaussfit(opts):
             print(colors.RED+"Unable to show plots without matplotlib."+colors.RS)
 
 
-_opts = Opts
-
 if __name__ == "__main__":
-    if _opts.gui:
+    if Opts.gui:
         from gui import filebrowser
-        gui = filebrowser.ChooseFiles(_opts)
+        gui = filebrowser.ChooseFiles(Opts)
     else:
-        do_gaussfit(_opts)
+        do_gaussfit(Opts)
