@@ -3,6 +3,7 @@ import warnings
 import logging
 from gaussfit.colors import GREEN, TEAL, YELLOW, WHITE
 from matplotlib.cm import get_cmap
+from gaussfit.args import Opts as opts
 
 logger = logging.getLogger('output')
 loghandler = logging.StreamHandler()
@@ -28,7 +29,7 @@ class Plotter():
 
     def __init__(self, parser, plt_or_fig):
         self.parser = parser
-        self.opts = self.parser.opts
+        self.opts = opts
         __figure = getattr(plt_or_fig, 'figure', None)
         if callable(__figure):
             self.fig = plt_or_fig.figure(figsize=(16, 10))

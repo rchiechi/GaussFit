@@ -3,6 +3,7 @@
 import sys
 import numpy as np
 from scipy.stats import gmean
+from tempfile import NamedTemporaryFile
 from gaussfit.colors import RED, RS
 
 
@@ -77,6 +78,12 @@ def printFN(logger, FN):
                     key, FN[key]['mean'], FN[key]['std'])
         logger.info("|Vtrans %s| Geometric-mean: %0.4f Standard Deviation: %f",
                     key, FN[key]['Gmean'], FN[key]['Gstd'])
+
+
+def gettmpfilename():
+    with NamedTemporaryFile(delete=False) as __tmpfile:
+        fn = __tmpfile.name
+    return fn
 
 # def guessSegments(_df):
 #     '''

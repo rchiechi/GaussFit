@@ -1,7 +1,7 @@
 import logging
 from logging.handlers import QueueHandler
+from gaussfit.args import Opts as opts
 from gaussfit.parse.libparse.util import throwimportwarning, signedgmean, lorenz, gauss
-from gaussfit.parse.libparse import dohistogram
 try:
     import numpy as np
     from scipy.optimize import curve_fit
@@ -10,8 +10,7 @@ except ImportError as msg:
     throwimportwarning(msg)
 
 
-def dohistogram(que, opts, Y, **kwargs):
-    # label="", density=False):
+def dohistogram(que, Y, **kwargs):
     '''
     Return a histogram of Y-values and a gaussian
     fit of the histogram, excluding values that

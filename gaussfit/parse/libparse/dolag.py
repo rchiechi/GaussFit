@@ -3,6 +3,7 @@ import logging
 from logging.handlers import QueueHandler
 from multiprocessing import Process
 from gaussfit.parse.libparse.util import throwimportwarning, getdistances
+from gaussfit.args import Opts as opts
 try:
     import numpy as np
     from scipy.stats import linregress
@@ -10,68 +11,39 @@ except ImportError as msg:
     throwimportwarning(msg)
 
 
-def dolag(self, conn, que, xy):
-    if self.opts.nolag:
-        lag = {}
-        for x, group in xy:
-            lag[x] = {'lagplot': np.array([[], []]), 'filtered': np.array([])}
-        return lag
-    return doLag(conn, que, self.opts, xy)
-
-
-def dolagmultiprocess(self, conn, que, xy):
-    if self.opts.nolag:
-        lag = {}
-        for x, group in xy:
-            lag[x] = {'lagplot': np.array([[], []]), 'filtered': np.array([])}
-        return lag
-    return doLag(conn, que, self.opts, xy)
-
-
 class doLagMultiprocess(Process):
 
-    def __init__(self, conn, que, opts, xy):
+    def __init__(self, conn, que, xy):
         super().__init__()
         self.conn = conn
         self.que = que
-        self.opts = opts
+        # self.opts = opts
         self.xy = xy
 
     def run(self):
-        return _dolag(self.conn, self.que, self.opts, self.xy)
+        return _dolag(self.conn, self.que, self.xy)
 
 
 class doLag(doLagMultiprocess):
 
-    # def __init__(self, conn, que, opts, xy):
-    #     self.conn = conn
-    #     self.que = que
-    #     self.opts = opts
-    #     self.xy = xy
-
     def start(self):
-        return _dolag(self.conn, self.que, self.opts, self.xy)
+        return _dolag(self.conn, self.que, self.xy)
 
     def join(self):
         return
 
 
-
-def _dolag(conn, que, opts, xy):
+def _dolag(conn, que, xy):
     '''
     Make a lag plot of Y
     '''
 
     __sendattr = getattr(conn, "send", None)
     use_pipe = callable(__sendattr)
-    __sendattr = getattr(conn, "write", None)
-    use_pickle = callable(__sendattr)
     lag = {}
 
     logger = logging.getLogger(__package__+".dolag")
     logger.addHandler(QueueHandler(que))
-    logger.info("* * * * * * Computing Lag  * * * * * * * * *")
-    # self.loghandler.flush()
     for x, group in xy:
         lag[x] = {'lagplot': np.array([[], []]), 'filtered': np.array([])}
         Y = group['logJ']
@@ -107,13 +79,9 @@ def _dolag(conn, que, opts, xy):
         lag[x]['lagplot'] = np.array(_lag)
         lag[x]['filtered'] = np.array(_filtered)
     logger.info("Lag done.")
-    # self.loghandler.flush()
     if use_pipe:
         conn.send(lag)
         conn.close()
     else:
         with open(conn, 'w+b') as fh:
             pickle.dump(lag, fh)
-        # conn.seek(0)
-    # else:
-    #     return lag

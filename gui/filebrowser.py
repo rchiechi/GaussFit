@@ -25,7 +25,7 @@ import logging
 import threading
 import tkinter.ttk as tk
 from tkinter import Tk
-from tkinter import Toplevel
+# from tkinter import Toplevel
 from tkinter import filedialog
 from tkinter import Text, IntVar, StringVar, Listbox, Label
 from tkinter import N, S, E, W, X, Y  # pylint: disable=unused-import
@@ -38,15 +38,13 @@ from gui.prefs import PreferencesWindow
 from gui.colors import BLACK, YELLOW, WHITE, RED, TEAL, GREEN, BLUE, GREY  # pylint: disable=unused-import
 from gui.tooltip import createToolTip
 from gaussfit.logger import GUIHandler
+from gaussfit.args import Opts
+
 try:
     import psutil
     HASPSUTIL = True
 except ImportError:
     HASPSUTIL = False
-# if platform.system() == 'Linux':
-#     USE_MULTIPROCESSING = True
-# else:
-#     USE_MULTIPROCESSING = False
 
 absdir = os.path.dirname(os.path.abspath(__file__))
 absroot = Tk()
@@ -65,7 +63,7 @@ class ChooseFiles(tk.Frame):
     boolmap = {1: True, 0: False}
     lock = threading.Lock
 
-    def __init__(self, opts):
+    def __init__(self):
         self.master = absroot
         super().__init__(self.master)
         # tk.Frame.__init__(self, self.master)
@@ -76,7 +74,7 @@ class ChooseFiles(tk.Frame):
             self.last_input_path = os.getcwd()
         except KeyError:
             self.last_input_path = os.path.expanduser('~')
-        self.opts = opts
+        self.opts = Opts
         self.degfreedom = {'init': self.opts.degfree, 'user': self.opts.degfree}
         self.master.tk_setPalette(background=GREY, activeBackground=GREY)
         self.master.title("RCCLab EGaIn Data Parser")
@@ -112,8 +110,9 @@ class ChooseFiles(tk.Frame):
         self.FileListBoxFrame.pack(side=TOP, fill=BOTH, expand=True)
         self.RightOptionsFrame.pack(side=RIGHT, fill=Y)
         self.LoggingFrame.pack(side=BOTTOM, fill=BOTH)
-        self.logger = logging.getLogger('parser.gui')
+        self.logger = logging.getLogger(__package__)
         self.handler = GUIHandler(self.Logging)
+        self.handler.setFormatter(logging.Formatter('%(levelname)s %(message)s'))
         self.logger.addHandler(self.handler)
         self.logger.setLevel(getattr(logging, self.opts.loglevel.upper()))
         self.logger.info("Config file:%s", self.opts.configfile)

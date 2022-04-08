@@ -4,19 +4,12 @@ import logging
 from logging.handlers import QueueHandler
 from multiprocessing import Process
 from gaussfit.parse.libparse.dohistogram import dohistogram
-
-
-def findsegments(self, conn, que):
-    return findSegments(conn, que, self.opts, self.df)
-
-
-def findsegmentsmultiprocess(self, conn, que):
-    return findSegmentsMultiprocess(conn, que, self.opts, self.df)
+from gaussfit.args import Opts as opts
 
 
 class findSegmentsMultiprocess(Process):
 
-    def __init__(self, conn, que, opts, df):
+    def __init__(self, conn, que, df):
         super().__init__()
         self.conn = conn
         self.que = que
@@ -24,46 +17,32 @@ class findSegmentsMultiprocess(Process):
         self.df = df
 
     def run(self):
-        return _findsegments(self.conn, self.que, self.opts, self.df)
+        return _findsegments(self.conn, self.que, self.df)
 
 
 class findSegments(findSegmentsMultiprocess):
-
-    # def __init__(self, conn, que, opts, df):
-    #     self.conn = conn
-    #     self.que = que
-    #     self.opts = opts
-    #     self.df = df
 
     def start(self):
         if self.opts.tracebyfile:
             self.logger.error("Cannot generate segments from non-EGaIn datasets.")
             return True, {}, {}, {}
-        return _findsegments(self.conn, self.que, self.opts, self.df)
+        return _findsegments(self.conn, self.que, self.df)
 
     def join(self):
         return
 
 
-def _findsegments(conn, que, opts, df):
+def _findsegments(conn, que, df):
     '''
     Break out each trace into four segments of
     0V -> Vmax, Vmax -> 0, 0V -> Vmin, Vmin -> 0V.
     '''
     logger = logging.getLogger(__package__+".findsegments")
     logger.addHandler(QueueHandler(que))
-    logger.info("* * * * * * Finding segments   * * * * * * * *")
-    # self.loghandler.flush()
     __sendattr = getattr(conn, "send", None)
     use_pipe = callable(__sendattr)
-    __sendattr = getattr(conn, "write", None)
-    use_pickle = callable(__sendattr)
     # TODO set num_segments in opts
     # NOTE this is a crude hack because I forgot how Pandas works
-    # if opts.tracebyfile:
-    #     logger.error("Cannot generate segments from non-EGaIn dataset.")
-    #     # self.loghandler.flush()
-    #     return {}
     if opts.ycol < 0:
         logger.warning("Parsing segments when all columns are parsed may produce weird results!")
     try:
@@ -71,7 +50,6 @@ def _findsegments(conn, que, opts, df):
             logger.warning("Dataset does not seem to have %s segments.", int(opts.segments))
     except KeyError:
         logger.warning("Could not segment data by 0's.")
-        # self.loghandler.flush()
         return {}
     error = False
     logger.info("Breaking out traces by segments of 0V -> Vmin/max.")
@@ -80,8 +58,6 @@ def _findsegments(conn, que, opts, df):
     segments_combined_nofirst = {}
     nofirsttrace = {}
     max_column_width = 0
-    # n_segments = guessSegments(df)
-    # logger.info("Guessing %s segments", n_segments)
     for _fn in df.index.levels[0]:
         _seg = None
         _trace = None
@@ -168,20 +144,23 @@ def _findsegments(conn, que, opts, df):
             for _V in segments[_seg][_trace]:
                 if _V not in segmenthists[_seg][_trace]:
                     segmenthists[_seg][_trace][_V] = {}
-                segmenthists[_seg][_trace][_V] = dohistogram(que, opts,
-                    np.array([np.log10(abs(_j)) for _j in segments[_seg][_trace][_V]]), label='Segmented')
+                segmenthists[_seg][_trace][_V] = dohistogram(que,
+                                                             np.array([np.log10(abs(_j)) for _j in segments[_seg][_trace][_V]]),
+                                                             label='segment')
                 if _trace > 0:
                     segmenthists_nofirst[_seg][_trace][_V] = segmenthists[_seg][_trace][_V]
         for _V in segments_combined[_seg]:
             if _V not in segmenthists[_seg]['combined']:
                 segmenthists[_seg]['combined'][_V] = {}
-            segmenthists[_seg]['combined'][_V] = dohistogram(que, opts,
-                np.array([np.log10(abs(_j)) for _j in segments_combined[_seg][_V]]), label='Segmented')
+            segmenthists[_seg]['combined'][_V] = dohistogram(que,
+                                                             np.array([np.log10(abs(_j)) for _j in segments_combined[_seg][_V]]),
+                                                             label='segment')
         for _V in segments_combined_nofirst[_seg]:
             if _V not in segmenthists_nofirst[_seg]['combined']:
                 segmenthists_nofirst[_seg]['combined'][_V] = {}
-            segmenthists_nofirst[_seg]['combined'][_V] = dohistogram(que, opts,
-                np.array([np.log10(abs(_j)) for _j in segments_combined_nofirst[_seg][_V]]), label='Segmented')
+            segmenthists_nofirst[_seg]['combined'][_V] = dohistogram(que,
+                                                                     np.array([np.log10(abs(_j)) for _j in segments_combined_nofirst[_seg][_V]]),
+                                                                     label='segment')
     for _V in nofirsttrace:
         if _V == 0:
             if len(nofirsttrace[_V]) > max_column_width:
@@ -195,7 +174,3 @@ def _findsegments(conn, que, opts, df):
     else:
         with open(conn, 'w+b') as fh:
             pickle.dump((error, segmenthists, segmenthists_nofirst, nofirsttrace), fh)
-        # conn.seek(0)
-    # else:
-    #     print("Not in a multiprocess environment")
-    #     return error, segmenthists, segmenthists_nofirst, nofirsttrace

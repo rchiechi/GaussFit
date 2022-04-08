@@ -52,17 +52,17 @@ def do_cprofile(func):
 
 
 # @do_cprofile
-def do_gaussfit(opts):
+def do_gaussfit():
     '''
     Call this function to execute the parsing engine
     i.e., as main()
     '''
-    parser = Parse()
-    parser.readfiles(opts.in_files)
-    if opts.write and not parser.error:
+    parser = Parse(Opts)
+    parser.readfiles(Opts.in_files)
+    if Opts.write and not parser.error:
         writer = Writer(parser)
         doOutput(writer)
-    if opts.plot and not parser.error:
+    if Opts.plot and not parser.error:
         if CAN_PLOT:
             plotter = Plotter(parser, plt)
             plotter.DoPlots()
@@ -74,6 +74,6 @@ def do_gaussfit(opts):
 if __name__ == "__main__":
     if Opts.gui:
         from gui import filebrowser
-        gui = filebrowser.ChooseFiles(Opts)
+        gui = filebrowser.ChooseFiles()
     else:
-        do_gaussfit(Opts)
+        do_gaussfit()
