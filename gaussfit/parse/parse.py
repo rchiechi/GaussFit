@@ -293,10 +293,11 @@ class Parse():
             printFN(self.logger, self.FN)
         self.loghandler.unsetDelay()
 
-        __listener = getattr(self, 'loglistener')
-        if callable(__listener):
+        try:
             self.loglistener.stop()
-
+        except EOFError:
+            pass
+        
         if self.error:
             self.logger.error('Cannot compute statistics from these traces. (Did you set segments correctly?)')
             self.loghandler.flush()

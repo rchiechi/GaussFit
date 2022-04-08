@@ -37,14 +37,15 @@ class DelayedHandler(logging.Handler):
             self.flush()
 
     def _emit(self, message, level):
-        with self.lock:
-            emittoconsole(message, level)
+        emittoconsole(message, level)
 
     def flush(self):
         _buff = []
         while not self.buff.empty():
             try:
-                _buff.append(self.buff.get(1))
+                __record = self.buff.get(1)
+                if __record is not None:
+                    _buff.append(__record)
             except EOFError:
                 return
             except queue.Empty:
@@ -58,6 +59,7 @@ class DelayedHandler(logging.Handler):
                     __buff.getMessage()
                 except TypeError:
                     self._emit(str(__buff), 'ERROR')
+
         emitted = []
         for message in _buff:
             if not str(message).strip():
