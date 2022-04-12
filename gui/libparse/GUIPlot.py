@@ -1,6 +1,7 @@
 from tkinter import Toplevel, Button, BOTTOM, TOP, BOTH, X
 from gaussfit.output import Plotter
 try:
+    import matplotlib
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
     from matplotlib.backends.backend_tkagg import (
@@ -29,14 +30,13 @@ def GUIPlot(self, parser):
     fig = Figure(figsize=(16, 10), dpi=100)
     plotter = Plotter(parser, fig)
     plotter.DoPlots()
-    # button_quit = Button(master=root, text="Close", command=root.destroy)
     root = PlotWindow(self.master)
     canvas = FigureCanvasTkAgg(fig, master=root)  # A tk.DrawingArea.
     canvas.draw()
-    toolbar = NavigationToolbar2Tk(canvas, root, pack_toolbar=False)
-    toolbar.update()
-    toolbar.pack(side=BOTTOM, fill=X)
-    # button_quit.pack(side=BOTTOM)
+    if int(matplotlib.__version__.split('.')[0]) > 2:
+        toolbar = NavigationToolbar2Tk(canvas, root, pack_toolbar=False)
+        toolbar.update()
+        toolbar.pack(side=BOTTOM, fill=X)
     canvas.get_tk_widget().pack(side=TOP, fill=BOTH, expand=1)
 
 

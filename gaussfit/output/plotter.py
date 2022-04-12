@@ -5,7 +5,7 @@ from gaussfit.colors import GREEN, TEAL, YELLOW, WHITE
 from matplotlib.cm import get_cmap
 from gaussfit.args import Opts as opts
 
-logger = logging.getLogger('output')
+logger = logging.getLogger(__package__)
 loghandler = logging.StreamHandler()
 loghandler.setFormatter(logging.Formatter(
                 fmt=GREEN+os.path.basename('%(name)s'+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
@@ -15,6 +15,7 @@ try:
     import numpy as np
     from scipy.interpolate import griddata
     from scipy.special import stdtrit
+    # import matplotlib
     from matplotlib import container
 except ImportError:
     pass  # We catch numpy import errors in Parser.py
@@ -256,4 +257,8 @@ class Plotter():
         elif self.opts.histplots == 'G':
             self.PlotG(ax3)
         if self.opts.write:
-            self.fig.savefig(os.path.join(self.opts.out_dir, self.opts.outfile+"_fig.png"), format="png")
+            # workaround for older versions of matplot lib / python3
+            try:
+                self.fig.savefig(os.path.join(self.opts.out_dir, self.opts.outfile+"_fig.png"), format="png")
+            except AttributeError:
+                logger.warning('Unable to save plots as image. Try upgrading python3 and matplotlib.')
