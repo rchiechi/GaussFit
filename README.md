@@ -41,7 +41,7 @@ pandas
 colorama
 numpy
 scipy
-matplotlib
+matplotlib >= 3
 appdirs
 ```
 
