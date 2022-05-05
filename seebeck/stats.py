@@ -2,20 +2,13 @@ import os
 import logging
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import norm, linregress
+from scipy.stats import norm
 from sklearn.linear_model import SGDRegressor
 from scipy.optimize import curve_fit
 
 
 def linear_fit(opts, raw_data, idx=1):
-    title = os.path.basename(opts.in_files[0])
-    # title = input_dir.split("/")[-1]
-    # if dictionary["TrueTemp"]:
-    #     title += '_dT'
-    #     middle = int(len(raw_data) / 2)     # this allows varying number of dT's; so far useless
-    #     x = np.array([[np.mean(raw_data[middle])], [np.mean(raw_data[middle+1])], [np.mean(raw_data[middle+2])]])
-    #     x2 = np.array(raw_data[middle] + raw_data[middle+1] + raw_data[middle+2])
-    # else:
+    title = os.path.basename(opts.in_files[0])[:-4]
     logging.info('Parsing column labeled %s.' % raw_data[list(raw_data.keys())[0]]['labels'][idx])
     if opts.truetemp:
         x = np.array([[float(raw_data[dt]['dt'])]] for dt in opts.dTn)
@@ -24,42 +17,27 @@ def linear_fit(opts, raw_data, idx=1):
     __x2 = []
     for dt in opts.dTn:
         __x2 += [[float(dt)]] * len(raw_data[f'DT{dt}']['data'][idx])
-    # x2 = np.array([[4]] * len(raw_data[0]) + [[8]] * len(raw_data[1]) + [[12]] * len(raw_data[2]))
     x2 = np.array(__x2)
     # TODO maybe replace SGDRegressor with own function ?
-    lr = SGDRegressor(max_iter=100000)       # Gaussian mean-based LS
-    # lr.fit(x, [np.mean(raw_data[0]), np.mean(raw_data[1]), np.mean(raw_data[2])])
-    # __m = []
-    #for dt in opts.dTn:
-    #      __m.append(np.mean(raw_data[f'DT{dt}']['data'][idx]))
-    # lr.fit(x, __m)
+    lr = SGDRegressor(max_iter=100000)  # Gaussian mean-based LS
     lr.fit(x, [np.mean(raw_data[f'DT{dt}']['data'][idx]) for dt in opts.dTn])
-    # lr = linregress(x.reshape(-1), [np.mean(raw_data[f'DT{dt}']['data'][idx]) for dt in opts.dTn])
-    # w = lr.coef_[0]     # the slope of the linear fit
-    # yatx01 = lr.intercept_[0]       # where fit intercepts 0
-    lr2 = SGDRegressor(max_iter=100000)      # All data-based LS
-    # lr2.fit(x2, raw_data[0] + raw_data[1] + raw_data[2])
+    lr2 = SGDRegressor(max_iter=100000)  # All data-based LS
     __sum = []
     for dt in opts.dTn:
         __sum += raw_data[f'DT{dt}']['data'][idx]
-    # __sum = np.array(__sum)
     lr2.fit(x2, __sum)
-    # lr2 = linregress(x2, __sum)
-    # w2 = lr2.coef_[0]
-    # yatx02 = lr.intercept_[0]
-    lr3 = SGDRegressor(loss='epsilon_insensitive', epsilon=0, max_iter=100000)       # All data-based LAD
+    lr3 = SGDRegressor(loss='epsilon_insensitive', epsilon=0, max_iter=100000)  # All data-based LAD
     lr3.fit(x2, __sum)
-    # lr3 = linregress(x2, __sum)
-    # w3 = lr3.coef_[0]
-    # yatx03 = lr.intercept_[0]
-
     # TODO split this into linear_fit and Image_generator
     # generate the image:
-    plt.errorbar(x.reshape(-1), [np.mean(raw_data[f'DT{dt}']['data'][idx]) for dt in opts.dTn],
-                 yerr=[np.std(raw_data[f'DT{dt}']['data'][idx]) for dt in opts.dTn], fmt="o", color='black')
-    # plt.scatter(x2[0:len(raw_data[f'DT{dt}']['data'][idx])], raw_data[f'DT{dt}']['data'][idx])
-    # plt.scatter(x2[len(raw_data[0]):-len(raw_data[2])], raw_data[1])
-    # plt.scatter(x2[-(len(raw_data[2])):], raw_data[2])
+    # plt.errorbar(x.reshape(-1), [np.mean(raw_data[f'DT{dt}']['data'][idx]) for dt in opts.dTn],
+    #              yerr=[np.std(raw_data[f'DT{dt}']['data'][idx]) for dt in opts.dTn], fmt="o", color='black')
+    plt.scatter(x.reshape(-1), [np.mean(raw_data[f'DT{dt}']['data'][idx]) for dt in opts.dTn],
+                label='LinearFit')
+    # for dt in opts.dTn:
+    #     plt.scatter([float(dt)] * len(raw_data[f'DT{dt}']['data'][idx]), raw_data[f'DT{dt}']['data'][idx])
+        # plt.scatter(x2[len(raw_data[0]):-len(raw_data[2])], raw_data[1])
+        # plt.scatter(x2[-(len(raw_data[2])):], raw_data[2])
     plt.plot(x, lr.coef_[0] * x + lr.intercept_[0], label='MeanBasedLS')
     plt.plot(x2, lr2.coef_[0] * x2 + lr.intercept_[0], label='AllDataBasedLS')
     plt.plot(x2, lr3.coef_[0] * x2 + lr.intercept_[0], label='AllDataBasedLAD')
@@ -73,7 +51,6 @@ def linear_fit(opts, raw_data, idx=1):
     plt.clf()
 
     return [lr.coef_[0], lr2.coef_[0], lr3.coef_[0]]
-    # return [w, w2, w3]
 
 
 def GHistograms(*raw_data):
@@ -89,9 +66,9 @@ def GHistograms(*raw_data):
         coeff, covar = curve_fit(gauss, bin_centers, freq, p0=p0, maxfev=1000)
         hist_fit = gauss(bin_centers, *coeff)
     except RuntimeError as msg:
-        print(f'Fit did not converge: {msg}')
+        logging.warn(f'Fit did not converge: {msg}')
     except ValueError as msg:
-        print(f'Skipping ridiculous numbers: {msg}')
+        logging.warn(f'Skipping ridiculous numbers: {msg}')
     histogram = {"bins": bin_centers, "bin_edges": bins, "freq": freq, "mean": coeff[1], "std": coeff[2],
                  "var": coeff[2], "fit": hist_fit, "Gmean": np.mean(G), "Gstd": np.std(G)}
     return histogram
