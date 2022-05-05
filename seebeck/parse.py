@@ -4,6 +4,7 @@ from queue import Queue
 import logging
 import threading
 from seebeck.util import get_raw_data
+from seebeck.stats import linear_fit
 
 
 def GUIParse(self):
@@ -20,15 +21,16 @@ def GUIParse(self):
     def postParse():
         '''We need to check a couple of things right after we finish parsing'''
         self.ButtonParse['state'] = NORMAL
+        linear_fit(self.opts, self.raw_data)
         # print(self.raw_data)
         # self.opts.degfree = self.degfreedom
 
     if self.gothreads:
+        while not self.logque.empty():
+            logging.info(self.logque.get_nowait())
         for _t in self.gothreads:
             if _t.is_alive():
                 self.ButtonParse.after('100', self.GUIParse)
-                while not self.logque.empty():
-                    logging.info(self.logque.get_nowait())
                 return
         for _t in self.gothreads:
             _t.join()

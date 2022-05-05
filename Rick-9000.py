@@ -20,6 +20,7 @@ Description:
 '''
 
 import os
+import sys
 import platform
 import logging
 from types import SimpleNamespace
@@ -145,7 +146,7 @@ class ChooseFiles(tk.Frame):
         if master is None:
             master = Tk()
         super().__init__(master)
-        bgimg = PhotoImage(file=os.path.join(absdir, 'RCCLabFluidic.png'))
+        bgimg = PhotoImage(file=os.path.join(absdir, 'gui', 'RCCLabFluidic.png'))
         limg = Label(self.master, i=bgimg, background=GREY)
         limg.pack(side=TOP)
         try:
@@ -156,6 +157,8 @@ class ChooseFiles(tk.Frame):
         master.title("RCCLab Rick-9000 Parser")
         master.geometry('800x850+250+250')
         self.pack(fill=BOTH)
+        if len(sys.argv) > 1:
+            self.opts.in_files = sys.argv[1:]
         self.__createWidgets()
         self.ToFront()
 
@@ -322,6 +325,7 @@ class ChooseFiles(tk.Frame):
                 self.OutputFileName.insert(0, os.path.basename(
                     self.opts.in_files[-1]).lower().replace('.txt', ''))
                 self.checkOutputFileName()
+        self.updateFileListBox()
 
     def ParseClick(self):
         self.checkOptions()
@@ -335,7 +339,6 @@ class ChooseFiles(tk.Frame):
         else:
             self.DeltaTn['state'] = NORMAL
         self.opts.dTn = self.DeltaTn.get().split(',')
-        # logging.info(self.opts)
 
     def updateFileListBox(self):
         self.filelist.set(" ".join([x.replace(" ", "_") for x in self.opts.in_files]))
