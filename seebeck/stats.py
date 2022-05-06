@@ -2,22 +2,16 @@ import os
 import logging
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import norm, linregress
+from scipy.stats import norm
 from sklearn.linear_model import SGDRegressor
 from scipy.optimize import curve_fit
 
 
 def linear_fit(opts, raw_data):
     title = os.path.basename(opts.in_files[0])
-    # title = input_dir.split("/")[-1]
-    # if dictionary["TrueTemp"]:
-    #     title += '_dT'
-    #     middle = int(len(raw_data) / 2)     # this allows varying number of dT's; so far useless
-    #     x = np.array([[np.mean(raw_data[middle])], [np.mean(raw_data[middle+1])], [np.mean(raw_data[middle+2])]])
-    #     x2 = np.array(raw_data[middle] + raw_data[middle+1] + raw_data[middle+2])
-    # else:
     idx = opts.col_to_parse
-    logging.info('[linear_fit] Parsing column labeled %s.', raw_data[list(raw_data.keys())[0]]['labels'][idx])
+    y_label = raw_data[list(raw_data.keys())[0]]['labels'][idx]
+    logging.info('[linear_fit] Parsing column labeled %s.', y_label)
 
     if opts.truetemp:
         x = np.array([[float(raw_data[f'DT{dt}']['dt'])]] for dt in opts.dTn)
@@ -26,61 +20,44 @@ def linear_fit(opts, raw_data):
     __x2 = []
     for dt in opts.dTn:
         __x2 += [[float(dt)]] * len(raw_data[f'DT{dt}']['data'][idx])
-    # x2 = np.array([[4]] * len(raw_data[0]) + [[8]] * len(raw_data[1]) + [[12]] * len(raw_data[2]))
     x2 = np.array(__x2)
     lr = SGDRegressor(max_iter=100000)       # Gaussian mean-based LS
-    # lr.fit(x, [np.mean(raw_data[0]), np.mean(raw_data[1]), np.mean(raw_data[2])])
-    # __m = []
-    # for dt in opts.dTn:
-    #      __m.append(np.mean(raw_data[f'DT{dt}']['data'][idx]))
-    # lr.fit(x, __m)
+
     lr.fit(x, [np.mean(raw_data[f'DT{dt}']['data'][idx]) for dt in opts.dTn])
-    # lr = linregress(x.reshape(-1), [np.mean(raw_data[f'DT{dt}']['data'][idx]) for dt in opts.dTn])
-    # w = lr.coef_[0]     # the slope of the linear fit
-    # yatx01 = lr.intercept_[0]       # where fit intercepts 0
+
     lr2 = SGDRegressor(max_iter=100000)      # All data-based LS
-    # lr2.fit(x2, raw_data[0] + raw_data[1] + raw_data[2])
     __sum = []
     for dt in opts.dTn:
         __sum += raw_data[f'DT{dt}']['data'][idx]
-    # __sum = np.array(__sum)
+
     lr2.fit(x2, __sum)
-    # lr2 = linregress(x2, __sum)
-    # w2 = lr2.coef_[0]
-    # yatx02 = lr.intercept_[0]
+
     lr3 = SGDRegressor(loss='epsilon_insensitive', epsilon=0, max_iter=100000)       # All data-based LAD
     lr3.fit(x2, __sum)
-    # lr3 = linregress(x2, __sum)
-    # w3 = lr3.coef_[0]
-    # yatx03 = lr.intercept_[0]
-
-    # generate the image:
     plt.errorbar(x.reshape(-1), [np.mean(raw_data[f'DT{dt}']['data'][idx]) for dt in opts.dTn],
                  yerr=[np.std(raw_data[f'DT{dt}']['data'][idx]) for dt in opts.dTn], fmt="o", color='black')
-    # plt.scatter(x2[0:len(raw_data[f'DT{dt}']['data'][idx])], raw_data[f'DT{dt}']['data'][idx])
-    # plt.scatter(x2[len(raw_data[0]):-len(raw_data[2])], raw_data[1])
-    # plt.scatter(x2[-(len(raw_data[2])):], raw_data[2])
     plt.plot(x, lr.coef_[0] * x + lr.intercept_[0], label='MeanBasedLS')
     plt.plot(x2, lr2.coef_[0] * x2 + lr.intercept_[0], label='AllDataBasedLS')
     plt.plot(x2, lr3.coef_[0] * x2 + lr.intercept_[0], label='AllDataBasedLAD')
     plt.xlim(right=15)
-    plt.xlabel('dT')
-    plt.ylabel('dV')
+    plt.xlabel('ΔT')
+    plt.ylabel(y_label)
     plt.title(title)
     plt.legend()
-    plt.savefig(os.path.join(opts.out_dir, f'{title}_dVdT_plot.png'))
+    plt.savefig(os.path.join(opts.out_dir, f'{title}_{y_label}_plot.png'))
     logging.info("successfully generated graph")       # log: print to terminal when its going well
     plt.clf()
 
     return lr.coef_[0], lr2.coef_[0], lr3.coef_[0]
-    # return [w, w2, w3]
+
 
 
 def GHistograms(opts, raw_data):
     histograms = {}
     for dt in opts.dTn:
         histograms[f'DT{dt}'] = __Ghistrogram(raw_data[f'DT{dt}']['data'][opts.col_to_parse])
-    plotGHist(opts, histograms)
+    x_label = raw_data[list(raw_data.keys())[0]]['labels'][opts.col_to_parse]
+    plotGHist(opts, histograms, x_label)
     return histograms
 
 def __Ghistrogram(array_of_data):
@@ -104,7 +81,7 @@ def __Ghistrogram(array_of_data):
     return histogram
 
 
-def plotGHist(opts, hist):
+def plotGHist(opts, hist, x_label):
     title = os.path.basename(opts.in_files[0])
     colors = ['blue', 'red', 'green', 'organge', 'purple']
     i = 0
@@ -115,15 +92,11 @@ def plotGHist(opts, hist):
             i = 0
         else:
             i += 1
-        # plt.plot(hist[1]['bins'], hist[1]['fit'], color='red', label='dT8')
-        # plt.hist(hist[1]['bins'], weights=hist[1]['freq'], bins=len(hist[1]['bins']))
-        # plt.plot(hist[2]['bins'], hist[2]['fit'], color='green', label='dT12')
-        # plt.hist(hist[2]['bins'], weights=hist[2]['freq'], bins=len(hist[2]['bins']))
     plt.legend()
     plt.title(title)
-    plt.xlabel('dV')
+    plt.xlabel(x_label)
     plt.ylabel('counts')
-    plt.savefig(os.path.join(opts.out_dir, f'_{title}_dV_GHistograms.png'))
+    plt.savefig(os.path.join(opts.out_dir, f'{title}_{x_label}_GHistograms.png'))
     plt.clf()
     logging.info("successfully generated GHistograms")
 

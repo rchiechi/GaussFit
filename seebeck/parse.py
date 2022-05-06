@@ -1,4 +1,4 @@
-# from tempfile import NamedTemporaryFile
+import os
 from tkinter import DISABLED, NORMAL
 from queue import Queue
 import logging
@@ -14,6 +14,8 @@ def GUIParse(self):
         '''We need to check a couple of things right before we start parsing'''
         self.logque = Queue(-1)
         self.ButtonParse['state'] = DISABLED
+        if not os.path.exists(self.opts.out_dir):
+            os.mkdir(self.opts.out_dir)
         # self.degfreedom = self.opts.degfree
         # if self.opts.degfree == 0 and len(self.opts.in_files):
         #     self.opts.degfree = len(self.opts.in_files)-1

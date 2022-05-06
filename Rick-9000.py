@@ -130,7 +130,7 @@ class ChooseFiles(tk.Frame):
     from seebeck.parse import GUIParse
 
     opts = SimpleNamespace(in_files=[],
-                           out_dir=os.getcwd(),
+                           out_dir=os.path.join(os.getcwd(), 'parsed'),
                            out_file='',
                            plot=True,
                            write=True,
