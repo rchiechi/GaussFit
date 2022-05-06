@@ -135,12 +135,30 @@ class ChooseFiles(tk.Frame):
                            plot=True,
                            write=True,
                            truetemp=False,
-                           dTn=[])
+                           col_to_parse=1,
+                           dTn=[],
+                           cuttoff_to_toss=100)  # TODO: Make this a user option
     raw_data = {}
     gothreads = []
     plots = []
     outdir = ''
     boolmap = {1: True, 0: False}
+    colmap = {1:'Raw Voltage (uV)',
+              2:'Corrected Voltage (uV)',
+              3:'Top T',
+              4:'Bottom T',
+              5:'Delta-T (°C)',
+              6:'Seebeck (uV/K)'}
+
+    FileListBoxFrameLabelVar = None
+    FileListBoxFrameLabel = None
+    filelist = None
+    FileListBox = None
+    checks = []
+    OutputFileName = None
+    DeltaTn = None
+    OptionsColString = None
+    OptionCol = None
 
     def __init__(self, master=None):
         if master is None:
@@ -264,7 +282,7 @@ class ChooseFiles(tk.Frame):
         tk.Label(self.RightOptionsFrame, text="Output file base name:").grid(
             column=0, row=rowidx)
         self.OutputFileName = tk.Entry(self.RightOptionsFrame, width=20,
-                                       font=Font(size=8, slant='italic'))
+                                       font=Font(size=10, slant='italic'))
         for n in ('<Return>', '<Leave>', '<Enter>'):
             self.OutputFileName.bind(n, self.checkOutputFileName)
         self.OutputFileName.grid(column=0, row=rowidx+1)
@@ -273,13 +291,26 @@ class ChooseFiles(tk.Frame):
             self.OutputFileName.insert(0, self.opts.out_file)
 
         tk.Label(self.RightOptionsFrame, text="ΔT values:").grid(
-             column=0, row=rowidx+2, sticky=W)
+            column=0, row=rowidx+2, sticky=W)
         self.DeltaTn = tk.Entry(self.RightOptionsFrame, width=20,
-                                font=Font(size=8))
+                                font=Font(size=10))
         self.DeltaTn.insert(0, '4,8,12')
         for n in ('<Return>', '<Leave>', '<Enter>'):
             self.DeltaTn.bind(None, self.checkOptions)
         self.DeltaTn.grid(column=0, row=rowidx+3, sticky=W)
+
+        tk.Label(self.RightOptionsFrame, text="Column to plot:").grid(
+            column=0, row=rowidx+4, sticky=W)
+        self.OptionsColString = StringVar()
+        self.OptionsColString.set(self.opts.col_to_parse)
+        self.OptionCol = tk.OptionMenu(self.RightOptionsFrame,
+                                       self.OptionsColString,
+                                       self.colmap[self.opts.col_to_parse],
+                                       command=self.checkOptions,
+                                       *list(self.colmap.values()))
+        # __menu = self.nametowidget(self.OptionCol)
+        # __menu.config(font=Font(size=10))  # Set the dropdown menu's font
+        self.OptionCol.grid(column=0, row=rowidx+5, sticky=W)
 
         # tk.Label(self.RightOptionsFrame, text="ΔT values:").grid(
         #     column=0, row=rowidx+2, sticky=W)
@@ -296,8 +327,8 @@ class ChooseFiles(tk.Frame):
         todel = []
         filelist = []
         for i in range(0, len(self.opts.in_files)):
-            for s in selected:
-                if self.opts.in_files[i].replace(" ", "_") == s:
+            for _s in selected:
+                if self.opts.in_files[i].replace(" ", "_") == _s:
                     todel.append(i)
 
         for i in range(0, len(self.opts.in_files)):
@@ -313,9 +344,9 @@ class ChooseFiles(tk.Frame):
             title="Files to parse",
             multiple=True,
             initialdir=self.last_input_path,
-            filetypes=[('LabView Files', '*.lvm'), ('Data files', '*_data.txt'), 
+            filetypes=[('LabView Files', '*.lvm'), ('Data files', '*_data.txt'),
                        ('Text files', '*.txt'), ('All files', '*')])
-        if len(self.opts.in_files):
+        if self.opts.in_files:
             self.last_input_path = os.path.split(self.opts.in_files[0])[0]
             if not self.outdir:
                 self.opts.out_dir = self.last_input_path
@@ -340,6 +371,10 @@ class ChooseFiles(tk.Frame):
             self.DeltaTn['state'] = NORMAL
         self.opts.dTn = self.DeltaTn.get().split(',')
 
+        for __key in self.colmap:
+            if self.colmap[__key] == self.OptionsColString.get():
+                self.opts.col_to_parse = __key
+
     def updateFileListBox(self):
         self.filelist.set(" ".join([x.replace(" ", "_") for x in self.opts.in_files]))
 
@@ -354,7 +389,8 @@ class ChooseFiles(tk.Frame):
             self.UpdateFileListBoxFrameLabel()
 
     def UpdateFileListBoxFrameLabel(self):
-        self.FileListBoxFrameLabelVar.set(f"Output to: {self.opts.out_dir}/{self.opts.out_file}_*.txt")
+        self.FileListBoxFrameLabelVar.set(
+            f"Output to: {self.opts.out_dir}/{self.opts.out_file}_*.txt")
 
     def checkOutputFileName(self, event=None):
         self.opts.out_file = self.OutputFileName.get()
@@ -369,7 +405,8 @@ class ChooseFiles(tk.Frame):
     def ToFront(self):
         '''Try to bring the main window to the front on different platforms'''
         if platform.system() == "Darwin":
-            os.system('''/usr/bin/osascript -e 'tell app "Finder" to set frontmost of process "Python" to true' ''')
+            os.system(
+                '''/usr/bin/osascript -e 'tell app "Finder" to set frontmost of process "Python" to true' ''')
         else:
             self.master.attributes('-topmost', 1)
             self.master.attributes('-topmost', 0)

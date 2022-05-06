@@ -42,20 +42,19 @@ def get_raw_data(opts, logq, raw_data):
         return __get_raw_data_dTn(opts, logq, raw_data)
 
 
-def __get_raw_data_true_temp(opts):
+def __get_raw_data_true_temp(opts, logq, raw_data):
     logging.info('True temp not yet implemented.')
-    return __get_raw_data_dTn(opts)
+    return __get_raw_data_dTn(opts, logq, raw_data)
 
 
 def __get_raw_data_dTn(opts, logq, raw_data):
     for dt in opts.dTn:
         raw_data[f'DT{dt}'] = {'data': [], 'labels': [], 'dt': 0.0}
-    # headers = X_Value	Raw Voltage (uV)	Corrected Voltage (uV)	Top T	BottomT	Delta-T (Deg.C)	Seebeck (uV/K)	Elapsed Time (s)	Comment
     for fn in opts.in_files:
         logq.put('Parsing %s' % os.path.basename(fn))
         delimiter = get_delimiter(fn)
         header_offset = get_header_offset(fn)
-        with open(fn) as fh:
+        with open(fn, newline='') as fh:
             _key = 'DT0'
             for dt in opts.dTn:
                 if f'dt{dt}' in fn.lower():
@@ -75,13 +74,25 @@ def __get_raw_data_dTn(opts, logq, raw_data):
                         while i >= len(raw_data[_key]['data']):
                             raw_data[_key]['data'].append([])
                         if not __column:
-                            continue
-                        raw_data[_key]['data'][i].append(float(__column))
+                            raw_data[_key]['data'][i].append(np.NaN)
+                        else:
+                            if abs(float(__column)) > opts.cuttoff_to_toss and i < 6:
+                                logq.put(f'[get_raw_data] Tossing ridiculous value {__column}')
+                                __column = 0
+                            raw_data[_key]['data'][i].append(float(__column))
                     except ValueError:
                         logq.put(f'Error converting data from {_key} to float: {__column}')
-                        continue
+
+    for dt in opts.dTn:
+        while len(raw_data[f'DT{dt}']['data']) < opts.col_to_parse + 1:
+            raw_data[f'DT{dt}']['data'].append([])
+            raw_data[f'DT{dt}']['labels'].append('')
+
     for _key in raw_data:
-        raw_data[_key]['dt'] = np.mean(raw_data[_key]['data'][5])  # TODO: make sure this is the dT column
+        if len(raw_data[_key]['data']) > 5:
+            raw_data[_key]['dt'] = np.mean(raw_data[_key]['data'][5])  # TODO: make sure this is the dT column
+        else:
+            logq.put(f"Could not convert real ΔT for {_key}.")
         # for i in range(len(raw_data[_key]['data'])):
         #     raw_data[_key]['data'][i] = np.array(raw_data[_key]['data'][i])
         #     if i == 5:  # TODO: make sure this is the dT column

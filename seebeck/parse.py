@@ -4,7 +4,7 @@ from queue import Queue
 import logging
 import threading
 from seebeck.util import get_raw_data
-from seebeck.stats import linear_fit
+from seebeck.stats import linear_fit, GHistograms
 
 
 def GUIParse(self):
@@ -21,7 +21,11 @@ def GUIParse(self):
     def postParse():
         '''We need to check a couple of things right after we finish parsing'''
         self.ButtonParse['state'] = NORMAL
-        linear_fit(self.opts, self.raw_data)
+        try:
+            linear_fit(self.opts, self.raw_data)
+            GHistograms(self.opts, self.raw_data)
+        except ValueError:
+            logging.error("Could not generate fits.")
         # print(self.raw_data)
         # self.opts.degfree = self.degfreedom
 
@@ -35,7 +39,7 @@ def GUIParse(self):
         for _t in self.gothreads:
             _t.join()
         logging.info("Parse complete!")
-        gothread = self.gothreads.pop()
+        self.gothreads.pop()
         postParse()
         # if self.opts.write and not gothread.parser.error:
         #     writer = Writer(gothread.parser)
@@ -48,7 +52,7 @@ def GUIParse(self):
             preParse()
             self.gothreads.append(threading.Thread(target=get_raw_data,
                                                    args=[self.opts, self.logque, self.raw_data]))
-            self.gothreads[-1].start()
+            self.gothreads[-1].start()         
             self.ButtonParse.after('500', self.GUIParse)
         else:
             logging.warning("No input files!")
