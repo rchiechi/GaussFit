@@ -195,7 +195,7 @@ class ChooseFiles(tk.Frame):
         text_handler = TextHandler(stlogger)
 
         # Logging configuration
-        logging.basicConfig(filename='test.log',
+        logging.basicConfig(filename='Rick-9000.log',
                             level=logging.INFO,
                             format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -354,7 +354,7 @@ class ChooseFiles(tk.Frame):
             if not self.opts.out_file:
                 self.OutputFileName.delete(0, END)
                 self.OutputFileName.insert(0, os.path.basename(
-                    self.opts.in_files[-1]).lower().replace('.txt', ''))
+                    self.opts.in_files[-1]).lower().replace('.lvm', ''))
                 self.checkOutputFileName()
         self.updateFileListBox()
 
