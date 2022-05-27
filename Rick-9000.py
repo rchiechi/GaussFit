@@ -46,7 +46,7 @@ GREEN = "#09f218"
 BLUE = "#090df2"
 GREY = '#e8e8e8'
 
-absdir = os.path.dirname(os.path.abspath(__file__))
+absdir = os.path.dirname(os.path.realpath(__file__))
 
 
 class TextHandler(logging.Handler):

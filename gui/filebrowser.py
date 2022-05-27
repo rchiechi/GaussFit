@@ -46,12 +46,12 @@ try:
 except ImportError:
     HASPSUTIL = False
 
-absdir = os.path.dirname(os.path.abspath(__file__))
+absdir = os.path.dirname(os.path.realpath(__file__))
 absroot = Tk()
 
 
 class ChooseFiles(tk.Frame):
-    '''The main frame for adding/removing files, accessing setttings
+    '''The main frame for adding/removing files, accessing settings
        and parsing.'''
 
     from gui.libparse import GUIParse
