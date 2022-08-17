@@ -1,6 +1,8 @@
 '''Utility functions for the main parser class.'''
 
+import os
 import sys
+import hashlib
 import numpy as np
 from scipy.stats import gmean
 from tempfile import NamedTemporaryFile
@@ -84,6 +86,14 @@ def gettmpfilename():
     with NamedTemporaryFile(delete=False) as __tmpfile:
         fn = __tmpfile.name
     return fn
+
+def getfilechecksum(fn):
+    file_hash = hashlib.md5()
+    if os.path.exists(fn):
+        with open(fn, 'rb') as fh:
+            while chunk := fh.read(8192):
+                file_hash.update(chunk)
+    return file_hash.digest()
 
 # def guessSegments(_df):
 #     '''

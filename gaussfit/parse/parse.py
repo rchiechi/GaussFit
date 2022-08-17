@@ -36,11 +36,12 @@ import warnings
 import time
 import pickle
 from collections import OrderedDict
-from gaussfit.args import Opts
+# from gaussfit.args import Opts
 from gaussfit.parse.libparse.util import printFN, throwimportwarning
 from gaussfit.colors import WHITE, GREEN, TEAL, YELLOW
 from gaussfit.logger import DelayedHandler
 from gaussfit.parse.libparse.util import gettmpfilename
+from gaussfit.parse.libparse.util import getfilechecksum
 from gaussfit.parse.libparse.dohistogram import dohistogram
 import platform
 try:
@@ -87,6 +88,7 @@ class Parse():
     # Class variables
     error = False
     parsed = False
+    file_hashes = {}
     df = pd.DataFrame()
     avg = pd.DataFrame()
     XY = OrderedDict()
@@ -125,6 +127,13 @@ class Parse():
             self.logger.error("Alpha must be between 0 and 1")
             sys.exit()
 
+    def _checkunique(self, f):
+        _digest = getfilechecksum(f)
+        if _digest in self.file_hashes:
+            self.logger.warning(f'{self.file_hashes[_digest]} and {f} are identical!')
+            self.logger.warning('Parsing identical files will skew the results.')
+        self.file_hashes[_digest] = f
+
     def readfiles(self, fns, parse=True):
         '''Walk through input files and parse
         them into attributes '''
@@ -136,6 +145,7 @@ class Parse():
         if self.opts.ycol > -1:
             self.logger.info("Parsing two columns of data (X=%s, Y=%s).", self.opts.xcol+1, self.opts.ycol+1)
             for f in fns:
+                self._checkunique(f)
                 with open(f, 'rt') as fh:
                     _headers = fh.readline().split(self.opts.delim)
                 try:
