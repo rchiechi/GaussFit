@@ -127,25 +127,39 @@ class Parse():
             self.logger.error("Alpha must be between 0 and 1")
             sys.exit()
 
-    def _checkunique(self, f):
+    def _checkfordupe(self, f):
+        _dupe = False
         _digest = getfilechecksum(f)
         if _digest in self.file_hashes:
             self.logger.warning(f'{self.file_hashes[_digest]} and {f} are identical!')
-            self.logger.warning('Parsing identical files will skew the results.')
+            _dupe = True
         self.file_hashes[_digest] = f
+        return _dupe
 
-    def readfiles(self, fns, parse=True):
+    def _dedupefiles(self, _fns):
+        fns = []
+        if isinstance(_fns, str):
+            _fns = [_fns]
+        for _f in _fns:
+            if self._checkfordupe(_f):
+                self.logger.warning(f'Refusing to parse duplicate file {_f}.')
+                self.logger.warning('Parsing identical files will skew the results.')
+            else:
+                fns.append(_f)
+        fns.sort()
+        return fns
+
+    def readfiles(self, _fns, parse=True):
         '''Walk through input files and parse
         them into attributes '''
+
         frames = {}
-        fns.sort()
-        if isinstance(fns, str):
-            fns = [fns]
+        fns = self._dedupefiles(_fns)
+
         self.logger.debug('Parsing %s', ', '.join(fns))
         if self.opts.ycol > -1:
             self.logger.info("Parsing two columns of data (X=%s, Y=%s).", self.opts.xcol+1, self.opts.ycol+1)
             for f in fns:
-                self._checkunique(f)
                 with open(f, 'rt') as fh:
                     _headers = fh.readline().split(self.opts.delim)
                 try:
