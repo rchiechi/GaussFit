@@ -301,7 +301,13 @@ class Parse():
                 self.GHists[x]['hist'] = self.XY[x]['hist']
         children[0][1].join()
         with open(children[0][0], 'r+b') as fh:
-            self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.load(fh)
+            try:
+                self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.load(fh)
+            except EOFError:
+                self.error = True
+                self.segments = {}
+                self.segmenthists_nofirst = {}
+                nofirsttrace = {}
         os.unlink(children[0][0])
         if nofirsttrace:
             for x, group in xy:

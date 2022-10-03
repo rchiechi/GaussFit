@@ -32,11 +32,12 @@ def dohistogram(que, Y, **kwargs):
         bins = np.array([0., 0., 0., 0.])
         freq = np.array([0., 0., 0., 0.])
         return bins, freq
-
+    # if not len(Y):
+    #     raise ValueError('Empty array passed to dohistrogeram')
     try:
         yrange = (Y.min(), Y.max())
     except ValueError as msg:
-        logger.error("Error ranging data for histogram: %s", str(msg))
+        # logger.error("Error ranging data for histogram: %s", str(msg))
         yrange = (0, 0)
 
     if kwargs['label'] == "J" or kwargs['label'] == "lag":
