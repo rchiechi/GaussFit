@@ -304,6 +304,7 @@ class Parse():
             try:
                 self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.load(fh)
             except EOFError:
+                self.logger.error("Catastrophic error computling segments.")
                 self.error = True
                 self.segments = {}
                 self.segmenthists_nofirst = {}
@@ -332,8 +333,11 @@ class Parse():
 
         if self.error:
             self.logger.error('Cannot compute statistics from these traces. (Did you set segments correctly?)')
+            if self.opts.force:
+                self.logger.warn('Continuing anyway.')
+                self.error = False
             self.loghandler.flush()
-            return  # Bail if we can't parse traces
+
         self.parsed = True
 
     def wait(self):

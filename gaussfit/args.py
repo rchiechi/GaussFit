@@ -108,7 +108,7 @@ parser.add_argument('-c', '--compliance', default=np.inf, type=float,
                     help="Set compliance limit for gaussian fits.")
 parser.add_argument('--interpolateminfn', action='store_true', default=False,
                     help="Compute Vtrans from the minimum of the derivative of the FN plot.")
-parser.add_argument('-s', '--skip', action='store_false', dest='skipohmic', default=True,
+parser.add_argument('--noskip', action='store_false', dest='skipohmic', default=True,
                     help="Do NOT skip plots with negative d2J/dV2 values at vcutoff for Vtrans calcuation and conductance plot.")
 parser.add_argument('-S', '--smooth', type=float, default=0,
                     help="Cutoff for residuals when smoothing splines for dJ/dV 0 to disable. 1e-4 for artifacts, 1e-12 for smooth plots.")
@@ -154,6 +154,8 @@ parser.add_argument('--segments', type=int, default=4,
                     help="Number of segments in each J/V trace.")
 parser.add_argument('--degfree', type=int, default=0,
                     help="Number of degrees of freedom (useful with --ycol=0). Set to 0 to infer from number of input files.")
+parser.add_argument('--force', default=False, action='store_true',
+                    help="Force GaussFit to attempt to plot/write bad data.")
 
 _cachedir = user_config_dir(__package__)
 if not os.path.exists(_cachedir):
