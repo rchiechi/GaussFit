@@ -38,7 +38,7 @@ from gui.prefs import PreferencesWindow
 from gui.colors import BLACK, YELLOW, WHITE, RED, TEAL, GREEN, BLUE, GREY  # pylint: disable=unused-import
 from gui.tooltip import createToolTip
 from gaussfit.logger import GUIHandler
-from gaussfit.args import Opts
+from gaussfit.args import Opts, VERSION
 
 try:
     import psutil
@@ -77,7 +77,7 @@ class ChooseFiles(tk.Frame):
         self.opts = Opts
         self.degfreedom = {'init': self.opts.degfree, 'user': self.opts.degfree}
         self.master.tk_setPalette(background=GREY, activeBackground=GREY)
-        self.master.title("RCCLab EGaIn Data Parser")
+        self.master.title(f"RCCLab EGaIn Data Parser v{VERSION}")
         self.master.geometry('800x850+250+250')
         self.pack(fill=BOTH)
         self.__createWidgets()

@@ -31,6 +31,8 @@ from gaussfit.colors import RED, YELLOW, RS
 
 warnings.filterwarnings('ignore', '.*divide by zero.*', RuntimeWarning)
 
+VERSION = '1.0.2a'
+
 try:
     from scipy.optimize import curve_fit, OptimizeWarning  # pylint: disable=W0611
     from scipy.interpolate import UnivariateSpline  # pylint: disable=W0611
@@ -177,7 +179,6 @@ parser.set_defaults(**_defaults)
 Opts = parser.parse_args()
 
 setattr(Opts, 'configfile', _configfile)
-
 
 if not Opts.write:
     Opts.plot = True

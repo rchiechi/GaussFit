@@ -36,7 +36,7 @@ import warnings
 import time
 import pickle
 from collections import OrderedDict
-# from gaussfit.args import Opts
+from gaussfit.args import VERSION
 from gaussfit.parse.libparse.util import printFN, throwimportwarning
 from gaussfit.colors import WHITE, GREEN, TEAL, YELLOW
 from gaussfit.logger import DelayedHandler
@@ -86,6 +86,7 @@ class Parse():
     from gaussfit.parse.libparse import dorect
 
     # Class variables
+    VERSION = '1.0.2a'
     error = False
     parsed = False
     file_hashes = {}
@@ -122,6 +123,7 @@ class Parse():
         self.logger.setLevel(getattr(logging, self.opts.loglevel.upper()))
         self.loglistener = QueueListener(self.logqueue, self.loghandler)
         self.loglistener.start()
+        self.logger.info("Gaussfit v%s", VERSION)
 
         if not 0 < self.opts.alpha < 1:
             self.logger.error("Alpha must be between 0 and 1")
