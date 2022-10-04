@@ -153,7 +153,9 @@ class ChooseFiles(tk.Frame):
                        {'name': 'tracebyfile', 'text': 'AFM Data', 'row': 7,
                         'tooltip': 'Each file contains one (foward/backward) trace.'},
                        {'name': 'nolag', 'text': 'No lag plots.', 'row': 8,
-                        'tooltip': 'Some data (often AFM) produces bad lag plots very slowly.'}
+                        'tooltip': 'Some data (often AFM) produces bad lag plots very slowly.'},
+                       {'name': 'force', 'text': 'Force parse', 'row': 9,
+                        'tooltip': 'Force parsing even when stats cannot be computed.'}
                        ]
 
         for _c in self.checks:
