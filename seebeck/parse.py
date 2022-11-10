@@ -5,6 +5,7 @@ import logging
 import threading
 from seebeck.util import get_raw_data
 from seebeck.stats import linear_fit, GHistograms
+from seebeck.writer import doOutput
 
 
 def GUIParse(self):
@@ -24,8 +25,10 @@ def GUIParse(self):
         '''We need to check a couple of things right after we finish parsing'''
         self.ButtonParse['state'] = NORMAL
         try:
-            linear_fit(self.opts, self.raw_data)
-            GHistograms(self.opts, self.raw_data)
+            _linear = linear_fit(self.opts, self.raw_data)
+            _histograms = GHistograms(self.opts, self.raw_data)
+            if self.opts.write:
+                doOutput(self.opts, linear_fit=_linear, histograms=_histograms)
         except ValueError:
             logging.error("Could not generate fits.")
         # print(self.raw_data)
@@ -54,7 +57,7 @@ def GUIParse(self):
             preParse()
             self.gothreads.append(threading.Thread(target=get_raw_data,
                                                    args=[self.opts, self.logque, self.raw_data]))
-            self.gothreads[-1].start()         
+            self.gothreads[-1].start()
             self.ButtonParse.after('500', self.GUIParse)
         else:
             logging.warning("No input files!")

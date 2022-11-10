@@ -105,5 +105,9 @@ def findmin(self):
         self.logger.warning("Tossed %d compliance traces during FN calculation.", tossed)
     neg_min_x = np.array(list(filter(np.isfinite, neg_min_x)))
     pos_min_x = np.array(list(filter(np.isfinite, pos_min_x)))
-    self.FN["neg"] = dohistogram(self.logqueue, neg_min_x, label="Vtrans(-)", density=True)
-    self.FN["pos"] = dohistogram(self.logqueue, pos_min_x, label="Vtrans(+)", density=True)
+    if not len(neg_min_x) or not len(pos_min_x):
+        self.logger.error("Did not parse any FN values!")
+        self.FN["neg"], self.FN["pos"] = {}, {}
+    else:
+        self.FN["neg"] = dohistogram(self.logqueue, neg_min_x, label="Vtrans(-)", density=True)
+        self.FN["pos"] = dohistogram(self.logqueue, pos_min_x, label="Vtrans(+)", density=True)

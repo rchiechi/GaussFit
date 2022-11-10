@@ -349,7 +349,7 @@ class ChooseFiles(tk.Frame):
         if self.opts.in_files:
             self.last_input_path = os.path.split(self.opts.in_files[0])[0]
             if not self.outdir:
-                self.opts.out_dir = self.last_input_path
+                self.opts.out_dir = os.path.join(self.last_input_path, 'parsed')
             self.updateFileListBox()
             if not self.opts.out_file:
                 self.OutputFileName.delete(0, END)

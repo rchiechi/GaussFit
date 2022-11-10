@@ -38,7 +38,7 @@ from gui.prefs import PreferencesWindow
 from gui.colors import BLACK, YELLOW, WHITE, RED, TEAL, GREEN, BLUE, GREY  # pylint: disable=unused-import
 from gui.tooltip import createToolTip
 from gaussfit.logger import GUIHandler
-from gaussfit.args import Opts
+from gaussfit.args import Opts, VERSION
 
 try:
     import psutil
@@ -77,7 +77,7 @@ class ChooseFiles(tk.Frame):
         self.opts = Opts
         self.degfreedom = {'init': self.opts.degfree, 'user': self.opts.degfree}
         self.master.tk_setPalette(background=GREY, activeBackground=GREY)
-        self.master.title("RCCLab EGaIn Data Parser")
+        self.master.title(f"RCCLab EGaIn Data Parser v{VERSION}")
         self.master.geometry('800x850+250+250')
         self.pack(fill=BOTH)
         self.__createWidgets()
@@ -153,7 +153,9 @@ class ChooseFiles(tk.Frame):
                        {'name': 'tracebyfile', 'text': 'AFM Data', 'row': 7,
                         'tooltip': 'Each file contains one (foward/backward) trace.'},
                        {'name': 'nolag', 'text': 'No lag plots.', 'row': 8,
-                        'tooltip': 'Some data (often AFM) produces bad lag plots very slowly.'}
+                        'tooltip': 'Some data (often AFM) produces bad lag plots very slowly.'},
+                       {'name': 'force', 'text': 'Force parse', 'row': 9,
+                        'tooltip': 'Force parsing even when stats cannot be computed.'}
                        ]
 
         for _c in self.checks:

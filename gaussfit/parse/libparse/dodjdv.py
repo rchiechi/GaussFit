@@ -65,9 +65,11 @@ def dodjdv(self):
             except ValueError as msg:
                 err = str(msg)
                 self.logger.warning('Error computing derivative: %s', str(msg))
+                # print(f'Error computing derivative:{str(msg)}')
                 continue
             if np.isnan(d[self.opts.heatmapd]):
                 self.logger.warning("Got NaN computing dJ/dV")
+                # print("Got NaN computing dJ/dV")
                 continue
             spls[x].append(d[self.opts.heatmapd])
             splhists[x]['spl'].append(np.log10(abs(d[self.opts.heatmapd])))
@@ -85,6 +87,10 @@ def dodjdv(self):
 
     self.logger.info("Non-tunneling traces: %s (out of %0d)",
                      len(self.ohmic), len(self.avg.index.levels[0]))
+    if (len(self.ohmic) == len(self.avg.index.levels[0])) and self.opts.skipohmic:
+        self.logger.error("You have elected to skip all traces: disable skip non-ohmic and re-parse!")
+        self.DJDV, self.GHists, self.NDC, self.NDCHists, self.filtered = {}, {}, {}, {}, {}
+        return
     if ndc_tot:
         self.logger.info("NDC values not between 0 and 10: %s (%0.2f%%)", ndc_cut, (ndc_cut/ndc_tot)*100)
     self.loghandler.flush()

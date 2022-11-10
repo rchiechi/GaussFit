@@ -34,8 +34,10 @@ def linear_fit(opts, raw_data):
 
     lr3 = SGDRegressor(loss='epsilon_insensitive', epsilon=0, max_iter=100000)       # All data-based LAD
     lr3.fit(x2, __sum)
-    plt.errorbar(x.reshape(-1), [np.mean(raw_data[f'DT{dt}']['data'][idx]) for dt in opts.dTn],
-                 yerr=[np.std(raw_data[f'DT{dt}']['data'][idx]) for dt in opts.dTn], fmt="o", color='black')
+    X = x.reshape(-1)
+    Y = [np.mean(raw_data[f'DT{dt}']['data'][idx]) for dt in opts.dTn]
+    Y_err = [np.std(raw_data[f'DT{dt}']['data'][idx]) for dt in opts.dTn]
+    plt.errorbar(X, Y, yerr=Y_err, fmt="o", color='black')
     plt.plot(x, lr.coef_[0] * x + lr.intercept_[0], label='MeanBasedLS')
     plt.plot(x2, lr2.coef_[0] * x2 + lr.intercept_[0], label='AllDataBasedLS')
     plt.plot(x2, lr3.coef_[0] * x2 + lr.intercept_[0], label='AllDataBasedLAD')
@@ -48,8 +50,11 @@ def linear_fit(opts, raw_data):
     logging.info("successfully generated graph")       # log: print to terminal when its going well
     plt.clf()
 
-    return lr.coef_[0], lr2.coef_[0], lr3.coef_[0]
-
+    return {'MeanBasedLS': (x, lr.coef_[0]),
+            'AllDataBasedLS': (x2, lr2.coef_[0]),
+            'AllDataBasedLAD': (x2, lr3.coef_[0]),
+            'intercept': lr.intercept_[0],
+            'XY': (X, Y, Y_err)}
 
 
 def GHistograms(opts, raw_data):
@@ -57,6 +62,7 @@ def GHistograms(opts, raw_data):
     for dt in opts.dTn:
         histograms[f'DT{dt}'] = __Ghistrogram(raw_data[f'DT{dt}']['data'][opts.col_to_parse])
     x_label = raw_data[list(raw_data.keys())[0]]['labels'][opts.col_to_parse]
+    histograms['x_label'] = x_label
     plotGHist(opts, histograms, x_label)
     return histograms
 

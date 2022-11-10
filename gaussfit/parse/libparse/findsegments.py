@@ -6,7 +6,6 @@ from multiprocessing import Process
 from gaussfit.parse.libparse.dohistogram import dohistogram
 from gaussfit.args import Opts as opts
 
-
 class findSegmentsMultiprocess(Process):
 
     def __init__(self, conn, que, df):
@@ -17,14 +16,17 @@ class findSegmentsMultiprocess(Process):
         self.df = df
 
     def run(self):
+        if self.opts.tracebyfile or self.opts.segments < 1:
+            # self.logger.error("Cannot generate segments from non-EGaIn datasets.")
+            return True, {}, {}, {}
         return _findsegments(self.conn, self.que, self.df)
 
 
 class findSegments(findSegmentsMultiprocess):
 
     def start(self):
-        if self.opts.tracebyfile:
-            self.logger.error("Cannot generate segments from non-EGaIn datasets.")
+        if self.opts.tracebyfile or self.opts.segments < 1:
+            # self.logger.error("Cannot generate segments from non-EGaIn datasets.")
             return True, {}, {}, {}
         return _findsegments(self.conn, self.que, self.df)
 

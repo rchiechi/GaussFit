@@ -36,11 +36,12 @@ import warnings
 import time
 import pickle
 from collections import OrderedDict
-from gaussfit.args import Opts
+from gaussfit.args import VERSION
 from gaussfit.parse.libparse.util import printFN, throwimportwarning
 from gaussfit.colors import WHITE, GREEN, TEAL, YELLOW
 from gaussfit.logger import DelayedHandler
 from gaussfit.parse.libparse.util import gettmpfilename
+from gaussfit.parse.libparse.util import getfilechecksum
 from gaussfit.parse.libparse.dohistogram import dohistogram
 import platform
 try:
@@ -85,8 +86,10 @@ class Parse():
     from gaussfit.parse.libparse import dorect
 
     # Class variables
+    VERSION = '1.0.2a'
     error = False
     parsed = False
+    file_hashes = {}
     df = pd.DataFrame()
     avg = pd.DataFrame()
     XY = OrderedDict()
@@ -120,18 +123,41 @@ class Parse():
         self.logger.setLevel(getattr(logging, self.opts.loglevel.upper()))
         self.loglistener = QueueListener(self.logqueue, self.loghandler)
         self.loglistener.start()
+        self.logger.info("Gaussfit v%s", VERSION)
 
         if not 0 < self.opts.alpha < 1:
             self.logger.error("Alpha must be between 0 and 1")
             sys.exit()
 
-    def readfiles(self, fns, parse=True):
+    def _checkfordupe(self, f):
+        _dupe = False
+        _digest = getfilechecksum(f)
+        if _digest in self.file_hashes:
+            self.logger.warning(f'{self.file_hashes[_digest]} and {f} are identical!')
+            _dupe = True
+        self.file_hashes[_digest] = f
+        return _dupe
+
+    def _dedupefiles(self, _fns):
+        fns = []
+        if isinstance(_fns, str):
+            _fns = [_fns]
+        for _f in _fns:
+            if self._checkfordupe(_f):
+                self.logger.warning(f'Refusing to parse duplicate file {_f}.')
+                self.logger.warning('Parsing identical files will skew the results.')
+            else:
+                fns.append(_f)
+        fns.sort()
+        return fns
+
+    def readfiles(self, _fns, parse=True):
         '''Walk through input files and parse
         them into attributes '''
+
         frames = {}
-        fns.sort()
-        if isinstance(fns, str):
-            fns = [fns]
+        fns = self._dedupefiles(_fns)
+
         self.logger.debug('Parsing %s', ', '.join(fns))
         if self.opts.ycol > -1:
             self.logger.info("Parsing two columns of data (X=%s, Y=%s).", self.opts.xcol+1, self.opts.ycol+1)
@@ -275,7 +301,14 @@ class Parse():
                 self.GHists[x]['hist'] = self.XY[x]['hist']
         children[0][1].join()
         with open(children[0][0], 'r+b') as fh:
-            self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.load(fh)
+            try:
+                self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.load(fh)
+            except EOFError:
+                self.logger.error("Catastrophic error computling segments.")
+                self.error = True
+                self.segments = {}
+                self.segmenthists_nofirst = {}
+                nofirsttrace = {}
         os.unlink(children[0][0])
         if nofirsttrace:
             for x, group in xy:
@@ -300,8 +333,11 @@ class Parse():
 
         if self.error:
             self.logger.error('Cannot compute statistics from these traces. (Did you set segments correctly?)')
+            if self.opts.force:
+                self.logger.warn('Continuing anyway.')
+                self.error = False
             self.loghandler.flush()
-            return  # Bail if we can't parse traces
+
         self.parsed = True
 
     def wait(self):
