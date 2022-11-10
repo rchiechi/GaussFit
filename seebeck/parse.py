@@ -15,6 +15,8 @@ def GUIParse(self):
         '''We need to check a couple of things right before we start parsing'''
         self.logque = Queue(-1)
         self.ButtonParse['state'] = DISABLED
+        self.ButtonQuit['state'] = DISABLED
+
         if not os.path.exists(self.opts.out_dir):
             os.mkdir(self.opts.out_dir)
         # self.degfreedom = self.opts.degfree
@@ -23,7 +25,6 @@ def GUIParse(self):
 
     def postParse():
         '''We need to check a couple of things right after we finish parsing'''
-        self.ButtonParse['state'] = NORMAL
         try:
             _linear = linear_fit(self.opts, self.raw_data)
             _histograms = GHistograms(self.opts, self.raw_data)
@@ -33,6 +34,8 @@ def GUIParse(self):
             logging.error("Could not generate fits.")
         # print(self.raw_data)
         # self.opts.degfree = self.degfreedom
+        self.ButtonParse['state'] = NORMAL
+        self.ButtonQuit['state'] = NORMAL
 
     if self.gothreads:
         while not self.logque.empty():

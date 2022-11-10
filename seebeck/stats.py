@@ -21,40 +21,122 @@ def linear_fit(opts, raw_data):
     for dt in opts.dTn:
         __x2 += [[float(dt)]] * len(raw_data[f'DT{dt}']['data'][idx])
     x2 = np.array(__x2)
-    lr = SGDRegressor(max_iter=100000)       # Gaussian mean-based LS
 
-    lr.fit(x, [np.mean(raw_data[f'DT{dt}']['data'][idx]) for dt in opts.dTn])
-
-    lr2 = SGDRegressor(max_iter=100000)      # All data-based LS
-    __sum = []
-    for dt in opts.dTn:
-        __sum += raw_data[f'DT{dt}']['data'][idx]
-
-    lr2.fit(x2, __sum)
-
-    lr3 = SGDRegressor(loss='epsilon_insensitive', epsilon=0, max_iter=100000)       # All data-based LAD
-    lr3.fit(x2, __sum)
     X = x.reshape(-1)
     Y = [np.mean(raw_data[f'DT{dt}']['data'][idx]) for dt in opts.dTn]
     Y_err = [np.std(raw_data[f'DT{dt}']['data'][idx]) for dt in opts.dTn]
+    __sum = []
+    for dt in opts.dTn:
+        __sum += raw_data[f'DT{dt}']['data'][idx]
+    __sum = np.array(__sum)
+
+    lr_coeff, lr2_coeff = [0, 0], [0, 0]
+    # try:
+    #     print(x)
+    #     print([np.mean(raw_data[f'DT{dt}']['data'][idx]) for dt in opts.dTn])
+    #     lr_coeff, _ = curve_fit(linear, x,  # Gaussian mean-based LS
+    #                             [np.mean(raw_data[f'DT{dt}']['data'][idx]) for dt in opts.dTn],
+    #                             maxfev=100000)
+    #     # hist_fit = gauss(bin_centers, *coeff)
+    # except RuntimeError as msg:
+    #     logging.error('Gaussian mean-based fit did not converge: %s', msg)
+    # except ValueError as msg:
+    #     logging.warning('Skipping ridiculous Gaussian mean-based  numbers: %s', msg)
+
+    # try:
+
+
+    #     # print(__sum)
+    #     lr2_coeff, _ = curve_fit(linear, x2,  # All data-based LS
+    #                              __sum,
+    #                              maxfev=100000)
+    #     # hist_fit = gauss(bin_centers, *coeff)
+    # except RuntimeError as msg:
+    #     logging.error('All-data fit did not converge: %s', msg)
+    # except ValueError as msg:
+    #     logging.warning('Skipping ridiculous all-data numbers: %s', msg)
+    
+    lr = SGDRegressor(max_iter=100000)       # Gaussian mean-based LS
+    lr2 = SGDRegressor(max_iter=100000)      # All data-based LS
+    lr.fit(x, [np.mean(raw_data[f'DT{dt}']['data'][idx]) for dt in opts.dTn])
+    lr2.fit(x2, __sum)
+    lr_coeff = [lr.coef_[0], lr.intercept_[0]]
+    lr2_coeff = [lr2.coef_[0], lr2.intercept_[0]]
+
+    fits = {'MeanBasedLS': (x, lr_coeff[0], lr_coeff[1]),
+            'AllDataBasedLS': (x2, lr2_coeff[0], lr2_coeff[1]),
+            'XY': (X, Y, Y_err)}
+
+    plot_linear_fit(opts.out_dir, title, y_label, fits)
+    return fits
+
+
+def plot_linear_fit(out_dir, title, y_label, fits):
+
+    X, Y, Y_err = fits['XY'][0], fits['XY'][1], fits['XY'][2]
+    x, lr_mean, lr_yint = fits['MeanBasedLS']
+    x2, lr2_mean, lr2_yint = fits['AllDataBasedLS']
+
     plt.errorbar(X, Y, yerr=Y_err, fmt="o", color='black')
-    plt.plot(x, lr.coef_[0] * x + lr.intercept_[0], label='MeanBasedLS')
-    plt.plot(x2, lr2.coef_[0] * x2 + lr.intercept_[0], label='AllDataBasedLS')
-    plt.plot(x2, lr3.coef_[0] * x2 + lr.intercept_[0], label='AllDataBasedLAD')
+    plt.plot(x, lr_mean * x + lr_yint, label='MeanBasedLS')
+    plt.plot(x2, lr2_mean * x2 + lr2_yint, label='AllDataBasedLS')
+    # plt.plot(x2, lr3.coef_[0] * x2 + lr.intercept_[0], label='AllDataBasedLAD')
     plt.xlim(right=15)
     plt.xlabel('ΔT')
     plt.ylabel(y_label)
     plt.title(title)
     plt.legend()
-    plt.savefig(os.path.join(opts.out_dir, f'{title}_{y_label}_plot.png'))
+    plt.savefig(os.path.join(out_dir, f'{title}_{y_label}_plot.png'))
     logging.info("successfully generated graph")       # log: print to terminal when its going well
+    plt.show()
     plt.clf()
+    # title = os.path.basename(opts.in_files[0])
+    # idx = opts.col_to_parse
+    # y_label = raw_data[list(raw_data.keys())[0]]['labels'][idx]
+    # logging.info('[linear_fit] Parsing column labeled %s.', y_label)
 
-    return {'MeanBasedLS': (x, lr.coef_[0]),
-            'AllDataBasedLS': (x2, lr2.coef_[0]),
-            'AllDataBasedLAD': (x2, lr3.coef_[0]),
-            'intercept': lr.intercept_[0],
-            'XY': (X, Y, Y_err)}
+    # if opts.truetemp:
+    #     x = np.array([[float(raw_data[f'DT{dt}']['dt'])]] for dt in opts.dTn)
+    # else:
+    #     x = np.array([[float(x)] for x in opts.dTn])
+    # __x2 = []
+    # for dt in opts.dTn:
+    #     __x2 += [[float(dt)]] * len(raw_data[f'DT{dt}']['data'][idx])
+    # x2 = np.array(__x2)
+    # lr = SGDRegressor(max_iter=100000)       # Gaussian mean-based LS
+
+    # lr.fit(x, [np.mean(raw_data[f'DT{dt}']['data'][idx]) for dt in opts.dTn])
+
+    # lr2 = SGDRegressor(max_iter=100000)      # All data-based LS
+    # __sum = []
+    # for dt in opts.dTn:
+    #     __sum += raw_data[f'DT{dt}']['data'][idx]
+
+    # lr2.fit(x2, __sum)
+
+    # lr3 = SGDRegressor(loss='epsilon_insensitive', epsilon=0, max_iter=100000)       # All data-based LAD
+    # lr3.fit(x2, __sum)
+    # X = x.reshape(-1)
+    # Y = [np.mean(raw_data[f'DT{dt}']['data'][idx]) for dt in opts.dTn]
+    # Y_err = [np.std(raw_data[f'DT{dt}']['data'][idx]) for dt in opts.dTn]
+    # plt.errorbar(X, Y, yerr=Y_err, fmt="o", color='black')
+    # plt.plot(x, lr.coef_[0] * x + lr.intercept_[0], label='MeanBasedLS')
+    # plt.plot(x2, lr2.coef_[0] * x2 + lr.intercept_[0], label='AllDataBasedLS')
+    # plt.plot(x2, lr3.coef_[0] * x2 + lr.intercept_[0], label='AllDataBasedLAD')
+    # plt.xlim(right=15)
+    # plt.xlabel('ΔT')
+    # plt.ylabel(y_label)
+    # plt.title(title)
+    # plt.legend()
+    # plt.savefig(os.path.join(opts.out_dir, f'{title}_{y_label}_plot.png'))
+    # logging.info("successfully generated graph")       # log: print to terminal when its going well
+    # plt.clf()
+
+    # return {'MeanBasedLS': (x, lr.coef_[0]),
+    #         'AllDataBasedLS': (x2, lr2.coef_[0]),
+    #         'AllDataBasedLAD': (x2, lr3.coef_[0]),
+    #         'intercept': lr.intercept_[0],
+    #         'XY': (X, Y, Y_err)}
 
 
 def GHistograms(opts, raw_data):
@@ -103,6 +185,7 @@ def plotGHist(opts, hist, x_label):
     plt.xlabel(x_label)
     plt.ylabel('counts')
     plt.savefig(os.path.join(opts.out_dir, f'{title}_{x_label}_GHistograms.png'))
+    plt.show()
     plt.clf()
     logging.info("successfully generated GHistograms")
 
@@ -114,6 +197,12 @@ def gauss(x, *p):
     a, mu, sigma = p
     return a*np.exp(-(x-mu)**2/(2.*sigma**2))
 
+def linear(x, *p): # this is your 'straight line' y=f(x)
+    """
+    Return a linear function
+    """
+    A, B = p
+    return A*x + B
 
 def plot_histograms(input_dir, output_dir, raw_data):
     title = input_dir.split("/")[-1]

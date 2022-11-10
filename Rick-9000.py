@@ -400,6 +400,7 @@ class ChooseFiles(tk.Frame):
         self.Quit()
 
     def Quit(self):
+        self.master.quit()
         self.master.destroy()
 
     def ToFront(self):
