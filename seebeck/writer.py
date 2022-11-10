@@ -3,6 +3,7 @@ import csv
 
 csv.register_dialect('JV', delimiter='\t', quoting=csv.QUOTE_MINIMAL)
 
+
 def doOutput(opts, **kwargs):
     base_name = os.path.join(opts.out_dir, opts.out_file)
     if 'histograms' in kwargs:
@@ -19,7 +20,9 @@ def doHistograms(fn, histograms):
         writer = csv.writer(csvfile, dialect='JV')
         header = []
         for dt in histograms:
-            header += [f'{histograms["x_label"]} (ΔT{dt})', f'Frequency (ΔT{dt})', f'Fit (ΔT{dt})']
+            if dt == 'x_label':
+                continue
+            header += [f'{histograms["x_label"]} (ΔT{dt[-1]})', f'Frequency (ΔT{dt[-1]})', f'Fit (ΔT{dt[-1]})']
         writer.writerow(header)
         row = []
         for dt in histograms:
@@ -27,7 +30,7 @@ def doHistograms(fn, histograms):
                 continue
             for i, _bin in enumerate(histograms[dt]['bins']):
                 _freq, _fit = histograms[dt]['freq'][i], histograms[dt]['fit'][i]
-                row +=         [f'{_bin:.4f}', f'{_freq:.4f}', f'{_fit:.4f}']
+                row += [f'{_bin:.4f}', f'{_freq:.4f}', f'{_fit:.4f}']
         writer.writerow(row)
 
 
@@ -46,5 +49,27 @@ def doLinearfit(bn, linear_fit):
     # with open(fn, 'w', newline='') as csvfile:
     #     writer = csv.writer(csvfile, dialect='JV')
     #     header = []
-        
-    return
+        # fits = {'MeanBasedLS': (x, lr_coeff[0], lr_coeff[1]),
+        #     'AllDataBasedLS': (x2, lr2_coeff[0], lr2_coeff[1]),
+        #     'XY': (X, Y, Y_err)}
+    with open(f'{bn}_linear_fits.txt', 'w') as fh:
+        fh.write('ΔT values: ')
+        for dt in linear_fit['XY'][0]:
+            fh.write(f'{dt:.1f} ')
+        fh.write('\n')
+        fh.write('Gaussian Mean Fits:\n')
+        __fit = linear_fit['MeanBasedLS']
+        fh.write(f'Mean = {__fit[1]:.4f}\n')
+        fh.write(f'Y-intercept = {__fit[2]:.4f}\n')
+        fh.write('All-data Fits:\n')
+        __fit = linear_fit['AllDataBasedLS']
+        fh.write(f'Mean = {__fit[1]:.4f}\n')
+        fh.write(f'Y-intercept = {__fit[2]:.4f}\n')
+
+    with open(f'{bn}_linear_fit_Gaussian.txt', 'w', newline='') as csvfile:
+        __fit = linear_fit['XY']
+        writer = csv.writer(csvfile, dialect='JV')
+        header = ['ΔT', f'{linear_fit["y_label"]}', 'Variance']
+        writer.writerow(header)
+        for i, x in enumerate(__fit[0]):
+            writer.writerow([f'{x:.1f}', f'{__fit[1][i]:0.4f}', f'{__fit[2][i]:0.4f}'])

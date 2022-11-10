@@ -65,9 +65,11 @@ def linear_fit(opts, raw_data):
 
     fits = {'MeanBasedLS': (x, lr_coeff[0], lr_coeff[1]),
             'AllDataBasedLS': (x2, lr2_coeff[0], lr2_coeff[1]),
-            'XY': (X, Y, Y_err)}
+            'XY': (X, Y, Y_err),
+            'y_label': y_label}
 
-    plot_linear_fit(opts.out_dir, title, y_label, fits)
+    if opts.plot:
+        plot_linear_fit(opts.out_dir, title, y_label, fits)
     return fits
 
 
@@ -145,7 +147,8 @@ def GHistograms(opts, raw_data):
         histograms[f'DT{dt}'] = __Ghistrogram(raw_data[f'DT{dt}']['data'][opts.col_to_parse])
     x_label = raw_data[list(raw_data.keys())[0]]['labels'][opts.col_to_parse]
     histograms['x_label'] = x_label
-    plotGHist(opts, histograms, x_label)
+    if opts.plot:
+        plotGHist(opts, histograms, x_label)
     return histograms
 
 def __Ghistrogram(array_of_data):

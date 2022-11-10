@@ -143,12 +143,12 @@ class ChooseFiles(tk.Frame):
     plots = []
     outdir = ''
     boolmap = {1: True, 0: False}
-    colmap = {1:'Raw Voltage (uV)',
-              2:'Corrected Voltage (uV)',
-              3:'Top T',
-              4:'Bottom T',
-              5:'Delta-T (°C)',
-              6:'Seebeck (uV/K)'}
+    colmap = {1: 'Raw Voltage (uV)',
+              2: 'Corrected Voltage (uV)',
+              3: 'Top T',
+              4: 'Bottom T',
+              5: 'Delta-T (°C)',
+              6: 'Seebeck (uV/K)'}
 
     FileListBoxFrameLabelVar = None
     FileListBoxFrameLabel = None
