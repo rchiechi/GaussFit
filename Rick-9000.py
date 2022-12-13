@@ -137,7 +137,7 @@ class ChooseFiles(tk.Frame):
                            truetemp=False,
                            col_to_parse=1,
                            dTn=[],
-                           cuttoff_to_toss=100)  # TODO: Make this a user option
+                           cutoff_to_toss=100)  # TODO: Make this a user option
     raw_data = {}
     gothreads = []
     plots = []
@@ -299,8 +299,17 @@ class ChooseFiles(tk.Frame):
             self.DeltaTn.bind(None, self.checkOptions)
         self.DeltaTn.grid(column=0, row=rowidx+3, sticky=W)
 
-        tk.Label(self.RightOptionsFrame, text="Column to plot:").grid(
+        tk.Label(self.RightOptionsFrame, text="Cutoff Limit: ").grid(
             column=0, row=rowidx+4, sticky=W)
+        self.cutoffEntry = tk.Entry(self.RightOptionsFrame, width=8,
+                                    font=Font(size=10))
+        self.cutoffEntry.insert(0, str(self.opts.cutoff_to_toss))
+        for n in ('<Return>', '<Leave>', '<Enter>'):
+            self.cutoffEntry.bind(None, self.checkOptions)
+        self.cutoffEntry.grid(column=0, row=rowidx+4, sticky=E)
+
+        tk.Label(self.RightOptionsFrame, text="Column to plot:").grid(
+            column=0, row=rowidx+6, sticky=W)
         self.OptionsColString = StringVar()
         self.OptionsColString.set(self.opts.col_to_parse)
         self.OptionCol = tk.OptionMenu(self.RightOptionsFrame,
@@ -374,6 +383,11 @@ class ChooseFiles(tk.Frame):
         for __key in self.colmap:
             if self.colmap[__key] == self.OptionsColString.get():
                 self.opts.col_to_parse = __key
+        _toss = self.cutoffEntry.get()
+        try:
+            self.opts.cutoff_to_toss = int(_toss)
+        except ValueError:
+            self.cutoffEntry.insert(0, str(self.opts.cutoff_to_toss))
 
     def updateFileListBox(self):
         self.filelist.set(" ".join([x.replace(" ", "_") for x in self.opts.in_files]))

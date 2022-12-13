@@ -76,7 +76,7 @@ def __get_raw_data_dTn(opts, logq, raw_data):
                         if not __column:
                             raw_data[_key]['data'][i].append(np.NaN)
                         else:
-                            if abs(float(__column)) > opts.cuttoff_to_toss and i < 6:
+                            if abs(float(__column)) > opts.cutoff_to_toss and i < 6:
                                 logq.put(f'[get_raw_data] Tossing ridiculous value {__column}')
                                 __column = 0
                             raw_data[_key]['data'][i].append(float(__column))
