@@ -304,7 +304,8 @@ class Parse():
             try:
                 self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.load(fh)
             except EOFError:
-                self.logger.error("Catastrophic error computling segments.")
+                if not self.opts.tracebyfile:
+                    self.logger.error("Catastrophic error computling segments.")
                 self.error = True
                 self.segments = {}
                 self.segmenthists_nofirst = {}

@@ -26,7 +26,6 @@ class findSegments(findSegmentsMultiprocess):
 
     def start(self):
         if self.opts.tracebyfile or self.opts.segments < 1:
-            # self.logger.error("Cannot generate segments from non-EGaIn datasets.")
             return True, {}, {}, {}
         return _findsegments(self.conn, self.que, self.df)
 
