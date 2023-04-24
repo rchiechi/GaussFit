@@ -61,7 +61,7 @@ class Writer():
         self.opts = opts
         if not os.path.exists(opts.out_dir):
             logger.info("Creating %s", opts.out_dir)
-            os.mkdir(opts.out_dir)
+            os.mkdirs(opts.out_dir)
 
     def __getattr__(self, name):
         try:
