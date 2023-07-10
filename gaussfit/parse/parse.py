@@ -356,7 +356,6 @@ class Parse():
                 self.logger.warn('Continuing anyway.')
                 self.error = False
             self.loghandler.flush()
-
         self.parsed = True
 
     def wait(self):

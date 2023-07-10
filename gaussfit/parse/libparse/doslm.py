@@ -43,6 +43,7 @@ def doslm(self):
     for _v in self.avg.loc[0].index.tolist():
         if abs(_v) <= 1.25 * abs(epsillon):
             V.append(_v)  # Plotting past 1.25 x eh makes no sense
+    Y = []
     for _v in V:
         Y.append(SLM_func(_v, self.SLM['G_avg'], self.SLM['epsillon_avg'], self.SLM['gamma_avg']))
     self.SLM['calc_avg'] = [V, Y]

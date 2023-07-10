@@ -51,7 +51,6 @@ def WriteSLM(self):
             _gamma = self.SLM['gamma'][trace]
             _big_gamma = self.SLM['big_gamma'][trace]
             writer.writerow(["V", "J", f"J_calc (G={_G:0.4E} ε={_eh:0.4f} γ={_gamma:0.4f} Γ={_big_gamma:0.4f})"])
-            _v, _j = self.SLM['calc'][trace]
             for _i in range(len(_v)):
                 writer.writerow([f'{_v[_i]}', f'{_j[_i]}',
                                  f'{self.SLM["exp"][trace][1][_i]}'])

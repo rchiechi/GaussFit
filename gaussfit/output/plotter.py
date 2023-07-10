@@ -73,6 +73,14 @@ class Plotter():
                 break
         ax.axis([xax.min(), xax.max(), allY.min(), allY.max()])
 
+    def PlotSLM(self, ax):
+        traces = list(self.SLM['calc'].keys())
+        for trace in traces:
+            _v, _j = self.SLM['calc'][trace]
+            ax.plot(_v, _j, ':', lw=0.25, color='r')
+        _v, _j = self.SLM['calc_avg']
+        ax.plot(_v, _j, lw=3.0, color='k')
+
     def PlotSegmentedGauss(self, ax):
         '''Plot segmented J/V data'''
         ax.set_title("Semilog Plots of |J| by Trace")
