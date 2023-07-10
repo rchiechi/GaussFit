@@ -84,6 +84,7 @@ class Parse():
     from gaussfit.parse.libparse import dodjdv
     from gaussfit.parse.libparse import findmin
     from gaussfit.parse.libparse import dorect
+    from gaussfit.parse.libparse import doconductance
 
     # Class variables
     VERSION = '1.0.2a'
@@ -103,6 +104,7 @@ class Parse():
     NDCHists = OrderedDict()
     filtered = []
     R = {}
+    G = {}  # Conductance indexed by trace
     segments = {}
     segments_nofirst = {}
     logger = logging.getLogger(__package__)
@@ -269,6 +271,7 @@ class Parse():
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.loghandler.flush()
         self.findtraces()
+        self.doconductance()
         self.logger.info("* * * * * * Computing Lag  * * * * * * * * *")
         conn = gettmpfilename()
         children.append([conn, doLag(conn, self.logqueue, xy)])
