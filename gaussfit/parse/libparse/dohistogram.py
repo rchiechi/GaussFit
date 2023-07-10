@@ -36,8 +36,7 @@ def dohistogram(que, Y, **kwargs):
     #     raise ValueError('Empty array passed to dohistrogeram')
     try:
         yrange = (Y.min(), Y.max())
-    except ValueError as msg:
-        # logger.error("Error ranging data for histogram: %s", str(msg))
+    except ValueError:
         yrange = (0, 0)
 
     if kwargs['label'] == "J" or kwargs['label'] == "lag":
@@ -93,7 +92,7 @@ def dohistogram(que, Y, **kwargs):
     except ValueError as msg:
         logger.error("|%s| Could not perform skewtest: %s", kwargs['label'], str(msg), exc_info=False)
         skewstat, skewpval, kurtstat, kurtpval = 0.0, 0.0, 0.0, 0.0
-    return {"bin": bin_centers, "freq": freq, "mean": coeff[1], "std": coeff[2],
+    return {"bin": bin_centers, "freq": freq, "mean": coeff[1], "std": abs(coeff[2]),
             "var": coeff[2], "bins": bins, "fit": hist_fit, "Gmean": Ym, "Gstd": Ys,
             "skew": skew(freq), "kurtosis": kurtosis(freq), "skewstat": skewstat, "skewpval": skewpval,
             "kurtstat": kurtstat, "kurtpval": kurtpval}
