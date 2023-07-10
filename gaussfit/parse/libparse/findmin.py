@@ -30,6 +30,8 @@ def findmin(self):
                          len(self.ohmic), (len(self.avg.index.levels[0])))
 
     for trace in self.avg.index.levels[0]:
+        self.SLM['Vtpos'][trace] = np.nan
+        self.SLM['Vtneg'][trace] = np.nan
         if self.opts.skipohmic and trace in self.ohmic:
             tossed += 1
             continue
@@ -99,8 +101,12 @@ def findmin(self):
                         # TODO: Figure out how to catch all the scipy errors
                         self.logger.warning('Error finding FN(–) minimum from interpolated derivative, falling back to minimum. %s', str(msg))
                         neg_min_x.append(np.mean(fndf['X'][nidx-20:nidx+20].values))
+
+            self.SLM['Vtpos'][trace] = pos_min_x[-1]
+            self.SLM['Vtneg'][trace] = neg_min_x[-1]
         except ValueError as msg:
             self.logger.warning("Error finding minimum in trace: %s", str(msg))
+
     if tossed:
         self.logger.warning("Tossed %d compliance traces during FN calculation.", tossed)
     neg_min_x = np.array(list(filter(np.isfinite, neg_min_x)))

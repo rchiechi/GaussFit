@@ -154,6 +154,8 @@ parser.add_argument('--segments', type=int, default=4,
                     help="Number of segments in each J/V trace.")
 parser.add_argument('--degfree', type=int, default=0,
                     help="Number of degrees of freedom (useful with --ycol=0). Set to 0 to infer from number of input files.")
+parser.add_argument('--minr', type=int, default=0.75,
+                    help="Smallest R-value to tolerate for linear fits.")
 parser.add_argument('--force', default=False, action='store_true',
                     help="Force GaussFit to attempt to plot/write bad data.")
 

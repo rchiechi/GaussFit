@@ -47,6 +47,7 @@ class Writer():
     from gaussfit.output.libwriter import WriteFilteredGauss
     from gaussfit.output.libwriter import WriteGauss
     from gaussfit.output.libwriter import WriteVT
+    from gaussfit.output.libwriter import WriteSLM
     from gaussfit.output.libwriter import WriteData
     from gaussfit.output.libwriter import WriteDJDV
     from gaussfit.output.libwriter import WriteNDC

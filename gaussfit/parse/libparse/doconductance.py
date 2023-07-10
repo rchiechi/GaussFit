@@ -19,6 +19,7 @@ def doconductance(self):
         _idx = self.avg.loc[0].index.tolist().index(0) + _i
         voltages.append(self.avg.loc[0].index.tolist()[_idx])
     for trace in self.avg.index.levels[0]:
+        self.SLM['G'][trace] = np.nan
         if self.opts.skipohmic and trace in self.ohmic:
             tossed += 1
             continue
@@ -27,6 +28,11 @@ def doconductance(self):
             _Y.append(self.avg.loc[trace]['J'][_v])
         _fit = linregress(voltages, _Y)
         self.logger.debug(f"G:{_fit.slope} (R={_fit.rvalue:.2f})")
+        if _fit.rvalue < self.opts.minr:
+            self.logger.warn("Tossing G-value with R < %s", self.opts.minr)
+            continue
         self.G[trace] = _fit.slope
-
-    self.logger.info("Average conductance: %s", np.average(list(self.G.values())))
+        self.SLM['G'][trace] = _fit.slope
+    Gavg = np.average(list(self.G.values()))
+    self.logger.info("Average conductance: %s", Gavg)
+    return Gavg

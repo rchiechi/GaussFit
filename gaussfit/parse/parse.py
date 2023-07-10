@@ -105,6 +105,7 @@ class Parse():
     filtered = []
     R = {}
     G = {}  # Conductance indexed by trace
+    SLM = {'G':{}, 'Vtpos':{}, 'Vtneg':{}}  # SLM inputs by trace
     segments = {}
     segments_nofirst = {}
     logger = logging.getLogger(__package__)
@@ -271,13 +272,15 @@ class Parse():
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.loghandler.flush()
         self.findtraces()
-        self.doconductance()
+        self.SLM['Gavg'] = self.doconductance()
         self.logger.info("* * * * * * Computing Lag  * * * * * * * * *")
         conn = gettmpfilename()
         children.append([conn, doLag(conn, self.logqueue, xy)])
         children[-1][1].start()
         self.dodjdv()
         self.findmin()
+        self.SLM['Vtposavg'] = self.FN["pos"]
+        self.SLM['Vtnegavg'] = self.FN["neg"]
         R = self.dorect(xy)
         children[1][1].join()
         with open(children[1][0], 'r+b') as fh:

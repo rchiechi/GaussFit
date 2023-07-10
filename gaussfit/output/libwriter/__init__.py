@@ -6,6 +6,7 @@ from .WriteFN import WriteFN
 from .WriteFilteredGauss import WriteFilteredGauss
 from .WriteGauss import WriteGauss
 from .WriteVT import WriteVT
+from .WriteSLM import WriteSLM
 from .WriteData import WriteData
 from .WriteDJDV import WriteDJDV
 from .WriteNDC import WriteNDC

@@ -11,6 +11,7 @@ def doOutput(writer):
     writer.WriteGNUplot('Vtransplot')
     writer.WriteFN()
     writer.WriteVT()
+    writer.WriteSLM()
     writer.WriteGNUplot('VTplot')
     writer.WriteGauss()
     writer.WriteSegmentedGauss()
