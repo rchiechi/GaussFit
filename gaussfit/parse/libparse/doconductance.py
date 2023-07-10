@@ -27,12 +27,12 @@ def doconductance(self):
         for _v in voltages:
             _Y.append(self.avg.loc[trace]['J'][_v])
         _fit = linregress(voltages, _Y)
-        self.logger.debug(f"G:{_fit.slope} (R={_fit.rvalue:.2f})")
+        self.logger.debug(f"G:{_fit.slope:.2E} (R={_fit.rvalue:.2f})")
         if _fit.rvalue < self.opts.minr:
             self.logger.warn("Tossing G-value with R < %s", self.opts.minr)
             continue
         self.G[trace] = _fit.slope
         self.SLM['G'][trace] = _fit.slope
     Gavg = np.average(list(self.G.values()))
-    self.logger.info("Average conductance: %s", Gavg)
+    self.logger.info("Average conductance: %.2E", Gavg)
     return Gavg

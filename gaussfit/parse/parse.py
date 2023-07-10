@@ -85,6 +85,7 @@ class Parse():
     from gaussfit.parse.libparse import findmin
     from gaussfit.parse.libparse import dorect
     from gaussfit.parse.libparse import doconductance
+    from gaussfit.parse.libparse import doslm
 
     # Class variables
     VERSION = '1.0.2a'
@@ -105,7 +106,15 @@ class Parse():
     filtered = []
     R = {}
     G = {}  # Conductance indexed by trace
-    SLM = {'G':{}, 'Vtpos':{}, 'Vtneg':{}}  # SLM inputs by trace
+    SLM = {'G':{},
+           'Vtpos':{},
+           'Vtneg':{},
+           'epsillon':{},
+           'gamma':{},
+           'big_gamma':{},
+           'fit':{},
+           'calc':{},
+           'exp': {}}  # SLM inputs and outputs by trace
     segments = {}
     segments_nofirst = {}
     logger = logging.getLogger(__package__)
@@ -272,7 +281,7 @@ class Parse():
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.loghandler.flush()
         self.findtraces()
-        self.SLM['Gavg'] = self.doconductance()
+        self.SLM['G_avg'] = self.doconductance()
         self.logger.info("* * * * * * Computing Lag  * * * * * * * * *")
         conn = gettmpfilename()
         children.append([conn, doLag(conn, self.logqueue, xy)])
@@ -327,6 +336,9 @@ class Parse():
         self.loghandler.flush()
         for x in self.XY:
             self.XY[x]['VT'] = abs(x**2 / 10**self.XY[x]['hist']['mean'])
+        self.logger.info("* * * * * * Computing SLM  * * * * * * * * *")
+        self.loghandler.flush()
+        self.doslm()
         self.logger.info("* * * * * * * * * * * * * * * * * * * * * * ")
         self.loghandler.flush()
         if not self.error:

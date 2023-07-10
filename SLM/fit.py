@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import csv
 import argparse
 from colorama import Fore, Style
+from SLM.util import SLM_func
 
 
 delim_choices = {'comma':',', 'tab':'\t', 'semicolon':';'}
@@ -112,14 +113,6 @@ def getpaths(in_files):
             paths.append(_p)
     return paths
 
-def SLM(V, G, eh, y):
-    # I = GV (eh)2 / (eh - yeV)2 - (eV/2)2
-    _a = G*V*np.power(eh, 2)
-    _b1 = np.power(eh - (y*V), 2)
-    _b2 = np.power(V/2, 2)
-    return _a/(_b1-_b2)
-
-
 def get_data(fn, y, **kwargs):
     V, I = [], []
     y = int(y)
@@ -153,15 +146,15 @@ def get_data(fn, y, **kwargs):
 def dofit(x, y, **kwargs):
     p0 = kwargs.get('p0', [1e-9, 1, 0.01])
     bounds = kwargs.get('bounds', ([0, 0, -5], [1, 10, 5]))
-    popt, pcov = curve_fit(SLM, x, y, p0=p0, bounds=bounds)
+    popt, pcov = curve_fit(SLM_func, x, y, p0=p0, bounds=bounds)
 
     print(f"G: {popt[0]} ε: {popt[1]} γ: {popt[2]}")
     if kwargs.get('plot', False) or kwargs.get('save', None) is not None:
         plt.plot(x, y, 'k', linewidth=2, label='EGaIn Data')
-        plt.plot(x, SLM(x, *popt), 'g--',
+        plt.plot(x, SLM_func(x, *popt), 'g--',
                  label=f'Fit (G: {popt[0]:0.2E} ε: {popt[1]:0.2f} γ: {popt[2]:0.4f})')
         if p0 is not None:
-            plt.plot(x, SLM(x, *p0), 'b--',
+            plt.plot(x, SLM_func(x, *p0), 'b--',
                      label=f'Guess (G: {p0[0]:0.2E} ε: {p0[1]:0.2f} γ: {p0[2]:0.4f})')
         if kwargs.get('traces'):
             plt.ylabel('Current Density (A $\mathrm{cm^{-2}}$)')
@@ -181,8 +174,8 @@ def write_output(fn, x, y, p0, popt, pcov, **kwargs):
     delim = kwargs.get('delim', delim_choices['comma'])
     if p0 is None:
         p0 = [0, 0, 0]
-    guess = SLM(x, *p0)
-    fit = SLM(x, *popt)
+    guess = SLM_func(x, *p0)
+    fit = SLM_func(x, *popt)
     print(f"{Fore.BLUE}{Style.BRIGHT}Writing {fn}{Style.RESET_ALL}")
     with open(fn, 'wt', newline='') as fh:
         _csv = csv.writer(fh, delimiter=delim)

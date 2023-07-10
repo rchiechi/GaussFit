@@ -156,6 +156,8 @@ parser.add_argument('--degfree', type=int, default=0,
                     help="Number of degrees of freedom (useful with --ycol=0). Set to 0 to infer from number of input files.")
 parser.add_argument('--minr', type=int, default=0.75,
                     help="Smallest R-value to tolerate for linear fits.")
+parser.add_argument('--nmolecules', type=int, default=2.45e6,
+                    help="Number of molecules per-junction to use for SLM calculations.")
 parser.add_argument('--force', default=False, action='store_true',
                     help="Force GaussFit to attempt to plot/write bad data.")
 
@@ -193,6 +195,7 @@ if len(Opts.in_files) and not Opts.outfile:
     else:
         Opts.outfile = Opts.in_files[0]
 
+Opts.slm_dir = os.path.join(Opts.out_dir, 'SLM')
 
 if Opts.xcol == Opts.ycol:
     print(RED+"Xcol and Ycol must be different."+RS)
