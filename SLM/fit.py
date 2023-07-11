@@ -219,6 +219,7 @@ def parse_files(opts):
                 to_parse[f'{_n}_{fn}'] = {'data': _trace, 'p0': None}
                 if fn in paramfiles:
                     paramfiles[f'{_n}_{fn}'] = paramfiles[fn]
+                    del(paramfiles[fn])
         else:
             to_parse[fn] = {'data': get_data(
                             fn,
@@ -228,8 +229,9 @@ def parse_files(opts):
                             correctsign=opts.correctsign,
                             scale=opts.scale),
                             'p0': None}
+        print(paramfiles)
         if fn in paramfiles:
-            print(f"{Fore.GREEN}Found params for {os.path.basename(fn)}.{Style.RESET_ALL}")
+            print(f"{Fore.GREEN}Found {paramfiles[fn]} for {os.path.basename(fn)}.{Style.RESET_ALL}")
             to_parse[fn]['p0'] = (paramfiles[fn]['G'],
                                   paramfiles[fn]['eh'],
                                   paramfiles[fn]['y'],)
