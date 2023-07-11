@@ -258,6 +258,10 @@ class Plotter():
         elif self.opts.plots == 'R':
             self.PlotRFit(ax1)
             self.PlotR(ax2)
+        elif self.opts.plots == 'FN':
+            self.PlotVtrans(ax1)
+            self.PlotData('LogY', ax2, ':', lw=0.25, color='c')
+            self.PlotHist(ax2)
         self.PlotSegmentedGauss(ax4)
         ax4.set_ylim(ax2.get_ylim())
         if self.opts.histplots == 'NDC':

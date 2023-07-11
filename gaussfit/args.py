@@ -36,6 +36,7 @@ VERSION = '1.0.2b'
 try:
     from scipy.optimize import curve_fit, OptimizeWarning  # pylint: disable=W0611
     from scipy.interpolate import UnivariateSpline  # pylint: disable=W0611
+    import pandas as pd
     import numpy as np
     from appdirs import user_config_dir
     # SciPy throws a useless warning for noisy J/V traces
@@ -134,7 +135,7 @@ parser.add_argument('-N', '--nobs', type=int, default=0,
                     help="Number of observations for statistical tests on J (but not Gmean!).")
 parser.add_argument('--maxfev', type=int, default=10000,
                     help="Maximum interations for fitting histograms.")
-parser.add_argument('--plots', type=str, default='J', choices=['J', 'R'],
+parser.add_argument('--plots', type=str, default='J', choices=['J', 'R', 'FN'],
                     help="Log data to plot.")
 parser.add_argument('--histplots', type=str, default='NDC', choices=['NDC', 'G'],
                     help="Heatmap data to plot.")

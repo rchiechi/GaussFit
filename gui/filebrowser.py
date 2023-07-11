@@ -186,7 +186,7 @@ class ChooseFiles(tk.Frame):
         self.OptionsPlotsString = StringVar()
         self.OptionsPlotsString.set(self.opts.plots)
         self.OptionPlots = tk.OptionMenu(self.RightOptionsFrame,
-                                         self.OptionsPlotsString, self.opts.plots, 'J', 'R',
+                                         self.OptionsPlotsString, self.opts.plots, 'J', 'R', 'FN',
                                          command=self.checkOptions)
         self.OptionPlots.grid(column=0, row=rowidx+3, sticky=W)
 
