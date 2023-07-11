@@ -1,10 +1,6 @@
-from gaussfit.parse.libparse.util import throwimportwarning
+import numpy as np
+import scipy.constants as constants
 
-try:
-    import numpy as np
-    import scipy.constants as constants
-except ImportError as msg:
-    throwimportwarning(msg)
 
 G0 = (2*np.power(constants.e, 2))/constants.h
 

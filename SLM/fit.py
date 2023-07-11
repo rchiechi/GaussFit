@@ -8,7 +8,10 @@ import matplotlib.pyplot as plt
 import csv
 import argparse
 from colorama import Fore, Style
-from SLM.util import SLM_func
+if __name__ == "__main__":
+    from util import SLM_func
+else:
+    from SLM.util import SLM_func
 
 
 delim_choices = {'comma':',', 'tab':'\t', 'semicolon':';'}
@@ -80,6 +83,7 @@ def parseparams(fn, **kwargs):
     print(Style.RESET_ALL)
     return paramfiles
 
+
 def parse_traces(in_file, **kwargs):
     delim = kwargs.get('delim', delim_choices['comma'])
     scale = kwargs.get('scale', 1.0)
@@ -99,11 +103,12 @@ def parse_traces(in_file, **kwargs):
                 _last_trace = n_trace
             elif _last_trace != n_trace:
                 _last_trace = n_trace
-                traces.append([np.array(V),np.array(J)])
+                traces.append([np.array(V), np.array(J)])
                 J, V = [], []
             V.append(_V)
             J.append(_J * scale)
     return traces
+
 
 def getpaths(in_files):
     paths = []
@@ -112,6 +117,7 @@ def getpaths(in_files):
         if _p not in paths:
             paths.append(_p)
     return paths
+
 
 def get_data(fn, y, **kwargs):
     V, I = [], []
@@ -146,12 +152,17 @@ def get_data(fn, y, **kwargs):
 def dofit(x, y, **kwargs):
     p0 = kwargs.get('p0', [1e-9, 1, 0.01])
     bounds = kwargs.get('bounds', ([0, 0, -5], [1, 10, 5]))
-    popt, pcov = curve_fit(SLM_func, x, y, p0=p0, bounds=bounds)
-
-    print(f"G: {popt[0]} ε: {popt[1]} γ: {popt[2]}")
+    out_dir = kwargs.get('path', os.getcwd())
+    try:
+        popt, pcov = curve_fit(SLM_func, x, y, p0=p0, bounds=bounds)
+    except ValueError:
+        return np.nan, np.nan
+    if __name__ == "__main__":
+        print(f"G: {popt[0]:0.2E} ε: {popt[1]:0.4f} γ: {popt[2]:0.4f}")
     if kwargs.get('plot', False) or kwargs.get('save', None) is not None:
-        plt.plot(x, y, 'k', linewidth=2, label='EGaIn Data')
-        plt.plot(x, SLM_func(x, *popt), 'g--',
+        V_clipped = np.array([_x for _x in x if _x <= 1.25 * popt[1]])
+        plt.plot(V_clipped, y, 'k', linewidth=2, label='EGaIn Data')
+        plt.plot(V_clipped, SLM_func(V_clipped, *popt), 'g--',
                  label=f'Fit (G: {popt[0]:0.2E} ε: {popt[1]:0.2f} γ: {popt[2]:0.4f})')
         if p0 is not None:
             plt.plot(x, SLM_func(x, *p0), 'b--',
@@ -166,9 +177,11 @@ def dofit(x, y, **kwargs):
         if kwargs.get('plot', False):
             plt.show()
         if kwargs.get('save', None) is not None:
-            plt.savefig(f"{kwargs['save'][0:-4]}.png")
+            plt.savefig(os.path.join(out_dir, f"{kwargs['save'][0:-4]}.png"))
         plt.clf()
+    plt.close('all')
     return popt, pcov
+
 
 def write_output(fn, x, y, p0, popt, pcov, **kwargs):
     delim = kwargs.get('delim', delim_choices['comma'])
@@ -187,6 +200,7 @@ def write_output(fn, x, y, p0, popt, pcov, **kwargs):
         for i in range(len(x)):
             _csv.writerow([x[i], y[i], fit[i], guess[i]])
 
+
 def parse_files(opts):
     to_parse = {}
     paramfiles = {}
@@ -202,18 +216,18 @@ def parse_files(opts):
                 delim=delim_choices[opts.delim],
                 scale=opts.scale)
             for _n, _trace in enumerate(_traces):
-                to_parse[f'{_n}_{fn}'] = {'data':_trace, 'p0':None}
+                to_parse[f'{_n}_{fn}'] = {'data': _trace, 'p0': None}
                 if fn in paramfiles:
                     paramfiles[f'{_n}_{fn}'] = paramfiles[fn]
         else:
-            to_parse[fn] = {'data':get_data(
+            to_parse[fn] = {'data': get_data(
                             fn,
                             opts.column,
                             delim=delim_choices[opts.delim],
                             unlog=opts.unlog,
                             correctsign=opts.correctsign,
                             scale=opts.scale),
-                            'p0':None}
+                            'p0': None}
         if fn in paramfiles:
             print(f"{Fore.GREEN}Found params for {os.path.basename(fn)}.{Style.RESET_ALL}")
             to_parse[fn]['p0'] = (paramfiles[fn]['G'],

@@ -22,16 +22,19 @@ def doslm(self):
         if False in [abs(gamma) > 0, abs(epsillon) > 0, abs(big_gamma) > 0]:
             continue
         V = []
+        J = []
         for _v in self.avg.loc[trace].index.tolist():
             if abs(_v) <= 1.25 * abs(epsillon):
                 V.append(_v)  # Plotting past 1.25 x eh makes no sense
+                J += self.avg.loc[trace]['J'][self.avg.loc[trace].index == _v].tolist()
         Y = []
         for _v in V:
             Y.append(SLM_func(_v, _G, epsillon, gamma))
+        Y = SLM_func(np.array(V), _G, epsillon, gamma)
         self.SLM['epsillon'][trace] = epsillon
         self.SLM['gamma'][trace] = gamma
         self.SLM['big_gamma'][trace] = big_gamma
-        self.SLM['exp'][trace] = [V, self.avg.loc[trace]['J'].tolist()]
+        self.SLM['exp'][trace] = [V, J]
         self.SLM['calc'][trace] = [V, Y]
         _eh_vals.append(epsillon)
         _gamma_vals.append(gamma)
@@ -39,10 +42,7 @@ def doslm(self):
     self.SLM['epsillon_avg'] = np.average(_eh_vals)
     self.SLM['gamma_avg'] = np.average(_gamma_vals)
     self.SLM['big_gamma_avg'] = np.average(_big_gamma_vals)
-    V = []
-    for _v in self.avg.loc[0].index.tolist():
-        if abs(_v) <= 1.25 * abs(epsillon):
-            V.append(_v)  # Plotting past 1.25 x eh makes no sense
+    V = [_x for _x in self.avg.loc[0].index.tolist() if _x <= 1.25 * abs(self.SLM['epsillon_avg'])]
     Y = []
     for _v in V:
         Y.append(SLM_func(_v, self.SLM['G_avg'], self.SLM['epsillon_avg'], self.SLM['gamma_avg']))
