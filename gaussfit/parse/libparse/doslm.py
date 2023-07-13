@@ -6,10 +6,15 @@ try:
 except ImportError as msg:
     throwimportwarning(msg)
 
+
 def doslm(self):
     '''
     Compute SLM curves for each trace that has valid params
     '''
+
+    if not self.opts.SLM:
+        return
+
     _eh_vals = []
     _gamma_vals = []
     _big_gamma_vals = []
@@ -36,6 +41,7 @@ def doslm(self):
         self.SLM['big_gamma'][trace] = big_gamma
         self.SLM['exp'][trace] = [V, J]
         self.SLM['calc'][trace] = [V, Y]
+        self.SLM['full'][trace] = [self.avg.loc[trace].index.tolist(), self.avg.loc[trace]['J'].tolist()]
         _eh_vals.append(epsillon)
         _gamma_vals.append(gamma)
         _big_gamma_vals.append(big_gamma)

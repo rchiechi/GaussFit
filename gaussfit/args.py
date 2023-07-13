@@ -31,7 +31,7 @@ from gaussfit.colors import RED, YELLOW, RS
 
 warnings.filterwarnings('ignore', '.*divide by zero.*', RuntimeWarning)
 
-VERSION = '1.0.2b'
+VERSION = '1.0.3b'
 
 try:
     from scipy.optimize import curve_fit, OptimizeWarning  # pylint: disable=W0611
@@ -157,6 +157,8 @@ parser.add_argument('--degfree', type=int, default=0,
                     help="Number of degrees of freedom (useful with --ycol=0). Set to 0 to infer from number of input files.")
 parser.add_argument('--minr', type=int, default=0.75,
                     help="Smallest R-value to tolerate for linear fits.")
+parser.add_argument('--SLM', action='store_true', default=False,
+                    help="Compute SLM fits of each trace.")
 parser.add_argument('--nmolecules', type=int, default=2.45e6,
                     help="Number of molecules per-junction to use for SLM calculations.")
 parser.add_argument('--force', default=False, action='store_true',

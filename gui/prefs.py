@@ -90,8 +90,14 @@ class PreferencesFrame(tk.Frame):
             {'name': 'Segments', 'text': "Number of segments:",
              'tooltip': "Total number of segments in each J/V trace (4 for EGaIn usually)",
              'frame': self.RightOptionsFrame},
-            {'name': 'Degrees of Freedom', 'text': "Number of degrees of freedom:",
+            {'name': 'degfree', 'text': "Number of degrees of freedom:",
              'tooltip': "Manually provide degrees of freedom instead of guessing from number of input files.",
+             'frame': self.RightOptionsFrame},
+            {'name': 'minr', 'text': "Minimum R-value:",
+             'tooltip': "Minimum R-value to tolerate for linear fits (e.g., computing G).",
+             'frame': self.RightOptionsFrame},
+            {'name': 'nmolecules', 'text': "Number of molecules:",
+             'tooltip': "Number of molecules per-junction for SLM calculations.",
              'frame': self.RightOptionsFrame},
         ]
 
@@ -146,6 +152,8 @@ class PreferencesFrame(tk.Frame):
         self.checkMaxREntry()
         self.checkSegmentsEntry()
         self.checkDegreesofFreedomEntry()
+        self.checkminrEntry()
+        self.checknmoleculesEntry()
 
     def checkVcutoffEntry(self):
         try:
@@ -229,10 +237,30 @@ class PreferencesFrame(tk.Frame):
 
     def checkDegreesofFreedomEntry(self):
         try:
-            _degfree = int(self.EntryDegreesofFreedom.get())
+            _degfree = int(self.Entrydegfree.get())
             if _degfree >= 0:
                 self.opts.degfree = _degfree
         except ValueError:
             pass
-        self.EntryDegreesofFreedom.delete(0, END)
-        self.EntryDegreesofFreedom.insert(0, self.opts.degfree)
+        self.Entrydegfree.delete(0, END)
+        self.Entrydegfree.insert(0, self.opts.degfree)
+
+    def checkminrEntry(self):
+        try:
+            _minr = float(self.Entryminr.get())
+            if 0 < _minr <= 1:
+                self.opts.minr = _minr
+        except ValueError:
+            pass
+        self.Entryminr.delete(0, END)
+        self.Entryminr.insert(0, f'{self.opts.minr:0.2f}')
+
+    def checknmoleculesEntry(self):
+        try:
+            _nmolecules = float(self.Entrynmolecules.get())
+            if _nmolecules > 0:
+                self.opts.nmolecules = _nmolecules
+        except ValueError:
+            pass
+        self.Entrynmolecules.delete(0, END)
+        self.Entrynmolecules.insert(0, f'{self.opts.nmolecules:0.2E}')

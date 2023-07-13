@@ -160,8 +160,16 @@ def dofit(x, y, **kwargs):
     if __name__ == "__main__":
         print(f"G: {popt[0]:0.2E} ε: {popt[1]:0.4f} γ: {popt[2]:0.4f}")
     if kwargs.get('plot', False) or kwargs.get('save', None) is not None:
-        V_clipped = np.array([_x for _x in x if _x <= 1.25 * popt[1]])
-        plt.plot(V_clipped, y, 'k', linewidth=2, label='EGaIn Data')
+        V_clipped = []
+        Y_clipped = []
+        for _i, _x in enumerate(x):
+            if _x <= 1.25 * popt[1]:
+                V_clipped.append(_x)
+                Y_clipped.append(y[_i])
+        V_clipped = np.array(V_clipped)
+        Y_clipped = np.array(Y_clipped)
+        # np.array([_x for _x in x if _x <= 1.25 * popt[1]])
+        plt.plot(V_clipped, Y_clipped, 'k', linewidth=2, label='EGaIn Data')
         plt.plot(V_clipped, SLM_func(V_clipped, *popt), 'g--',
                  label=f'Fit (G: {popt[0]:0.2E} ε: {popt[1]:0.2f} γ: {popt[2]:0.4f})')
         if p0 is not None:
