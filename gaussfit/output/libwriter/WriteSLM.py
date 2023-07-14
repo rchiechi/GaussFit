@@ -9,6 +9,10 @@ logger = logging.getLogger('output')
 
 def WriteSLM(self):
     '''Write the SLM inputs and parameters per-trace.'''
+
+    if not self.opts.SLM:
+        return
+
     _fn = os.path.join(self.opts.out_dir, self.opts.outfile + "_SLM_inputs.txt")
     with open(_fn, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile, dialect='JV')
@@ -58,6 +62,12 @@ def WriteSLM(self):
                 writer.writerow([f'{_v[_i]}', f'{self.SLM["exp"][trace][1][_i]}',
                                  f'{_j[_i]}',
                                  ])
+        _fn = f"{self.opts.outfile}_SLM_calc_trace{trace:03}.txt"
         dofit(np.array(_v), np.array(_j), p0=[_G, _eh, _gamma],
               path=self.opts.slm_dir,
-              save=os.path.basename(_fn))
+              save=_fn)
+        _v, _j = self.SLM['full'][trace]
+        _fn = f"{self.opts.outfile}_SLM_fit_trace{trace:03}.txt"
+        dofit(np.array(_v), np.array(_j),
+              path=self.opts.slm_dir,
+              save=_fn)

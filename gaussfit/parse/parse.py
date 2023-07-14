@@ -114,7 +114,8 @@ class Parse():
            'big_gamma':{},
            'fit':{},
            'calc':{},
-           'exp': {}}  # SLM inputs and outputs by trace
+           'exp': {},
+           'full': {}}  # SLM inputs and outputs by trace
     segments = {}
     segments_nofirst = {}
     logger = logging.getLogger(__package__)
