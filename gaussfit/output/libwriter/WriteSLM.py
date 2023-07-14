@@ -62,6 +62,7 @@ def WriteSLM(self):
                 writer.writerow([f'{_v[_i]}', f'{self.SLM["exp"][trace][1][_i]}',
                                  f'{_j[_i]}',
                                  ])
+        _v, _j = self.SLM['full'][trace]
         _fn = f"{self.opts.outfile}_SLM_calc_trace{trace:03}.txt"
         dofit(np.array(_v), np.array(_j), p0=[_G, _eh, _gamma],
               path=self.opts.slm_dir,
