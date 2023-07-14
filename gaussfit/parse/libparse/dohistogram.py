@@ -79,7 +79,7 @@ def dohistogram(que, Y, **kwargs):
             hist_fit = gauss(bin_centers, *coeff)
     except RuntimeError:
         if opts.maxfev > 100 and kwargs['warnings']:
-            logger.warning("|%s| Fit did not converge", kwargs['label'], exc_info=False)
+            logger.warning(f"|{kwargs['label']}| Fit did not converge", exc_info=False)
     except ValueError as msg:
         if kwargs['warnings']:
             logger.warning("|%s| Skipping data with ridiculous numbers in it (%s)", kwargs['label'], str(msg), exc_info=False)

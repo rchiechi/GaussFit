@@ -321,7 +321,7 @@ class Parse():
             except EOFError:
                 if not self.opts.tracebyfile:
                     self.logger.error("Catastrophic error computling segments.")
-                self.error = True
+                    self.error = True
                 self.segments = {}
                 self.segmenthists_nofirst = {}
                 nofirsttrace = {}
