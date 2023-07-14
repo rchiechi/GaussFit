@@ -119,7 +119,7 @@ class Parse():
     segments = {}
     segments_nofirst = {}
     logger = logging.getLogger(__package__)
-    logqueue = Queue(-1)
+    logqueue = Queue()
 
     def __init__(self, opts, handler=None):
         self.opts = opts

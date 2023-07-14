@@ -1,4 +1,5 @@
 import logging
+import time
 from logging.handlers import QueueHandler
 from gaussfit.args import Opts as opts
 from gaussfit.parse.libparse.util import throwimportwarning, signedgmean, lorenz, gauss
@@ -79,6 +80,7 @@ def dohistogram(que, Y, **kwargs):
             hist_fit = gauss(bin_centers, *coeff)
     except RuntimeError:
         if opts.maxfev > 100 and kwargs['warnings']:
+            time.sleep(0.1)
             logger.warning(f"|{kwargs['label']}| Fit did not converge", exc_info=False)
     except ValueError as msg:
         if kwargs['warnings']:

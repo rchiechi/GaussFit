@@ -173,7 +173,7 @@ def dofit(x, y, **kwargs):
         plt.plot(V_clipped, SLM_func(V_clipped, *popt), 'g--',
                  label=f'Fit (G: {popt[0]:0.2E} ε: {popt[1]:0.2f} γ: {popt[2]:0.4f})')
         if p0 is not None:
-            plt.plot(x, SLM_func(x, *p0), 'b--',
+            plt.plot(x, SLM_func(V_clipped, *p0), 'b--',
                      label=f'Guess (G: {p0[0]:0.2E} ε: {p0[1]:0.2f} γ: {p0[2]:0.4f})')
         if kwargs.get('traces'):
             plt.ylabel('Current Density (A $\mathrm{cm^{-2}}$)')
