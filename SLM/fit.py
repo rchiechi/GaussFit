@@ -3,15 +3,15 @@
 import os
 import sys
 import numpy as np
-from scipy.optimize import curve_fit
-import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit  # type: ignore
+import matplotlib.pyplot as plt  # type: ignore
 import csv
 import argparse
-from colorama import Fore, Style
+from colorama import Fore, Style  # type: ignore
 if __name__ == "__main__":
-    from util import SLM_func
+    from util import SLM_func  # type: ignore
 else:
-    from SLM.util import SLM_func
+    from SLM.util import SLM_func  # type: ignore
 
 
 delim_choices = {'comma':',', 'tab':'\t', 'semicolon':';'}

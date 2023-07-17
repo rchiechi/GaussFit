@@ -1,7 +1,8 @@
 import numpy as np
 from collections import OrderedDict
-import scipy.interpolate
-from gaussfit.parse.libparse.dohistogram import dohistogram
+import scipy.interpolate  # type: ignore
+# from scipy.ndimage import gaussian_filter1d as gaussian_filter  # type: ignore
+from gaussfit.parse.libparse.dohistogram import dohistogram  # type: ignore
 
 
 def dodjdv(self):
@@ -62,11 +63,14 @@ def dodjdv(self):
         for x in spls:
             try:
                 d = spl.derivatives(x)
-            except ValueError as msg:
+            except (TypeError, ValueError) as msg:
                 err = str(msg)
                 self.logger.warning('Error computing derivative: %s', str(msg))
                 # print(f'Error computing derivative:{str(msg)}')
                 continue
+            # except TypeError:
+            #     self.logger.warning('Applying Guassian filter to prevent spline errors.')
+            #     d = spl.derivatives(gaussian_filter(spl, 5))
             if np.isnan(d[self.opts.heatmapd]):
                 self.logger.warning("Got NaN computing dJ/dV")
                 # print("Got NaN computing dJ/dV")
