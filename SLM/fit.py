@@ -163,7 +163,7 @@ def dofit(x, y, **kwargs):
         V_clipped = []
         Y_clipped = []
         for _i, _x in enumerate(x):
-            if _x <= 1.25 * popt[1]:
+            if abs(_x) <= abs(1.25 * popt[1]):
                 V_clipped.append(_x)
                 Y_clipped.append(y[_i])
         V_clipped = np.array(V_clipped)
