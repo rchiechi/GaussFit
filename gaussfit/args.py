@@ -31,7 +31,7 @@ from gaussfit.colors import RED, YELLOW, RS
 
 warnings.filterwarnings('ignore', '.*divide by zero.*', RuntimeWarning)
 
-VERSION = '1.0.3b'
+VERSION = '1.0.4b'
 
 try:
     from scipy.optimize import curve_fit, OptimizeWarning  # pylint: disable=W0611
