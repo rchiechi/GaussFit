@@ -155,7 +155,7 @@ def dofit(x, y, **kwargs):
     out_dir = kwargs.get('path', os.getcwd())
     try:
         popt, pcov = curve_fit(SLM_func, x, y, p0=p0, bounds=bounds)
-    except ValueError:
+    except (RuntimeError, ValueError):
         return np.nan, np.nan
     if __name__ == "__main__":
         print(f"G: {popt[0]:0.2E} ε: {popt[1]:0.4f} γ: {popt[2]:0.4f}")

@@ -104,7 +104,7 @@ def findmin(self):
 
             self.SLM['Vtpos'][trace] = pos_min_x[-1]
             self.SLM['Vtneg'][trace] = neg_min_x[-1]
-        except ValueError as msg:
+        except (IndexError, ValueError) as msg:
             self.logger.warning("Error finding minimum in trace: %s", str(msg))
 
     if tossed:

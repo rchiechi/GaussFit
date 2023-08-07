@@ -2,7 +2,7 @@ import os
 import csv
 import logging
 import numpy as np
-from SLM.fit import dofit
+from SLM.fit import dofit  # type: ignore
 
 logger = logging.getLogger('output')
 
