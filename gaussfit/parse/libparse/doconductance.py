@@ -6,6 +6,7 @@ try:
 except ImportError as msg:
     throwimportwarning(msg)
 
+
 def doconductance(self):
     '''
     Find the conductance using a linear regression on the first four data points.
@@ -15,7 +16,7 @@ def doconductance(self):
     tossed = 0
     voltages = []
     # Make a list of V = 0 the two values of V above and below
-    for _i in range(-2,3):
+    for _i in range(-2, 3):
         _idx = self.avg.loc[0].index.tolist().index(0) + _i
         voltages.append(self.avg.loc[0].index.tolist()[_idx])
     for trace in self.avg.index.levels[0]:
@@ -25,8 +26,15 @@ def doconductance(self):
             continue
         _Y = []
         for _v in voltages:
-            _Y.append(self.avg.loc[trace]['J'][_v])
-        _fit = linregress(voltages, _Y)
+            try:
+                _Y.append(self.avg.loc[trace]['J'][_v])
+            except KeyError:
+                continue
+        try:
+            _fit = linregress(voltages, _Y)
+        except ValueError:
+            self.logger.warning("Cannot compute conductance (probably because of unequal voltage steps.)")
+            continue
         self.logger.debug(f"G:{_fit.slope:.2E} (R={_fit.rvalue:.2f})")
         if _fit.rvalue < self.opts.minr:
             self.logger.warn("Tossing G-value with R < %s", self.opts.minr)
