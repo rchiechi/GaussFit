@@ -2,6 +2,7 @@ import os
 import csv
 import logging
 from scipy.special import stdtrit
+import numpy as np
 
 logger = logging.getLogger('output')
 
@@ -31,12 +32,14 @@ def WriteVtrans(self):
                 logger.warning("%s not found in Fowler Nordheim data, skipping output.", key)
                 continue
             _fh.write('--- %s ---\n' % key)
-            _ci = self.FN[key]['std'] * stdtrit(self.opts.degfree - 1 or 1, 1 - self.opts.alpha)
+            _sem = self.FN[key]['std'] / np.sqrt(self.opts.degfree - 1 or 1)
+            _ci = _sem * stdtrit(self.opts.degfree - 1 or 1, 1 - self.opts.alpha)
             _fh.write(f"Gaussian Mean: {self.FN[key]['mean']:0.4f}\n")
             _fh.write(f"Gaussian Standard Deviation: {self.FN[key]['std']:0.4f}\n")
             _fh.write(f"Gaussian Confidence Interval: {_ci:0.4f}\n")
             _fh.write('--- %s ---\n' % key)
-            _ci = self.FN[key]['Gstd'] * stdtrit(self.opts.degfree - 1 or 1, 1 - self.opts.alpha)
+            _sem = self.FN[key]['Gstd'] / np.sqrt(self.opts.degfree - 1 or 1)
+            _ci = _sem * stdtrit(self.opts.degfree - 1 or 1, 1 - self.opts.alpha)
             _fh.write(f"Geometric Mean: {self.FN[key]['Gmean']:0.4f}\n")
             _fh.write(f"Geometric Standard Deviation: {self.FN[key]['Gstd']:0.4f}\n")
             _fh.write(f"Geometric Confidence Interval: {_ci:0.4f}\n")
