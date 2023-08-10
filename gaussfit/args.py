@@ -79,10 +79,10 @@ parser = argparse.ArgumentParser(description=desc,
 
 parser.add_argument('in_files', metavar='Files-to-parse', type=str, nargs='*', default=[],
                     help='Datafiles to parse (GaussFit mode).')
-parser.add_argument('-A', '--setA', metavar='setA', type=str, nargs='*', default=[],
-                    help='Datafiles to parse for set A (Stats mode).')
-parser.add_argument('-B', '--setB', metavar='setB', type=str, nargs='*', default=[],
-                    help='Datafiles to parse for set B (Stats mode).')
+# parser.add_argument('-A', '--setA', metavar='setA', type=str, nargs='*', default=[],
+#                     help='Datafiles to parse for set A (Stats mode).')
+# parser.add_argument('-B', '--setB', metavar='setB', type=str, nargs='*', default=[],
+#                     help='Datafiles to parse for set B (Stats mode).')
 parser.add_argument('-G', '--gui', action='store_true', default=False,
                     help="Launch the GUI.")
 parser.add_argument('-o', '--outfile', metavar="OUTPUT FILE", default="",
@@ -107,7 +107,7 @@ parser.add_argument('-m', '--maxr', type=float, default=3.0,
                     help="Maximum allowable value of log|R| or (R if -R).")
 parser.add_argument('-c', '--compliance', default=np.inf, type=float,
                     help="Set compliance limit for gaussian fits.")
-parser.add_argument('--interpolateminfn', action='store_true', default=False,
+parser.add_argument('-F', '--interpolateminfn', action='store_true', default=False,
                     help="Compute Vtrans from the minimum of the derivative of the FN plot.")
 parser.add_argument('--noskip', action='store_false', dest='skipohmic', default=True,
                     help="Do NOT skip plots with negative d2J/dV2 values at vcutoff for Vtrans calcuation and conductance plot.")

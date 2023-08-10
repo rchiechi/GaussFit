@@ -31,7 +31,7 @@ from gaussfit.args import Opts as opts
 logger = logging.getLogger('output')
 loghandler = logging.StreamHandler()
 loghandler.setFormatter(logging.Formatter(
-    fmt=GREEN+os.path.basename('%(name)s'+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
+    fmt=GREEN + os.path.basename('%(name)s' + TEAL) + ' %(levelname)s ' + YELLOW + '%(message)s' + WHITE))
 logger.addHandler(loghandler)
 
 warnings.filterwarnings('ignore', '.*comparison.*', FutureWarning)
@@ -76,24 +76,24 @@ class Writer():
     def WriteParseInfo(self, extra=''):
         '''Write some summary information about the parameters
         used to parse the input data.'''
-        _fn = os.path.join(self.opts.out_dir, self.opts.outfile+"_parseinfo.txt")
+        _fn = os.path.join(self.opts.out_dir, self.opts.outfile + "_parseinfo.txt")
         with open(_fn, 'a') as _fh:
             _fh.write("Parsed: %s\n***\n" % str(datetime.datetime.today().ctime()))
             _t = str(vars(self.opts))
             _t = _t.replace(",", "\n").replace("[", "\n[")
             _fh.write(_t)
-            _fh.write(extra+"\n")
+            _fh.write(extra + "\n")
             _fh.write("\n***\n")
 
     def WriteSummary(self):
         '''Write a summary of the traces that were parsed.'''
         try:
-            _fn = os.path.join(self.opts.out_dir, self.opts.outfile+"_Summary.txt")
+            _fn = os.path.join(self.opts.out_dir, self.opts.outfile + "_Summary.txt")
             self.df.to_csv(_fn, sep=self.opts.delim)
         except AttributeError:
             logger.warning("No derivative data to summarize")
         try:
-            _fn = os.path.join(self.opts.out_dir, self.opts.outfile+"_Traces.txt")
+            _fn = os.path.join(self.opts.out_dir, self.opts.outfile + "_Traces.txt")
             self.avg.to_csv(_fn, sep=self.opts.delim)
         except AttributeError:
             logger.warning("No averaged data to summarize")
@@ -103,7 +103,7 @@ class Writer():
         tocopy = tocopy or []
         absdir = os.path.dirname(os.path.abspath(__file__))
         tdir = os.path.join(absdir, '../../templates/')
-        gpintp = os.path.join(tdir, gpinbn+'.gpin')
+        gpintp = os.path.join(tdir, gpinbn + '.gpin')
         try:
             nsub = str(open(gpintp, 'rt').read()).count('%s')
         except FileNotFoundError:
@@ -113,7 +113,7 @@ class Writer():
         for _ in range(nsub):
             ssub.append(self.opts.outfile)
         txt = open(gpintp, 'rt').read() % tuple(ssub)
-        _fh = open(os.path.join(self.opts.out_dir, self.opts.outfile+'_'+gpinbn+'.gpin'), 'wt')
+        _fh = open(os.path.join(self.opts.out_dir, f'{self.opts.outfile}_{gpinbn}.gpin'), 'wt')
         _fh.write(txt)
         _fh.close()
         for _fn in tocopy:
@@ -133,7 +133,7 @@ class Writer():
                 logger.error("Length of columns differs for WriteGeneric!")
                 return
 
-        _fn = os.path.join(self.opts.out_dir, self.opts.outfile+"_"+bfn+".txt")
+        _fn = os.path.join(self.opts.out_dir, f"{self.opts.outfile}_{bfn}.txt")
         with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             if len(labels):
