@@ -4,8 +4,8 @@ HC='#3300FF'
 
 BFN='%s'
 
-#set terminal pdfcairo color enhanced font "Arial, 24" size 5,7
-set terminal wxt enhanced font "Arial, 12" size 500,700
+set terminal pdfcairo color enhanced font "Arial, 24" size 5,7
+#set terminal wxt enhanced font "Arial, 12" size 500,700
 
 set output BFN."_Vtrans.pdf"
 
