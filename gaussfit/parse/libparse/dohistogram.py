@@ -69,7 +69,7 @@ def dohistogram(que, Y, **kwargs):
     bin_centers = (bins[:-1] + bins[1:])/2
     coeff = p0
     covar = None
-    assert(covar is None)
+    assert (covar is None)
     hist_fit = np.array([x*0 for x in range(0, len(bin_centers))])
     try:
         if opts.lorenzian:
@@ -94,6 +94,8 @@ def dohistogram(que, Y, **kwargs):
     except ValueError as msg:
         logger.error("|%s| Could not perform skewtest: %s", kwargs['label'], str(msg), exc_info=False)
         skewstat, skewpval, kurtstat, kurtpval = 0.0, 0.0, 0.0, 0.0
+    if all(_freq == 0 for _freq in freq):
+        logger.warning("Histogram produced all zeros.")
     return {"bin": bin_centers, "freq": freq, "mean": coeff[1], "std": abs(coeff[2]),
             "var": coeff[2], "bins": bins, "fit": hist_fit, "Gmean": Ym, "Gstd": Ys,
             "skew": skew(freq), "kurtosis": kurtosis(freq), "skewstat": skewstat, "skewpval": skewpval,
