@@ -27,10 +27,11 @@ def WriteSLM(self):
     _fn = os.path.join(self.opts.out_dir, self.opts.outfile + "_SLM_params.txt")
     with open(_fn, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile, dialect='JV')
-        writer.writerow(["G", "ε", "γ", "Γ"])
+        writer.writerow(["Trace", "G", "ε", "γ", "Γ"])
         traces = list(self.SLM['epsillon'].keys())
         for trace in traces:
-            writer.writerow([f'{self.SLM["G"][trace]}',
+            writer.writerow([f'{trace}',
+                             f'{self.SLM["G"][trace]}',
                              f'{self.SLM["epsillon"][trace]}',
                              f'{self.SLM["gamma"][trace]}',
                              f'{self.SLM["big_gamma"][trace]}'])
