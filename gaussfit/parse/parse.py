@@ -67,7 +67,7 @@ warnings.filterwarnings('ignore', '.*', UserWarning)
 # warnings.filterwarnings('ignore','.*invalid value encountered in true_divide.*',RuntimeWarning)
 warnings.filterwarnings('ignore', '.*invalid value encountered.*', RuntimeWarning)
 warnings.filterwarnings('ignore', '.*Mean of empty slice.*', RuntimeWarning)
-warnings.filterwarnings('error','.*Degrees of freedom <= 0 for slice.*', RuntimeWarning)
+warnings.filterwarnings('error', '.*Degrees of freedom <= 0 for slice.*', RuntimeWarning)
 # warnings.filterwarnings('ignore','.*impossible result.*',UserWarning)
 
 
