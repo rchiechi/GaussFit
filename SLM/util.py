@@ -17,7 +17,7 @@ def slm_param_func(Vtpos: float, Vtneg: float) -> (float, float):
         return np.nan, np.nan
     _sum = Vtpos + Vtneg
     _product = Vtpos * Vtneg
-    _den = np.sqrt(((3 / 10) * abs(_product)) + np.power(Vtneg, 2) + np.power(Vtpos, 2))
+    _den = np.sqrt(((10 / 3) * abs(_product)) + np.power(Vtneg, 2) + np.power(Vtpos, 2))
     epsillon = (2 * abs(_sum)) / _den
     gamma = (-0.5 * _sum) / _den
     return epsillon, gamma
