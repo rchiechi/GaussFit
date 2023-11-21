@@ -71,5 +71,6 @@ def doslm(self):
     Y = []
     for _v in V:
         Y.append(SLM_func(_v, self.SLM['G_avg'], self.SLM['epsillon_avg'], self.SLM['gamma_avg']))
-    self.SLM['calc_avg'] = [V, Y]
+    V = np.array(self.avg.loc[0].index.tolist())
+    self.SLM['calc_avg'] = [V, SLM_func(V, self.SLM['G_avg'], self.SLM['epsillon_avg'], self.SLM['gamma_avg'])]
     return fits

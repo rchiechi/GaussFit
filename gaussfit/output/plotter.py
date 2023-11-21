@@ -74,12 +74,16 @@ class Plotter():
         ax.axis([xax.min(), xax.max(), allY.min(), allY.max()])
 
     def PlotSLM(self, ax):
+        ax.set_title("Fits to SLM")
+        ax.set_ylabel(r'Current Density $J(\mathrm{A cm}^{-2})$')
+        ax.set_xlabel(r'Potential (V)')
+        ax.set_yscale('log')
         traces = list(self.SLM['calc'].keys())
         for trace in traces:
             _v, _j = self.SLM['calc'][trace]
-            ax.plot(_v, _j, ':', lw=0.25, color='r')
+            ax.plot(_v, abs(np.array(_j)), ':', lw=0.25, color='r')
         _v, _j = self.SLM['calc_avg']
-        ax.plot(_v, _j, lw=3.0, color='k')
+        ax.plot(_v, abs(np.array(_j)), lw=3.0, color='k')
 
     def PlotSegmentedGauss(self, ax):
         '''Plot segmented J/V data'''
@@ -255,6 +259,7 @@ class Plotter():
             self.PlotFit(ax1)
             self.PlotData('LogY', ax2, ':', lw=0.25, color='c')
             self.PlotHist(ax2)
+            ax4.set_ylim(ax2.get_ylim())
         elif self.opts.plots == 'R':
             self.PlotRFit(ax1)
             self.PlotR(ax2)
@@ -262,8 +267,11 @@ class Plotter():
             self.PlotVtrans(ax1)
             self.PlotData('LogY', ax2, ':', lw=0.25, color='c')
             self.PlotHist(ax2)
+            ax4.set_ylim(ax2.get_ylim())
+        elif self.opts.plots == 'SLM':
+            self.PlotFit(ax1)
+            self.PlotSLM(ax2)
         self.PlotSegmentedGauss(ax4)
-        ax4.set_ylim(ax2.get_ylim())
         if self.opts.histplots == 'NDC':
             self.PlotNDC(ax3)
         elif self.opts.histplots == 'G':

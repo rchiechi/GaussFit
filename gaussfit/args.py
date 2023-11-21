@@ -137,7 +137,7 @@ parser.add_argument('-N', '--nobs', type=int, default=0,
                     help="Number of observations for statistical tests on J (but not Gmean!).")
 parser.add_argument('--maxfev', type=int, default=10000,
                     help="Maximum interations for fitting histograms.")
-parser.add_argument('--plots', type=str, default='J', choices=['J', 'R', 'FN'],
+parser.add_argument('--plots', type=str, default='J', choices=['J', 'R', 'FN', 'SLM'],
                     help="Log data to plot.")
 parser.add_argument('--histplots', type=str, default='NDC', choices=['NDC', 'G'],
                     help="Heatmap data to plot.")
