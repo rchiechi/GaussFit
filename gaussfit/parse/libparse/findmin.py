@@ -45,18 +45,22 @@ def findmin(self):
             else:
                 err = [False, False]
                 self.logger.debug('Finding minimum FN plot from derivative.')
-                splpos = scipy.interpolate.UnivariateSpline(np.array(self.avg.loc[trace].index[self.avg.loc[trace].index > 0]),
-                                                            self.avg.loc[trace]['FN'][self.avg.loc[trace].index > 0].values, k=4)
-                splneg = scipy.interpolate.UnivariateSpline(np.array(self.avg.loc[trace].index[self.avg.loc[trace].index < 0]),
-                                                            self.avg.loc[trace]['FN'][self.avg.loc[trace].index < 0].values, k=4)
                 try:
+                    splpos = scipy.interpolate.UnivariateSpline(np.array(
+                                                                self.avg.loc[trace].index[self.avg.loc[trace].index > 0]),
+                                                                self.avg.loc[trace]['FN'][self.avg.loc[trace].index > 0].values,
+                                                                k=4)
                     pos_min_x += list(np.array(splpos.derivative().roots()))
-                except ValueError as msg:
+                except Exception as msg:
                     self.logger.warning('Error finding derivative of FN(+), falling back to linear interpolation. %s', str(msg))
                     err[0] = True
                 try:
+                    splneg = scipy.interpolate.UnivariateSpline(np.array(
+                                                                self.avg.loc[trace].index[self.avg.loc[trace].index < 0]),
+                                                                self.avg.loc[trace]['FN'][self.avg.loc[trace].index < 0].values,
+                                                                k=4)
                     neg_min_x += list(np.array(splneg.derivative().roots()))
-                except ValueError as msg:
+                except Exception as msg:
                     self.logger.warning('Error finding derivative of FN(–), falling back to linear interpolation. %s', str(msg))
                     err[1] = True
                 if err == (False, False):
