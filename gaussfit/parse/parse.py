@@ -339,7 +339,7 @@ class Parse():
             self.XY[x]['VT'] = abs(x**2 / 10**self.XY[x]['hist']['mean'])
         self.logger.info("* * * * * * Computing SLM  * * * * * * * * *")
         self.loghandler.flush()
-        self.doslm()
+        self.logger.info(f"Fit {self.doslm()} traces to SLM.")
         self.logger.info("* * * * * * * * * * * * * * * * * * * * * * ")
         self.loghandler.flush()
         if not self.error:

@@ -12,8 +12,9 @@ def doslm(self):
     Compute SLM curves for each trace that has valid params
     '''
 
+    fits = 0
     if not self.opts.SLM:
-        return
+        return fits
 
     _eh_vals = []
     _gamma_vals = []
@@ -44,6 +45,7 @@ def doslm(self):
         self.SLM['full'][trace] = [self.avg.loc[trace].index.tolist(), self.avg.loc[trace]['J'].tolist()]
         _eh_vals.append(epsillon)
         _gamma_vals.append(gamma)
+        fits += 1
         _big_gamma_vals.append(big_gamma)
     self.SLM['epsillon_avg'] = np.average(_eh_vals)
     self.SLM['gamma_avg'] = np.average(_gamma_vals)
@@ -53,3 +55,4 @@ def doslm(self):
     for _v in V:
         Y.append(SLM_func(_v, self.SLM['G_avg'], self.SLM['epsillon_avg'], self.SLM['gamma_avg']))
     self.SLM['calc_avg'] = [V, Y]
+    return fits

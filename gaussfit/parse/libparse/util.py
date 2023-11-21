@@ -76,10 +76,13 @@ def printFN(logger, FN):
     Print Vtrans values to the command line for convinience
     '''
     for key in ('pos', 'neg'):
-        logger.info("|Vtrans %s| Gauss-mean: %0.4f Standard Deviation: %f",
-                    key, FN[key]['mean'], FN[key]['std'])
-        logger.info("|Vtrans %s| Geometric-mean: %0.4f Standard Deviation: %f",
-                    key, FN[key]['Gmean'], FN[key]['Gstd'])
+        try:
+            logger.info("|Vtrans %s| Gauss-mean: %0.4f Standard Deviation: %f",
+                        key, FN[key]['mean'], FN[key]['std'])
+            logger.info("|Vtrans %s| Geometric-mean: %0.4f Standard Deviation: %f",
+                        key, FN[key]['Gmean'], FN[key]['Gstd'])
+        except KeyError:
+            logger.warn("Something went wrong with Vtrans calculations.")
 
 
 def gettmpfilename():
