@@ -3,9 +3,39 @@ import logging
 import csv
 import numpy as np
 import scipy.interpolate
+from scipy.stats import linregress, gmean
 
 
 csv.register_dialect('JV', delimiter='\t', quoting=csv.QUOTE_MINIMAL)
+
+
+# TODO interpolate and find slope
+def findG(V, J, **kwargs):
+    '''
+    Take input J/V data and find conductance
+    '''
+    logger = kwargs.get('logger', getLogger())
+    G = {'slope': 0, 'R': 0}
+    if len(V) != len(J):
+        logger.error("J/V data differ in length")
+        return G
+    if len(V) < 5:
+        logger.error("J/V data are too short to find conductance.")
+    _x, _y = [], []
+    try:
+        _fit = linregress(_x, _y)
+    except ValueError:
+        logger.warning("Cannot extract conductance.")
+        return G
+    logger.debug(f"G:{_fit.slope:.2E} (R={_fit.rvalue:.2f})")
+
+
+def findMiddle(input_list):
+    middle = float(len(input_list)) / 2
+    if middle % 2 != 0:
+        return input_list[int(middle - .5)]
+    else:
+        return (input_list[int(middle)], input_list[int(middle - 1)])
 
 
 def findvtrans(V, J, **kwargs):
@@ -34,7 +64,7 @@ def findvtrans(V, J, **kwargs):
         FN['pos'][_i] = np.array(FN['pos'][_i])
         FN['neg'][_i] = np.array(FN['neg'][_i])
 
-    logger.info("* * * * * * Computing Vtrans * * * * * * * *")
+    logger.info("* * * * * * Finding Vtrans * * * * * * * *")
     FN['err'] = False
     try:
         splpos = scipy.interpolate.UnivariateSpline(FN['pos'][0], FN['pos'][1], k=4)
@@ -72,28 +102,6 @@ def findvtrans(V, J, **kwargs):
         plt.show()
 
     return FN
-
-    # print(xneg)
-    # pirnt(yneg)
-    # try:
-    #     splpos = scipy.interpolate.UnivariateSpline(xpos, ypos, k=4)
-    #     pos_min_x = list(np.array(splpos.derivative().roots()))
-    #     logger.info("Found positive vals: %s", pos_min_x)
-    # except Exception as msg:
-    #     logger.warning('Error finding derivative of FN(+) %s', str(msg))
-    #     err = True
-    # try:
-    #     splneg = scipy.interpolate.UnivariateSpline(xneg, yneg, k=4)
-    #     neg_min_x = list(np.array(splneg.derivative().roots()))
-    #     logger.info("Found negative vals: %s", neg_min_x)
-    # except Exception as msg:
-    #     logger.warning('Error finding derivative of FN(–) %s', str(msg))
-    #     err = True
-    # if err:
-    #     logger.error('Cannot conintue')
-    #     return None, None
-
-    # return neg_min_x[-1], pos_min_x[-1]
 
 
 def getLogger(name=__name__):

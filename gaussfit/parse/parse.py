@@ -38,6 +38,7 @@ import pickle
 from collections import OrderedDict
 from gaussfit.args import VERSION
 from gaussfit.parse.libparse.util import printFN, throwimportwarning
+from SLM.extract import findvtrans
 from gaussfit.colors import WHITE, GREEN, TEAL, YELLOW
 from gaussfit.logger import DelayedHandler
 from gaussfit.parse.libparse.util import gettmpfilename
@@ -335,6 +336,13 @@ class Parse():
         self.loghandler.flush()
         for x in self.XY:
             self.XY[x]['VT'] = abs(x**2 / 10**self.XY[x]['hist']['mean'])
+        self.logger.info("* * * * * * Computing Vtrans from Gaussian LogJ  * * * * * * * * *")
+        self.loghandler.flush()
+        _v, _j = [], []
+        for x in self.XY:
+            _v.append(x)
+            _j.append(self.XY[x]['hist']['mean'])
+        self.FN['Gauss'] = findvtrans(_v, _j, logger=self.logger, unlog=True)
         self.logger.info("* * * * * * Computing SLM  * * * * * * * * *")
         self.loghandler.flush()
         self.logger.info(f"Fit {self.doslm()} traces to SLM.")
@@ -342,6 +350,7 @@ class Parse():
         self.loghandler.flush()
         if not self.error:
             printFN(self.logger, self.FN)
+        self.logger.info(f"Vtrans +/- from Gaussian LogJ data: {self.FN['Gauss']['vt_pos']:0.2f} / {self.FN['Gauss']['vt_neg']:0.2f}")
         self.loghandler.unsetDelay()
 
         try:
