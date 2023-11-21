@@ -13,11 +13,10 @@ def findvtrans(V, J, **kwargs):
     Take input J/V data and find Vtrans
     '''
     logger = kwargs.get('logger', getLogger())
-    FN = {'pos': [[], []], 'neg': [[], []], 'vt_pos': 1e-15, 'vt_neg': -1e-15}
+    FN = {'err': True, 'pos': [[], []], 'neg': [[], []], 'vt_pos': 1e-15, 'vt_neg': -1e-15}
     if len(V) != len(J):
         logger.error("J/V data differ in length")
         return FN
-    FN = {'pos': [[], []], 'neg': [[], []], 'vt_pos': 1e-15, 'vt_neg': -1e-15}
     for _i in range(0, len(V)):
         if not V[_i]:
             continue
@@ -36,41 +35,30 @@ def findvtrans(V, J, **kwargs):
         FN['neg'][_i] = np.array(FN['neg'][_i])
 
     logger.info("* * * * * * Computing Vtrans * * * * * * * *")
+    FN['err'] = False
     try:
         splpos = scipy.interpolate.UnivariateSpline(FN['pos'][0], FN['pos'][1], k=4)
         pos_min_x = list(np.array(splpos.derivative().roots()))
-        logger.info("Found positive vals: %s", pos_min_x)
+        logger.debug("Found positive vals: %s", pos_min_x)
         for _x in pos_min_x:
             if splpos(_x) == max(splpos(pos_min_x)):
                 FN['vt_pos'] = _x
     except Exception as msg:
         logger.warning('Error finding derivative of FN(+) %s', str(msg))
+        FN['err'] = True
     try:
         splneg = scipy.interpolate.UnivariateSpline(FN['neg'][0], FN['neg'][1], k=4)
         neg_min_x = list(np.array(splneg.derivative().roots()))
-        logger.info("Found negative vals: %s", neg_min_x)
+        logger.debug("Found negative vals: %s", neg_min_x)
         for _x in neg_min_x:
             if splneg(_x) == max(splneg(neg_min_x)):
                 FN['vt_neg'] = _x
     except Exception as msg:
         logger.warning('Error finding derivative of FN(–) %s', str(msg))
+        FN['err'] = True
 
-    print(f'Vtrans(+): {FN["vt_pos"]:0.2f} V')
-    print(f'Vtrans(-): {FN["vt_neg"]:0.2f} V')
-
-
-    # yneg, ypos = [], []
-    # for _i in range(0, len(xneg)):
-    #     yneg.append(splneg(xneg[_i]))
-    #     ypos.append(splpos(xpos[_i]))
-    # for _i in range(0, len(yneg)):
-    #     if yneg[_i] == max(yneg):
-    #         print(f'Vtrans(-): {xneg[_i]}')
-    #         FN['vt_neg'] = xneg[_i]
-    #     if ypos[_i] == max(ypos):
-    #         print(f'Vtrans(+): {xpos[_i]}')
-    #         FN['vt_pos'] = xpos[_i]
-
+    logger.debug(f'Vtrans(+): {FN["vt_pos"]:0.2f} V')
+    logger.debug(f'Vtrans(-): {FN["vt_neg"]:0.2f} V')
 
     if kwargs.get('plot', False):
         import matplotlib.pyplot as plt

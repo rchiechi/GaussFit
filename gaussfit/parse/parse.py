@@ -82,7 +82,7 @@ class Parse():
 
     from gaussfit.parse.libparse import findtraces
     from gaussfit.parse.libparse import dodjdv
-    from gaussfit.parse.libparse import findmin
+    from gaussfit.parse.libparse import findmin, old_findmin
     from gaussfit.parse.libparse import dorect
     from gaussfit.parse.libparse import doconductance
     from gaussfit.parse.libparse import doslm
@@ -283,7 +283,10 @@ class Parse():
         children.append([conn, doLag(conn, self.logqueue, xy)])
         children[-1][1].start()
         self.dodjdv()
-        self.findmin()
+        if self.opts.oldfn:
+            self.old_findmin()
+        else:
+            self.findmin()
         self.SLM['Vtposavg'] = self.FN["pos"]
         self.SLM['Vtnegavg'] = self.FN["neg"]
         R = self.dorect(xy)
