@@ -48,6 +48,21 @@ def WriteSLM(self):
         for _i in range(len(_v)):
             writer.writerow([f'{_v[_i]}', f'{_j[_i]}'])
 
+    _fn = os.path.join(self.opts.out_dir, self.opts.outfile + "_SLM_stats.txt")
+    with open(_fn, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile, dialect='JV')
+        _G = self.SLM['G_avg']
+        _eh = self.SLM['epsillon_avg']
+        _gamma = self.SLM['gamma_avg']
+        _big_gamma = self.SLM['big_gamma_avg']
+        writer.writerow(['Stat', 'G', 'ε', 'γ', 'Γ'])
+        writer.writerow(['Average:', self.SLM['G_avg'], self.SLM['epsillon_avg'],
+                         self.SLM['gamma_avg'], self.SLM['big_gamma_avg']])
+        writer.writerow(['Standard Deviation:', self.SLM['G_std'], self.SLM['epsillon_std'],
+                         self.SLM['gamma_std'], self.SLM['big_gamma_std']])
+        writer.writerow(['Confidence Interval:', self.SLM['G_ci'], self.SLM['epsillon_ci'],
+                         self.SLM['gamma_ci'], self.SLM['big_gamma_ci']])
+
     traces = list(self.SLM['calc'].keys())
     for trace in traces:
         _fn = os.path.join(self.opts.slm_dir, f"{self.opts.outfile}_SLM_calc_trace{trace:03}.txt")

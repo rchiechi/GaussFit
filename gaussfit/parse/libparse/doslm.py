@@ -1,5 +1,6 @@
 from SLM.util import SLM_func, Gamma_func, slm_param_func
 from gaussfit.parse.libparse.util import throwimportwarning
+from scipy.special import stdtrit
 
 try:
     import numpy as np
@@ -19,6 +20,7 @@ def doslm(self):
     _eh_vals = []
     _gamma_vals = []
     _big_gamma_vals = []
+    _g_vals = []
     for trace in self.avg.index.levels[0]:
         _G = self.SLM["G"][trace]
         _Vtpos = self.SLM["Vtpos"][trace]
@@ -45,11 +47,25 @@ def doslm(self):
         self.SLM['full'][trace] = [self.avg.loc[trace].index.tolist(), self.avg.loc[trace]['J'].tolist()]
         _eh_vals.append(epsillon)
         _gamma_vals.append(gamma)
-        fits += 1
+        _g_vals.append(_G)
         _big_gamma_vals.append(big_gamma)
-    self.SLM['epsillon_avg'] = np.average(_eh_vals)
-    self.SLM['gamma_avg'] = np.average(_gamma_vals)
-    self.SLM['big_gamma_avg'] = np.average(_big_gamma_vals)
+        fits += 1
+    self.SLM['epsillon_avg'] = np.nanmean(_eh_vals)
+    self.SLM['gamma_avg'] = np.nanmean(_gamma_vals)
+    self.SLM['big_gamma_avg'] = np.nanmean(_big_gamma_vals)
+    self.SLM['epsillon_std'] = np.nanstd(_eh_vals)
+    self.SLM['epsillon_sem'] = self.SLM['epsillon_std'] / np.sqrt(self.opts.degfree - 1 or 1)
+    self.SLM['epsillon_ci'] = self.SLM['epsillon_sem'] * stdtrit(self.opts.degfree - 1 or 1, 1 - self.opts.alpha)
+    self.SLM['gamma_std'] = np.nanstd(_gamma_vals)
+    self.SLM['gamma_sem'] = self.SLM['gamma_std'] / np.sqrt(self.opts.degfree - 1 or 1)
+    self.SLM['gamma_ci'] = self.SLM['gamma_sem'] * stdtrit(self.opts.degfree - 1 or 1, 1 - self.opts.alpha)
+    self.SLM['big_gamma_std'] = np.nanstd(_big_gamma_vals)
+    self.SLM['big_gamma_sem'] = self.SLM['big_gamma_std'] / np.sqrt(self.opts.degfree - 1 or 1)
+    self.SLM['big_gamma_ci'] = self.SLM['big_gamma_sem'] * stdtrit(self.opts.degfree - 1 or 1, 1 - self.opts.alpha)
+    self.SLM['G_std'] = np.nanstd(_g_vals)
+    self.SLM['G_sem'] = self.SLM['G_std'] / np.sqrt(self.opts.degfree - 1 or 1)
+    self.SLM['G_ci'] = self.SLM['G_sem'] * stdtrit(self.opts.degfree - 1 or 1, 1 - self.opts.alpha)
+
     V = [_x for _x in self.avg.loc[0].index.tolist() if _x <= 1.25 * abs(self.SLM['epsillon_avg'])]
     Y = []
     for _v in V:

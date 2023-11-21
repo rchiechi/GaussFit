@@ -41,6 +41,6 @@ def doconductance(self):
             continue
         self.G[trace] = _fit.slope
         self.SLM['G'][trace] = _fit.slope
-    Gavg = np.average(list(self.G.values()))
+    Gavg = np.nanmean(list(self.G.values()))
     self.logger.info("Average conductance: %.2E", Gavg)
     return Gavg
