@@ -228,6 +228,10 @@ class Parse():
             sys.exit()
         # Create main dataframe and parse it
         self.df = pd.concat(frames)
+        if self.opts.xrange > 0:
+            self.logger.info(f"Pruning x-axis to +/- {self.opts.xrange}.")
+            self.df = self.df[self.df.V > -1 * abs(self.opts.xrange)]
+            self.df = self.df[self.df.V < abs(self.opts.xrange)]
         # print(self.df)
         self.__parse(parse)
 

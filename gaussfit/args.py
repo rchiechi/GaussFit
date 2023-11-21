@@ -31,7 +31,7 @@ from gaussfit.colors import RED, YELLOW, RS
 
 warnings.filterwarnings('ignore', '.*divide by zero.*', RuntimeWarning)
 
-VERSION = '1.0.4b'
+VERSION = '1.1.0b'
 
 try:
     from scipy.optimize import curve_fit, OptimizeWarning  # pylint: disable=W0611
@@ -101,6 +101,8 @@ parser.add_argument('-X', '--xcol', type=int, default=1,
                     help="Column to treat as X.")
 parser.add_argument('-Y', '--ycol', type=int, default=3,
                     help="Column to treat as Y. Set to 0 to grab all columns except Xcol.")
+parser.add_argument('--xrange', type=int, default=0,
+                    help="Only parse x-axis to +/- X (useful for mistmatched volage ranges in inputs).")
 parser.add_argument('-b', '--bins', default=50, type=int,
                     help='Number of bins for histograms (except heatmap).')
 parser.add_argument('-m', '--maxr', type=float, default=3.0,
