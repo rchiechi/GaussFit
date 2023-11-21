@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 '''
-Copyright (C) 2022 Ryan Chiechi <ryan.chiechi@ncsu.edu>
+Copyright (C) 2023 Ryan Chiechi <ryan.chiechi@ncsu.edu>
 Description:
 
     This is the main parsing logic for GaussFit. It was built up over
@@ -67,7 +67,7 @@ warnings.filterwarnings('ignore', '.*', UserWarning)
 # warnings.filterwarnings('ignore','.*invalid value encountered in true_divide.*',RuntimeWarning)
 warnings.filterwarnings('ignore', '.*invalid value encountered.*', RuntimeWarning)
 warnings.filterwarnings('ignore', '.*Mean of empty slice.*', RuntimeWarning)
-# warnings.filterwarnings('error','.*Degrees of freedom <= 0 for slice.*', RuntimeWarning)
+warnings.filterwarnings('error','.*Degrees of freedom <= 0 for slice.*', RuntimeWarning)
 # warnings.filterwarnings('ignore','.*impossible result.*',UserWarning)
 
 
@@ -106,14 +106,14 @@ class Parse():
     filtered = []
     R = {}
     G = {}  # Conductance indexed by trace
-    SLM = {'G':{},
-           'Vtpos':{},
-           'Vtneg':{},
-           'epsillon':{},
-           'gamma':{},
-           'big_gamma':{},
-           'fit':{},
-           'calc':{},
+    SLM = {'G': {},
+           'Vtpos': {},
+           'Vtneg': {},
+           'epsillon': {},
+           'gamma': {},
+           'big_gamma': {},
+           'fit': {},
+           'calc': {},
            'exp': {},
            'full': {}}  # SLM inputs and outputs by trace
     segments = {}
@@ -128,8 +128,8 @@ class Parse():
         if not handler:
             self.loghandler = DelayedHandler()
             self.loghandler.setFormatter(logging.Formatter(
-                fmt=GREEN+os.path.basename(
-                    '%(name)s'+TEAL)+' %(levelname)s '+YELLOW+'%(message)s'+WHITE))
+                fmt=GREEN + os.path.basename(
+                    '%(name)s' + TEAL) + ' %(levelname)s ' + YELLOW + '%(message)s' + WHITE))
         else:
             self.loghandler = handler
         self.logger.addHandler(self.loghandler)
@@ -173,7 +173,7 @@ class Parse():
 
         self.logger.debug('Parsing %s', ', '.join(fns))
         if self.opts.ycol > -1:
-            self.logger.info("Parsing two columns of data (X=%s, Y=%s).", self.opts.xcol+1, self.opts.ycol+1)
+            self.logger.info("Parsing two columns of data (X=%s, Y=%s).", self.opts.xcol + 1, self.opts.ycol + 1)
             for f in fns:
                 with open(f, 'rt') as fh:
                     _headers = fh.readline().split(self.opts.delim)
@@ -214,15 +214,6 @@ class Parse():
                 except OSError as msg:
                     self.logger.warning("Skipping %s because %s", f, str(msg))
 
-            # self.df = pd.concat((pd.read_csv(f,sep=self.opts.delim,
-            #    header=None,skiprows=1) for f in fns),ignore_index=True)
-            # X,Y = [],[]
-            # for row in self.df.iterrows():
-            #    for y in row[1][1:]:
-            #        X.append(row[1][0])
-            #        Y.append(y)
-            # self.df = pd.DataFrame({'V':X,'J':Y})
-
         if not frames:
             self.logger.error("No files to parse!")
             sys.exit()
@@ -251,16 +242,16 @@ class Parse():
             self.error = True
             return
         if self.df.J.first_valid_index() is None:
-            self.logger.error("Column %s is empty!", str(self.opts.ycol+1))
+            self.logger.error("Column %s is empty!", str(self.opts.ycol + 1))
             self.error = True
             return
         if self.df.J.hasnans:
             self.logger.warning("Input contains non-numerical data!")
         try:
-            self.df['FN'] = np.log(abs(self.df.J)/self.df.V**2)
+            self.df['FN'] = np.log(abs(self.df.J) / self.df.V ** 2)
         except ZeroDivisionError:
             self.logger.warning("Error computing FN (check your input data).")
-            self.df['FN'] = np.array([x*0 for x in range(0, len(self.df['V']))])
+            self.df['FN'] = np.array([x * 0 for x in range(0, len(self.df['V']))])
         self.df.J.replace(0.0, value=1e-16, inplace=True)
         self.df['logJ'] = np.log10(abs(self.df.J))  # Cannot log10 zero
         self.logger.info('%s values of log|J| above compliance (%s)',
