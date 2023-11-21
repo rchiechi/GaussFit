@@ -1,7 +1,7 @@
 from gaussfit.parse.libparse.util import throwimportwarning
 
 try:
-    from scipy.stats import linregress
+    from scipy.stats import linregress, gmean
     import numpy as np
 except ImportError as msg:
     throwimportwarning(msg)
@@ -15,8 +15,8 @@ def doconductance(self):
     self.loghandler.flush()
     tossed = 0
     voltages = []
-    # Make a list of V = 0 the two values of V above and below
-    for _i in range(-2, 3):
+    # Make a list of V = 0 the three values of V above and below
+    for _i in range(-3, 4):
         _idx = self.avg.loc[0].index.tolist().index(0) + _i
         voltages.append(self.avg.loc[0].index.tolist()[_idx])
     for trace in self.avg.index.levels[0]:
@@ -39,8 +39,10 @@ def doconductance(self):
         if _fit.rvalue < self.opts.minr:
             self.logger.warn("Tossing G-value with R < %s", self.opts.minr)
             continue
+        if _fit.slope > self.opts.maxG:
+            self.logger.warn(f"Tossing ridiculous G-value: {_fit.slope:.2E} > {self.opts.maxG}")
         self.G[trace] = _fit.slope
         self.SLM['G'][trace] = _fit.slope
-    Gavg = np.nanmean(list(self.G.values()))
+    Gavg = gmean(list(self.G.values()), nan_policy='omit')
     self.logger.info("Average conductance: %.2E", Gavg)
     return Gavg

@@ -1,6 +1,7 @@
 from SLM.util import SLM_func, Gamma_func, slm_param_func
 from gaussfit.parse.libparse.util import throwimportwarning
 from scipy.special import stdtrit
+from scipy.stats import gmean
 
 try:
     import numpy as np
@@ -35,9 +36,9 @@ def doslm(self):
             if abs(_v) <= 1.25 * abs(epsillon):
                 V.append(_v)  # Plotting past 1.25 x eh makes no sense
                 J += self.avg.loc[trace]['J'][self.avg.loc[trace].index == _v].tolist()
-        Y = []
-        for _v in V:
-            Y.append(SLM_func(_v, _G, epsillon, gamma))
+        if len(J) < len(self.avg.loc[trace].index.tolist()) / 3:
+            self.logger.warning(f"Tossing SLM fit with only {len(J)} values.")
+            continue
         Y = SLM_func(np.array(V), _G, epsillon, gamma)
         self.SLM['epsillon'][trace] = epsillon
         self.SLM['gamma'][trace] = gamma
@@ -50,9 +51,9 @@ def doslm(self):
         _g_vals.append(_G)
         _big_gamma_vals.append(big_gamma)
         fits += 1
-    self.SLM['epsillon_avg'] = np.nanmean(_eh_vals)
-    self.SLM['gamma_avg'] = np.nanmean(_gamma_vals)
-    self.SLM['big_gamma_avg'] = np.nanmean(_big_gamma_vals)
+    self.SLM['epsillon_avg'] = gmean(_eh_vals, nan_policy='omit')
+    self.SLM['gamma_avg'] = gmean(_gamma_vals, nan_policy='omit')
+    self.SLM['big_gamma_avg'] = gmean(_big_gamma_vals, nan_policy='omit')
     self.SLM['epsillon_std'] = np.nanstd(_eh_vals)
     self.SLM['epsillon_sem'] = self.SLM['epsillon_std'] / np.sqrt(fits - 1 or 1)
     self.SLM['epsillon_ci'] = self.SLM['epsillon_sem'] * stdtrit(fits - 1 or 1, 1 - self.opts.alpha)

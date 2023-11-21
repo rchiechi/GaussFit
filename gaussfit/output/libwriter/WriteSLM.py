@@ -79,12 +79,12 @@ def WriteSLM(self):
                                  f'{_j[_i]}',
                                  ])
         _v, _j = self.SLM['full'][trace]
-        _fn = f"{self.opts.outfile}_SLM_calc_trace{trace:03}.txt"
+        _fn = f"{self.opts.outfile}_SLM_fit_trace{trace:03}.txt"
         dofit(np.array(_v), np.array(_j), p0=[_G, _eh, _gamma],
               path=self.opts.slm_dir,
               save=_fn)
-        _v, _j = self.SLM['full'][trace]
-        _fn = f"{self.opts.outfile}_SLM_fit_trace{trace:03}.txt"
-        dofit(np.array(_v), np.array(_j),
-              path=self.opts.slm_dir,
-              save=_fn)
+        # _v, _j = self.SLM['full'][trace]
+        # _fn = f"{self.opts.outfile}_SLM_fit_trace{trace:03}.txt"
+        # dofit(np.array(_v), np.array(_j),
+        #       path=self.opts.slm_dir,
+        #       save=_fn)

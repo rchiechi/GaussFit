@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 '''
-Copyright (C) 2022 Ryan Chiechi <ryan.chiechi@ncsu.edu>
+Copyright (C) 2023 Ryan Chiechi <ryan.chiechi@ncsu.edu>
 Description:
         Parse all of the command line arguments for GaussFit.py
         and Stats.py
@@ -159,6 +159,8 @@ parser.add_argument('--degfree', type=int, default=0,
                     help="Number of degrees of freedom (useful with --ycol=0). Set to 0 to infer from number of input files.")
 parser.add_argument('--minr', type=int, default=0.75,
                     help="Smallest R-value to tolerate for linear fits.")
+parser.add_argument('--maxG', type=int, default=100,
+                    help="Largest G-value to consider physically realistic.")
 parser.add_argument('--SLM', action='store_true', default=False,
                     help="Compute SLM fits of each trace.")
 parser.add_argument('--nmolecules', type=int, default=2.45e6,
