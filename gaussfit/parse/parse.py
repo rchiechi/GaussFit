@@ -362,7 +362,7 @@ class Parse():
         self.logger.info("Vtrans +/- from Gaussian LogJ data:")
         self.logger.info(f"{self.SLM['Gauss']['FN']['vt_pos']:0.2f} / {self.SLM['Gauss']['FN']['vt_neg']:0.2f}")
         self.logger.info("SLM from Gaussian LogJ data:")
-        self.logger.info(f"G = {self.SLM['Gauss']['G']:0.2E}, ε = {epsillon:0.2f}, γ = {gamma:0.2f}, Γ = {big_gamma:0.2f}")
+        self.logger.info(f"G = {self.SLM['Gauss']['G']:0.2E}, ε = {epsillon:0.2f}, γ = {gamma:0.2f}, Γ = {big_gamma:0.2E}")
         self.loghandler.unsetDelay()
 
         try:

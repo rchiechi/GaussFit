@@ -25,7 +25,7 @@ def WriteSLM(self):
         writer.writerow([f'{G:0.4E}',
                          f'{epsillon:0.4f}',
                          f'{gamma:0.4f}',
-                         f'{_big_gamma:0.4f}',
+                         f'{_big_gamma:0.4E}',
                          f'{vt_pos:0.4f}',
                          f'{vt_neg:0.4f}'])
 
