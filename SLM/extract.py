@@ -3,13 +3,11 @@ import logging
 import csv
 import numpy as np
 import scipy.interpolate
-from scipy.stats import linregress, gmean
-
+from scipy.stats import linregress
 
 csv.register_dialect('JV', delimiter='\t', quoting=csv.QUOTE_MINIMAL)
 
 
-# TODO interpolate and find slope
 def findG(V, J, **kwargs):
     '''
     Take input J/V data and find conductance
@@ -21,21 +19,48 @@ def findG(V, J, **kwargs):
         return G
     if len(V) < 5:
         logger.error("J/V data are too short to find conductance.")
+    if kwargs.get('unlog', False):
+        J = np.power(10, np.array(J))
+        for _i in range(0, len(V)):
+            if V[_i] < 0:
+                J[_i] = -1 * J[_i]
+    if findMiddle(V)[1] is None:
+        _n, _m = findMiddle(V)[0] - 2, findMiddle(V)[0] + 3
+    else:
+        _n, _m = findMiddle(V)[0] - 1, findMiddle(V)[1] + 2
     _x, _y = [], []
+    for _i in range(_n, _m):
+        if V[_i] == 0 and J[_i] != 0:
+            continue
+        _x.append(V[_i])
+        _y.append(J[_i])
     try:
         _fit = linregress(_x, _y)
     except ValueError:
         logger.warning("Cannot extract conductance.")
         return G
-    logger.debug(f"G:{_fit.slope:.2E} (R={_fit.rvalue:.2f})")
+    logger.debug(f"G:{_fit.slope:.2E} (R={_fit.rvalue ** 2:.2f})")
+    G['slope'] = _fit.slope
+    G['R'] = _fit.rvalue
+
+    if kwargs.get('plot', False):
+        lin = lambda x: _fit.slope * x + _fit.intercept
+        import matplotlib.pyplot as plt
+        xlin = np.linspace(min(_x), max(_x), 20)
+        plt.plot(V, J, 'ro', ms=5)
+        plt.plot(_x, _y, 'bx', ms=5)
+        plt.plot(xlin, lin(xlin), 'g', lw=3)
+        plt.show()
+
+    return G
 
 
 def findMiddle(input_list):
     middle = float(len(input_list)) / 2
     if middle % 2 != 0:
-        return input_list[int(middle - .5)]
+        return int(middle - .5), None
     else:
-        return (input_list[int(middle)], input_list[int(middle - 1)])
+        return int(middle), int(middle - 1)
 
 
 def findvtrans(V, J, **kwargs):
@@ -52,7 +77,7 @@ def findvtrans(V, J, **kwargs):
             continue
         _j = J[_i]
         if kwargs.get('unlog', False):
-            _j = np.power(_j, 10)
+            _j = np.power(10, _j)
         _fn = abs(V[_i] ** 2 / _j)
         if V[_i] < 0:
             FN['neg'][0].append(V[_i])
@@ -67,7 +92,7 @@ def findvtrans(V, J, **kwargs):
     logger.info("* * * * * * Finding Vtrans * * * * * * * *")
     FN['err'] = False
     try:
-        splpos = scipy.interpolate.UnivariateSpline(FN['pos'][0], FN['pos'][1], k=4)
+        splpos = scipy.interpolate.InterpolatedUnivariateSpline(FN['pos'][0], FN['pos'][1], k=4)
         pos_min_x = list(np.array(splpos.derivative().roots()))
         logger.debug("Found positive vals: %s", pos_min_x)
         for _x in pos_min_x:
@@ -97,8 +122,9 @@ def findvtrans(V, J, **kwargs):
         plt.plot(FN['pos'][0], FN['pos'][1], 'ro', ms=5)
         plt.plot(xneg[:-10], splneg(xneg[:-10]), 'g', lw=3)
         plt.plot(xpos[10:], splpos(xpos[10:]), 'g', lw=3)
-        plt.plot(neg_min_x, splneg(neg_min_x), 'bx', ms=10)
-        plt.plot(pos_min_x, splpos(pos_min_x), 'bx', ms=10)
+        if not FN['err']:
+            plt.plot(neg_min_x, splneg(neg_min_x), 'bx', ms=10)
+            plt.plot(pos_min_x, splpos(pos_min_x), 'bx', ms=10)
         plt.show()
 
     return FN
@@ -138,62 +164,4 @@ if __name__ == '__main__':
             except ValueError:
                 logger.info('Skipping row %s', row)
     FN = findvtrans(x, y, unlog=True, logger=logger, plot=True)
-
-
-
-#     logger.info('Finding minimum of interpolated FN plot.')
-#     splpos = scipy.interpolate.interp1d(FN['pos'][0], FN['pos'][1],
-#                                         kind='linear', fill_value='extrapolate')
-#     splneg = scipy.interpolate.interp1d(FN['neg'][0], FN['neg'][1],
-#                                         kind='linear', fill_value='extrapolate')
-#     xy = {'X': [], 'Y': []}
-#     xneg, xpos = np.linspace(vmin, 0, 250), np.linspace(vmax, 0, 250)
-#     for x in xneg:
-#         if not np.isfinite(x):
-#             logger.warning('Bad voltage %s', x)
-#             continue
-#         xy['Y'].append(float(splneg(x)))
-#         xy['X'].append(float(x))
-#     for x in xpos:
-#         if not np.isfinite(x):
-#             logger.warning('Bad voltage %s', x)
-#             continue
-#         xy['Y'].append(float(splpos(x)))
-#         xy['X'].append(float(x))
-#     fndf = pd.DataFrame(xy)
-#     pidx = fndf[fndf.X > 0]['Y'].idxmin()
-#     nidx = fndf[fndf.X < 0]['Y'].idxmin()
-#     if err[0]:
-#         try:
-#             splpos = scipy.interpolate.UnivariateSpline(
-#                 fndf['X'][pidx-20:pidx+20].values, fndf['Y'][pidx-20:pidx+20].values, k=4)
-#             pos_min_x += list(np.array(splpos.derivative().roots()))
-#         except Exception as msg:  # pylint: disable=broad-except
-#             # TODO: Figure out how to catch all the scipy errors
-#             self.logger.warning('Error finding FN(+) minimum from interpolated derivative, falling back to minimum. %s', str(msg))
-#             pos_min_x.append(np.mean(fndf['X'][pidx-20:pidx+20].values))
-#     if err[1]:
-#         try:
-#             splneg = scipy.interpolate.UnivariateSpline(fndf['X'][nidx-20:nidx+20].values,
-#                                                         fndf['Y'][nidx-20:nidx+20].values, k=4)
-#             neg_min_x += list(np.array(splneg.derivative().roots()))
-#         except Exception as msg:  # pylint: disable=broad-except
-#             # TODO: Figure out how to catch all the scipy errors
-#             self.logger.warning('Error finding FN(–) minimum from interpolated derivative, falling back to minimum. %s', str(msg))
-#             neg_min_x.append(np.mean(fndf['X'][nidx-20:nidx+20].values))
-
-# self.SLM['Vtpos'][trace] = pos_min_x[-1]
-# self.SLM['Vtneg'][trace] = neg_min_x[-1]
-# except (IndexError, ValueError) as msg:
-# self.logger.warning("Error finding minimum in trace: %s", str(msg))
-
-#     if tossed:
-#         self.logger.warning("Tossed %d compliance traces during FN calculation.", tossed)
-#     neg_min_x = np.array(list(filter(np.isfinite, neg_min_x)))
-#     pos_min_x = np.array(list(filter(np.isfinite, pos_min_x)))
-#     if not len(neg_min_x) or not len(pos_min_x):
-#         self.logger.error("Did not parse any FN values!")
-#         self.FN["neg"], self.FN["pos"] = {}, {}
-#     else:
-#         self.FN["neg"] = dohistogram(self.logqueue, neg_min_x, label="Vtrans(-)", density=True)
-#         self.FN["pos"] = dohistogram(self.logqueue, pos_min_x, label="Vtrans(+)", density=True)
+    G = findG(x, y, unlog=True, logger=logger, plot=True)

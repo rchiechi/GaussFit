@@ -38,7 +38,8 @@ import pickle
 from collections import OrderedDict
 from gaussfit.args import VERSION
 from gaussfit.parse.libparse.util import printFN, throwimportwarning
-from SLM.extract import findvtrans
+from SLM.extract import findvtrans, findG
+from SLM.util import SLM_func, Gamma_func, slm_param_func
 from gaussfit.colors import WHITE, GREEN, TEAL, YELLOW
 from gaussfit.logger import DelayedHandler
 from gaussfit.parse.libparse.util import gettmpfilename
@@ -336,13 +337,21 @@ class Parse():
         self.loghandler.flush()
         for x in self.XY:
             self.XY[x]['VT'] = abs(x**2 / 10**self.XY[x]['hist']['mean'])
-        self.logger.info("* * * * * * Computing Vtrans from Gaussian LogJ  * * * * * * * * *")
+        self.logger.info("* * * * * * Computing SLM from Gaussian LogJ  * * * * * * * * *")
         self.loghandler.flush()
         _v, _j = [], []
         for x in self.XY:
             _v.append(x)
             _j.append(self.XY[x]['hist']['mean'])
-        self.FN['Gauss'] = findvtrans(_v, _j, logger=self.logger, unlog=True)
+        self.SLM['Gauss'] = {}
+        self.SLM['Gauss']['FN'] = findvtrans(_v, _j, logger=self.logger, unlog=True)
+        self.SLM['Gauss']['G'] = findG(_v, _j, logger=self.logger, unlog=True)['slope']
+        epsillon, gamma = slm_param_func(self.SLM['Gauss']['FN']['vt_pos'], self.SLM['Gauss']['FN']['vt_neg'])
+        big_gamma = Gamma_func(self.SLM['Gauss']['G'], self.opts.nmolecules,
+                               self.SLM['Gauss']['FN']['vt_pos'], self.SLM['Gauss']['FN']['vt_neg'])
+        self.SLM['Gauss']['epsillon'] = epsillon
+        self.SLM['Gauss']['gamma'] = gamma
+        self.SLM['Gauss']['big_gamma'] = big_gamma
         self.logger.info("* * * * * * Computing SLM  * * * * * * * * *")
         self.loghandler.flush()
         self.logger.info(f"Fit {self.doslm()} traces to SLM.")
@@ -350,7 +359,10 @@ class Parse():
         self.loghandler.flush()
         if not self.error:
             printFN(self.logger, self.FN)
-        self.logger.info(f"Vtrans +/- from Gaussian LogJ data: {self.FN['Gauss']['vt_pos']:0.2f} / {self.FN['Gauss']['vt_neg']:0.2f}")
+        self.logger.info("Vtrans +/- from Gaussian LogJ data:")
+        self.logger.info(f"{self.SLM['Gauss']['FN']['vt_pos']:0.2f} / {self.SLM['Gauss']['FN']['vt_neg']:0.2f}")
+        self.logger.info("SLM from Gaussian LogJ data:")
+        self.logger.info(f"G = {self.SLM['Gauss']['G']:0.2E}, ε = {epsillon:0.2f}, γ = {gamma:0.2f}, Γ = {big_gamma:0.2f}")
         self.loghandler.unsetDelay()
 
         try:

@@ -2,13 +2,39 @@ import os
 import csv
 import logging
 import numpy as np
-from SLM.fit import dofit  # type: ignore
+from SLM.fit import dofit
+from SLM.util import SLM_func
 
 logger = logging.getLogger('output')
 
 
 def WriteSLM(self):
     '''Write the SLM inputs and parameters per-trace.'''
+
+    G = self.SLM["Gauss"]["G"]
+    epsillon = self.SLM["Gauss"]["epsillon"]
+    gamma = self.SLM["Gauss"]["gamma"]
+    _big_gamma = self.SLM["Gauss"]["big_gamma"]
+    vt_pos = self.SLM["Gauss"]["FN"]["vt_pos"]
+    vt_neg = self.SLM["Gauss"]["FN"]["vt_neg"]
+
+    _fn = os.path.join(self.opts.out_dir, self.opts.outfile + "_SLM_params_GaussJ.txt")
+    with open(_fn, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile, dialect='JV')
+        writer.writerow(["G", "ε", "γ", "Γ", "Vt(+)", "Vt(-)"])
+        writer.writerow([f'{G:0.4E}',
+                         f'{epsillon:0.4f}',
+                         f'{gamma:0.4f}',
+                         f'{_big_gamma:0.4f}',
+                         f'{vt_pos:0.4f}',
+                         f'{vt_neg:0.4f}'])
+
+    _fn = os.path.join(self.opts.out_dir, self.opts.outfile + "_SLM_plot_GaussJ.txt")
+    with open(_fn, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile, dialect='JV')
+        writer.writerow(["V", "J"])
+        for x in self.XY:
+            writer.writerow([f'{x:0.2f}', f'{SLM_func(x, G, epsillon, gamma):0.4f}'])
 
     if not self.opts.SLM:
         return
