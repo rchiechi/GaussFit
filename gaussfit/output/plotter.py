@@ -4,6 +4,8 @@ import logging
 from gaussfit.colors import GREEN, TEAL, YELLOW, WHITE
 from matplotlib.cm import get_cmap
 from gaussfit.args import Opts as opts
+from SLM.util import SLM_func
+
 
 logger = logging.getLogger(__package__)
 loghandler = logging.StreamHandler()
@@ -74,16 +76,21 @@ class Plotter():
         ax.axis([xax.min(), xax.max(), allY.min(), allY.max()])
 
     def PlotSLM(self, ax):
-        ax.set_title("Fits to SLM")
+        ax.set_title("Fit to SLM")
         ax.set_ylabel(r'Current Density $J(\mathrm{A cm}^{-2})$')
         ax.set_xlabel(r'Potential (V)')
         ax.set_yscale('log')
+        G = self.SLM["Gauss"]["G"]
+        epsillon = self.SLM["Gauss"]["epsillon"]
+        gamma = self.SLM["Gauss"]["gamma"]
+        x = np.array([x for x in self.XY])
+        ax.plot(x, abs(SLM_func(x, G, epsillon, gamma)), lw=5.0, color='k')
         traces = list(self.SLM['calc'].keys())
         for trace in traces:
             _v, _j = self.SLM['calc'][trace]
             ax.plot(_v, abs(np.array(_j)), ':', lw=0.25, color='r')
         _v, _j = self.SLM['calc_avg']
-        ax.plot(_v, abs(np.array(_j)), lw=3.0, color='k')
+        ax.plot(_v, abs(np.array(_j)), lw=2.0, color='b')
 
     def PlotSegmentedGauss(self, ax):
         '''Plot segmented J/V data'''

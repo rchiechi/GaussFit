@@ -150,7 +150,7 @@ def get_data(fn, y, **kwargs):
 
 
 def dofit(x, y, **kwargs):
-    p0 = kwargs.get('p0', [1e-9, 1, 0.01])
+    p0 = kwargs.get('p0', [1e-10, 1, 0.1])
     bounds = kwargs.get('bounds', ([0, 0, -5], [1, 10, 5]))
     out_dir = kwargs.get('path', os.getcwd())
     try:
@@ -203,7 +203,7 @@ def write_output(fn, x, y, p0, popt, pcov, **kwargs):
         _csv.writerow(['Bias (V)',
                        'Current (I)',
                        f'Fit: G={popt[0]} ε={popt[1]} γ={popt[2]}',
-                       f'Guess: G={p0[0]} ε={p0[1]} γ={p0[2]}']
+                       f'Computed: G={p0[0]} ε={p0[1]} γ={p0[2]}']
                       )
         for i in range(len(x)):
             _csv.writerow([x[i], y[i], fit[i], guess[i]])

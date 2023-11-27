@@ -34,7 +34,7 @@ def WriteSLM(self):
         writer = csv.writer(csvfile, dialect='JV')
         writer.writerow(["V", "J"])
         for x in self.XY:
-            writer.writerow([f'{x:0.2f}', f'{SLM_func(x, G, epsillon, gamma):0.4f}'])
+            writer.writerow([f'{x:0.2f}', f'{SLM_func(x, G, epsillon, gamma):0.4E}'])
 
     if not self.opts.SLM:
         return
