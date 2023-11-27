@@ -146,17 +146,15 @@ class ChooseFiles(tk.Frame):
                         'tooltip': "Compute SLM fits and write them to disk."},
                        {'name': 'skipohmic', 'text': 'Skip bad dJ/dV', 'row': 4,
                         'tooltip': 'Skip plots with d2J/dV2 < 0 between Vcutoff and Vmin/Vmax.'},
-                       {'name': 'interpolateminfn', 'text': 'Interpolate FN', 'row': 5,
-                        'tooltip': 'Find FN from the minimum of the derivative.'},
-                       {'name': 'logr', 'text': 'Use log|R|', 'row': 6,
+                       {'name': 'logr', 'text': 'Use log|R|', 'row': 5,
                         'tooltip': 'Use log |R| instead of |R| when computing histograms.'},
-                       {'name': 'lorenzian', 'text': 'Lorenzian', 'row': 7,
+                       {'name': 'lorenzian', 'text': 'Lorenzian', 'row': 6,
                         'tooltip': 'Fit a Lorenzian instead of a Gaussian.'},
-                       {'name': 'tracebyfile', 'text': 'AFM Data', 'row': 8,
+                       {'name': 'tracebyfile', 'text': 'AFM Data', 'row': 7,
                         'tooltip': 'Each file contains one (foward/backward) trace.'},
-                       {'name': 'nolag', 'text': 'No lag plots.', 'row': 9,
+                       {'name': 'nolag', 'text': 'No lag plots.', 'row': 8,
                         'tooltip': 'Some data (often AFM) produces bad lag plots very slowly.'},
-                       {'name': 'force', 'text': 'Force parse', 'row': 10,
+                       {'name': 'force', 'text': 'Force parse', 'row': 9,
                         'tooltip': 'Force parsing even when stats cannot be computed.'}
                        ]
 
@@ -188,7 +186,7 @@ class ChooseFiles(tk.Frame):
         self.OptionsPlotsString = StringVar()
         self.OptionsPlotsString.set(self.opts.plots)
         self.OptionPlots = tk.OptionMenu(self.RightOptionsFrame,
-                                         self.OptionsPlotsString, self.opts.plots, 'J', 'R', 'FN',
+                                         self.OptionsPlotsString, self.opts.plots, 'J', 'R', 'FN', 'SLM',
                                          command=self.checkOptions)
         self.OptionPlots.grid(column=0, row=rowidx+3, sticky=W)
 

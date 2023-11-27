@@ -10,6 +10,7 @@ BOOLMAP = {1: True, 0: False}
 
 class PreferencesWindow(Toplevel):
     '''A new window to hold the preferences pane'''
+
     def __init__(self, parent, opts):
         super().__init__(parent)
         self.title("Preferences")
@@ -20,6 +21,7 @@ class PreferencesFrame(tk.Frame):
     '''A preferences frame for settings options
        to be called from the main FileBrowser
     '''
+
     def __init__(self, master, opts):
         tk.Frame.__init__(self, master)
         self.opts = opts
@@ -42,9 +44,7 @@ class PreferencesFrame(tk.Frame):
 
     def __createButtons(self):
 
-        buttons = [
-               {'name': 'Save', 'text': 'Save', 'side': BOTTOM},
-               ]
+        buttons = [{'name': 'Save', 'text': 'Save', 'side': BOTTOM}]
 
         for _b in buttons:
             button = tk.Button(self.ButtonFrame)
