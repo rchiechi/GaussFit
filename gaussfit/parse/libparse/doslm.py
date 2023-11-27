@@ -54,16 +54,21 @@ def doslm(self):
     self.SLM['epsillon_avg'] = gmean(_eh_vals, nan_policy='omit')
     self.SLM['gamma_avg'] = gmean(_gamma_vals, nan_policy='omit')
     self.SLM['big_gamma_avg'] = gmean(_big_gamma_vals, nan_policy='omit')
-    self.SLM['epsillon_std'] = np.nanstd(_eh_vals)
+    try:
+        self.SLM['epsillon_std'] = np.nanstd(_eh_vals)
+        self.SLM['gamma_std'] = np.nanstd(_gamma_vals)
+        self.SLM['big_gamma_std'] = np.nanstd(_big_gamma_vals)
+        self.SLM['G_std'] = np.nanstd(_g_vals)
+    except RuntimeWarning:
+        self.logger.warning("Failed to compute any valid SLM values.")
+        self.opts.SLM = False
+        return
     self.SLM['epsillon_sem'] = self.SLM['epsillon_std'] / np.sqrt(fits - 1 or 1)
     self.SLM['epsillon_ci'] = self.SLM['epsillon_sem'] * stdtrit(fits - 1 or 1, 1 - self.opts.alpha)
-    self.SLM['gamma_std'] = np.nanstd(_gamma_vals)
     self.SLM['gamma_sem'] = self.SLM['gamma_std'] / np.sqrt(fits - 1 or 1)
     self.SLM['gamma_ci'] = self.SLM['gamma_sem'] * stdtrit(fits - 1 or 1, 1 - self.opts.alpha)
-    self.SLM['big_gamma_std'] = np.nanstd(_big_gamma_vals)
     self.SLM['big_gamma_sem'] = self.SLM['big_gamma_std'] / np.sqrt(fits - 1 or 1)
     self.SLM['big_gamma_ci'] = self.SLM['big_gamma_sem'] * stdtrit(fits - 1 or 1, 1 - self.opts.alpha)
-    self.SLM['G_std'] = np.nanstd(_g_vals)
     self.SLM['G_sem'] = self.SLM['G_std'] / np.sqrt(fits - 1 or 1)
     self.SLM['G_ci'] = self.SLM['G_sem'] * stdtrit(fits - 1 or 1, 1 - self.opts.alpha)
 

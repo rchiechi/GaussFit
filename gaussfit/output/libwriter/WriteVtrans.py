@@ -17,9 +17,11 @@ def WriteVtrans(self):
         with open(_fn, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, dialect='JV')
             writer.writerow(["Vtrans (eV)", "Frequency",
-                             "Gauss Fit (mean: %0.4f, Standard Deviation: %f)" % (self.FN[key]['mean'], self.FN[key]['std'])]
+                             "Gauss Fit (mean: %0.4f, Standard Deviation: %f)" % (self.FN[key].get('mean', np.nan), self.FN[key].get('std', np.nan))]
                             )
             data = {}
+            if 'bin' not in self.FN[key]:
+                return
             for i in range(0, len(self.FN[key]['bin'])):
                 data[self.FN[key]['bin'][i]] = (self.FN[key]['freq'][i], self.FN[key]['fit'][i])
             for x in sorted(data.keys()):
