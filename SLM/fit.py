@@ -174,7 +174,7 @@ def dofit(x, y, **kwargs):
                  label=f'Fit (G: {popt[0]:0.2E} ε: {popt[1]:0.2f} γ: {popt[2]:0.4f})')
         if p0 is not None:
             plt.plot(V_clipped, SLM_func(V_clipped, *p0), 'b--',
-                     label=f'Guess (G: {p0[0]:0.2E} ε: {p0[1]:0.2f} γ: {p0[2]:0.4f})')
+                     label=f'Computed (G: {p0[0]:0.2E} ε: {p0[1]:0.2f} γ: {p0[2]:0.4f})')
         if kwargs.get('traces'):
             plt.ylabel('Current Density (A $\mathrm{cm^{-2}}$)')
         else:
@@ -227,7 +227,7 @@ def parse_files(opts):
                 to_parse[f'{_n}_{fn}'] = {'data': _trace, 'p0': None}
                 if fn in paramfiles:
                     paramfiles[f'{_n}_{fn}'] = paramfiles[fn]
-                    del(paramfiles[fn])
+                    del (paramfiles[fn])
         else:
             to_parse[fn] = {'data': get_data(
                             fn,

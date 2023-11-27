@@ -79,19 +79,18 @@ class Plotter():
         ax.set_title("Fit to SLM")
         ax.set_ylabel(r'log|Current Density $J(\mathrm{A cm}^{-2})$|')
         ax.set_xlabel(r'Potential (V)')
-        # ax.set_yscale('log')
         G = self.SLM["Gauss"]["G"]
         epsillon = self.SLM["Gauss"]["epsillon"]
         gamma = self.SLM["Gauss"]["gamma"]
         x = np.array([x for x in self.XY])
-        ax.plot(x, np.log10(abs(SLM_func(x, G, epsillon, gamma))), lw=3.0, color='k')
+        ax.plot(x, np.log10(abs(SLM_func(x, G, epsillon, gamma))), lw=3.0, color='k', label='From GaussJ')
         traces = list(self.SLM['calc'].keys())
         for trace in traces:
             _v, _j = self.SLM['calc'][trace]
             ax.plot(_v, np.log10(abs(np.array(_j))), ':', lw=0.5, color='r')
         _v, _j = self.SLM['calc_avg']
-        print(self.SLM['calc_avg'])
-        ax.plot(_v, np.log10(abs(np.array(_j))), lw=3.0, color='b')
+        ax.plot(_v, np.log10(abs(np.array(_j))), lw=3.0, color='b', label='Gmean of per-Trace')
+        ax.legend()
 
     def PlotSegmentedGauss(self, ax):
         '''Plot segmented J/V data'''
