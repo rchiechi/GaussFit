@@ -52,7 +52,7 @@ def doslm(self):
         _big_gamma_vals.append(big_gamma)
         fits += 1
     self.SLM['epsillon_avg'] = gmean(_eh_vals, nan_policy='omit')
-    self.SLM['gamma_avg'] = gmean(_gamma_vals, nan_policy='omit')
+    self.SLM['gamma_avg'] = np.mean(np.array(_gamma_vals))  # no gmean on negative numbers
     self.SLM['big_gamma_avg'] = gmean(_big_gamma_vals, nan_policy='omit')
     try:
         self.SLM['epsillon_std'] = np.nanstd(_eh_vals)
@@ -73,9 +73,6 @@ def doslm(self):
     self.SLM['G_ci'] = self.SLM['G_sem'] * stdtrit(fits - 1 or 1, 1 - self.opts.alpha)
 
     V = [_x for _x in self.avg.loc[0].index.tolist() if _x <= 1.25 * abs(self.SLM['epsillon_avg'])]
-    Y = []
-    for _v in V:
-        Y.append(SLM_func(_v, self.SLM['G_avg'], self.SLM['epsillon_avg'], self.SLM['gamma_avg']))
     V = np.array(self.avg.loc[0].index.tolist())
     self.SLM['calc_avg'] = [V, SLM_func(V, self.SLM['G_avg'], self.SLM['epsillon_avg'], self.SLM['gamma_avg'])]
     return fits
