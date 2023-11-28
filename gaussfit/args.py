@@ -79,10 +79,6 @@ parser = argparse.ArgumentParser(description=desc,
 
 parser.add_argument('in_files', metavar='Files-to-parse', type=str, nargs='*', default=[],
                     help='Datafiles to parse (GaussFit mode).')
-# parser.add_argument('-A', '--setA', metavar='setA', type=str, nargs='*', default=[],
-#                     help='Datafiles to parse for set A (Stats mode).')
-# parser.add_argument('-B', '--setB', metavar='setB', type=str, nargs='*', default=[],
-#                     help='Datafiles to parse for set B (Stats mode).')
 parser.add_argument('-G', '--gui', action='store_true', default=False,
                     help="Launch the GUI.")
 parser.add_argument('-o', '--outfile', metavar="OUTPUT FILE", default="",
@@ -160,7 +156,7 @@ parser.add_argument('--segments', type=int, default=4,
 parser.add_argument('--degfree', type=int, default=0,
                     help="Number of degrees of freedom (useful with --ycol=0). Set to 0 to infer from number of input files.")
 parser.add_argument('--minr', type=int, default=0.75,
-                    help="Smallest R-value to tolerate for linear fits.")
+                    help="Smallest R2-value to tolerate for linear fits.")
 parser.add_argument('--maxG', type=int, default=100,
                     help="Largest G-value to consider physically realistic.")
 parser.add_argument('--SLM', action='store_true', default=False,

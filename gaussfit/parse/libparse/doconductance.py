@@ -36,7 +36,7 @@ def doconductance(self):
             self.logger.warning("Cannot compute conductance (probably because of unequal voltage steps.)")
             continue
         self.logger.debug(f"G:{_fit.slope:.2E} (R={_fit.rvalue:.2f})")
-        if _fit.rvalue < self.opts.minr:
+        if _fit.rvalue ** 2 < self.opts.minr:
             self.logger.warn("Tossing G-value with R < %s", self.opts.minr)
             continue
         if _fit.slope > self.opts.maxG:

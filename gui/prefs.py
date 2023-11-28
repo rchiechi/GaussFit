@@ -93,11 +93,14 @@ class PreferencesFrame(tk.Frame):
             {'name': 'degfree', 'text': "Number of degrees of freedom:",
              'tooltip': "Manually provide degrees of freedom instead of guessing from number of input files.",
              'frame': self.RightOptionsFrame},
-            {'name': 'minr', 'text': "Minimum R-value:",
+            {'name': 'minr', 'text': "Minimum R2-value:",
              'tooltip': "Minimum R-value to tolerate for linear fits (e.g., computing G).",
              'frame': self.RightOptionsFrame},
             {'name': 'nmolecules', 'text': "Number of molecules:",
              'tooltip': "Number of molecules per-junction for SLM calculations.",
+             'frame': self.RightOptionsFrame},
+            {'name': 'maxG', 'text': "Max G-value allowed:",
+             'tooltip': "Max G-value to consider physically realistic.",
              'frame': self.RightOptionsFrame},
         ]
 
@@ -154,6 +157,7 @@ class PreferencesFrame(tk.Frame):
         self.checkDegreesofFreedomEntry()
         self.checkminrEntry()
         self.checknmoleculesEntry()
+        self.checkmaxGEntry()
 
     def checkVcutoffEntry(self):
         try:
@@ -264,3 +268,13 @@ class PreferencesFrame(tk.Frame):
             pass
         self.Entrynmolecules.delete(0, END)
         self.Entrynmolecules.insert(0, f'{self.opts.nmolecules:0.2E}')
+
+    def checkmaxGEntry(self):
+        try:
+            _maxG = float(self.EntrymaxG.get())
+            if _maxG > 0:
+                self.opts.maxG = _maxG
+        except ValueError:
+            pass
+        self.EntrymaxG.delete(0, END)
+        self.EntrymaxG.insert(0, f'{self.opts.maxG:0.2f}')
