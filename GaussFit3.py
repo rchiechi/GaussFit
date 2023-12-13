@@ -21,6 +21,7 @@ Description:
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 import cProfile
+import warnings
 from gaussfit import Parse
 from gaussfit.args import Opts
 from gaussfit.output import Writer, Plotter
@@ -72,6 +73,7 @@ def do_gaussfit():
 
 
 if __name__ == "__main__":
+    warnings.filterwarnings('ignore', '.*invalid escape sequence.*', SyntaxWarning)
     if Opts.gui:
         from gui import filebrowser
         gui = filebrowser.ChooseFiles()
