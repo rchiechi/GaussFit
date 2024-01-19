@@ -221,7 +221,7 @@ Opts.ycol -= 1
 if Opts.degfree < 1 and len(Opts.in_files):
     Opts.degfree = len(Opts.in_files)-1
 
-if not Opts.in_files and not Opts.gui and 0 in (len(Opts.setA), len(Opts.setB)):
+if not Opts.in_files and not Opts.gui:
     parser.print_help()
     print(RED+"\n\t\t> > > No input files! < < < "+RS)
     sys.exit()
