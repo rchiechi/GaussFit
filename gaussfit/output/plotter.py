@@ -67,8 +67,8 @@ class Plotter():
         while True:
             i += 1
             try:
-                allY = np.append(allY, [self.XY[x][key][i] for x in self.XY])
-                ax.plot(xax, [self.XY[x][key][i] for x in self.XY], sym, **kw)
+                allY = np.append(allY, [self.XY[x][key].iloc[i] for x in self.XY])
+                ax.plot(xax, [self.XY[x][key].iloc[i] for x in self.XY], sym, **kw)
             except IndexError:
                 break
             except ValueError:

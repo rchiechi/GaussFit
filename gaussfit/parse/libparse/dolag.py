@@ -50,8 +50,8 @@ def _dolag(conn, que, xy):
         _lag = [[], []]
         _filtered = []
         for i in range(0, (len(Y)-len(Y) % 2), 2):
-            _lag[0].append(Y[i])
-            _lag[1].append(Y[i+1])
+            _lag[0].append(Y.iloc[i])
+            _lag[1].append(Y.iloc[i+1])
         try:
             m, b, r, _, _ = linregress(_lag[0], _lag[1])
         except FloatingPointError:
