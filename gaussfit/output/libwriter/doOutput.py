@@ -7,7 +7,7 @@ def doOutput(writer):
     try:
         writer.WriteVtrans()
     except ValueError:
-        print("Vtrans data are too broken to output ¯\_(ツ)_/¯")  # noqa #pylint: disable=W1401
+        print(r"Vtrans data are too broken to output ¯\_(ツ)_/¯")  # noqa #pylint: disable=W1401
     writer.WriteGNUplot('Vtransplot')
     writer.WriteFN()
     writer.WriteVT()
@@ -20,8 +20,14 @@ def doOutput(writer):
     writer.WriteGNUplot('JVplot')
     writer.WriteGNUplot('NDCplot')
     writer.WriteData()
-    writer.WriteDJDV()
-    writer.WriteNDC()
+    try:
+        writer.WriteDJDV()
+    except IndexError:
+        print(r"DJDV data are too broken to output ¯\_(ツ)_/¯")
+    try:
+        writer.WriteNDC()
+    except IndexError:
+        print(r"NDC data are too broken to output ¯\_(ツ)_/¯")
     writer.WriteFiltered()
     writer.WriteData(True)
     writer.WriteLag()

@@ -177,12 +177,16 @@ class Parse():
         if self.opts.ycol > -1:
             self.logger.info("Parsing two columns of data (X=%s, Y=%s).", self.opts.xcol + 1, self.opts.ycol + 1)
             for f in fns:
-                with open(f, 'rt') as fh:
-                    _headers = fh.readline().split(self.opts.delim)
+                with open(f, 'rb') as fh:
+                    try:
+                        _headers = fh.readline().split(bytes(self.opts.delim, encoding=self.opts.encoding))
+                        _headers = list(map(lambda x: str(x, encoding=self.opts.encoding), _headers))
+                    except UnicodeDecodeError:
+                        self.logger.warning("Encountered an illegal unicode character in headers.")
                 try:
                     if _headers:
                         _x, _y = _headers[self.opts.xcol].strip(), _headers[self.opts.ycol].strip()
-                        frames[f] = pd.read_csv(f, sep=self.opts.delim,
+                        frames[f] = pd.read_csv(f, sep=self.opts.delim, encoding=self.opts.encoding,
                                                 usecols=(_x, _y))[[_x, _y]]
                         frames[f].rename(columns={_x: 'V', _y: 'J'}, inplace=True)
                         # self.logger.debug("Renaming headers %s -> V, %s -> J" % (_x, _y))

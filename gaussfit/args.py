@@ -93,6 +93,8 @@ parser.add_argument('-n', '--nowrite', dest='write', action='store_false', defau
                     help="Do not write output files (implies -p).")
 parser.add_argument('-d', '--delim', default='tab', choices=('tab', 'comma', 'space'),
                     help="Delimeter in inputfiles.")
+parser.add_argument('--encoding', default='ISO-8859-1', choices=('ISO-8859-1', 'utf-8', 'ascii'),
+                    help="Delimeter in inputfiles.")
 parser.add_argument('-X', '--xcol', type=int, default=1,
                     help="Column to treat as X.")
 parser.add_argument('-Y', '--ycol', type=int, default=3,
