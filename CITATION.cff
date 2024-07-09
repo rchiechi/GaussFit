@@ -7,14 +7,7 @@ authors:
     given-names: Ryan
     orcid: "https://orcid.org/0000-0002-0895-2095"
   - name: "RCCLab"
-version: 1.0.2
-date-released: "2022-04-07"
-identifiers:
-  - description: Snapshots of the RCCLab GaussFit software.
-    type: doi
-    value: "10.5281/zenodo.6422417"
-  - description: This is the archived snapshot of version 1.0.2
-    type: doi
-    value: "10.5281/zenodo.6422417"
+version: 1.0.3
+date-released: "2024-07-09"
 license: GNU General Public License
 repository-code: "https://github.com/rchiechi/GaussFit"
