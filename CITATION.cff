@@ -7,8 +7,8 @@ authors:
     given-names: Ryan
     orcid: "https://orcid.org/0000-0002-0895-2095"
   - name: "RCCLab"
-version: 1.0.2
-date-released: "2022-04-07"
+version: 1.0.3
+date-released: "2024-07-097"
 identifiers:
   - description: Snapshots of the RCCLab GaussFit software.
     type: doi
