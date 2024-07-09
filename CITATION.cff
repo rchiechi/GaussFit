@@ -1,20 +1,9 @@
-cff-version: 1.2.0
-message: If you use this software, you can cite it using these metadata.
-title: GaussFit
-abstract: Python scripts to parse I/V data from molecular ensemble junctions.
+cff-version: 1.1.0
+message: "If you use this software, please cite it as below."
 authors:
-  - family-names: Chiechi
-    given-names: Ryan
-    orcid: "https://orcid.org/0000-0002-0895-2095"
-  - name: "RCCLab"
-version: 1.0.3
-date-released: "2024-07-097"
-identifiers:
-  - description: Snapshots of the RCCLab GaussFit software.
-    type: doi
-    value: "10.5281/zenodo.6422417"
-  - description: This is the archived snapshot of version 1.0.2
-    type: doi
-    value: "10.5281/zenodo.6422417"
-license: GNU General Public License
-repository-code: "https://github.com/rchiechi/GaussFit"
+- family-names: Chiechi
+  given-names: Ryan
+orcid: https://orcid.org/0000-0002-0895-2095
+title:
+version: v1.0.3
+date-released: 2024-07-09
