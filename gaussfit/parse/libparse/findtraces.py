@@ -3,7 +3,6 @@ import numpy as np
 from collections import OrderedDict
 from gaussfit.parse.libparse.util import signedgmean
 
-
 def findtraces(self):
     '''Try to find individual J/V traces. A trace is defined
     by a complete forward and reverse trace unless the input
@@ -17,7 +16,11 @@ def findtraces(self):
         v = self.df.loc[self.df.index.levels[0][0]]['V'].values
         st, ed = [v[0]], [v[-1]]
         for r in self.df.index.levels[0][1:]:
-            s, e = self.df.loc[r]['V'].values[0], self.df.loc[r]['V'].values[-1]
+            try:
+                s, e = self.df.loc[r]['V'].values[0], self.df.loc[r]['V'].values[-1]
+            except KeyError:
+                self.logger.error("Error parsing %s. Check that J/V curves are not trucated or remove file and parse again.", r)
+                return False
             if s not in st or e not in ed:
                 self.logger.warning(
                     'file "%s" starts and ends with weird voltages (%s -> %s)', r, s, e)

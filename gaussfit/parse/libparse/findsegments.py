@@ -64,8 +64,12 @@ def _findsegments(conn, que, df):
         _trace = None
         if opts.ycol > 0:
             _n_traces = int(df.V.value_counts()[0] / 3)
-            if df.loc[_fn]['V'][0] != 0.0:
-                logger.warning("J/V didn't start at 0V for %s", _fn)
+            try:
+                if df.loc[_fn]['V'][0] != 0.0:
+                    logger.warning("J/V didn't start at 0V for %s", _fn)
+            except KeyError:
+                logger.error("\n\n\t>>>Cannot parse %s<<<\n\tCheck that J/V curves are not trucated or remove file and parse again.\n", _fn)
+                continue
         else:
             _n_traces = len(df.index.levels[0])
 
