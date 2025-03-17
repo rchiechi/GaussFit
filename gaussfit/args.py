@@ -155,8 +155,8 @@ parser.add_argument('--alpha', type=float, default=0.025,
                     help="Alpha value to use for computing confidence intervals (p-cutoff = 1-Alpha).")
 parser.add_argument('--segments', type=int, default=4,
                     help="Number of segments in each J/V trace.")
-parser.add_argument('--degfree', type=int, default=0,
-                    help="Number of degrees of freedom (useful with --ycol=0). Set to 0 to infer from number of input files.")
+parser.add_argument('--degfree', type=int, default=1,
+                    help="Number of degrees of freedom (useful with --ycol=0). Set to 1 to infer from number of input files.")
 parser.add_argument('--minr', type=int, default=0.75,
                     help="Smallest R2-value to tolerate for linear fits.")
 parser.add_argument('--maxG', type=int, default=100,
@@ -220,7 +220,7 @@ if Opts.ycol < 0:
 Opts.xcol -= 1
 Opts.ycol -= 1
 
-if Opts.degfree < 1 and len(Opts.in_files):
+if Opts.degfree < 2 and len(Opts.in_files) > 1:
     Opts.degfree = len(Opts.in_files)-1
 
 if not Opts.in_files and not Opts.gui:

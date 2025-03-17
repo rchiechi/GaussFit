@@ -242,7 +242,7 @@ class PreferencesFrame(tk.Frame):
     def checkDegreesofFreedomEntry(self):
         try:
             _degfree = int(self.Entrydegfree.get())
-            if _degfree >= 0:
+            if _degfree >= 1:
                 self.opts.degfree = _degfree
         except ValueError:
             pass

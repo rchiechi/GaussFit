@@ -16,7 +16,7 @@ def GUIParse(self):
         self.logque = Queue(-1)
         self.ButtonParse['state'] = DISABLED
         self.degfreedom = self.opts.degfree
-        if self.opts.degfree == 0 and len(self.opts.in_files):
+        if self.opts.degfree == 1 and len(self.opts.in_files) > 1:
             self.opts.degfree = len(self.opts.in_files)-1
 
     def postParse():
