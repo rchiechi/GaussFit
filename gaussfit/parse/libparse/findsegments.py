@@ -33,15 +33,15 @@ class findSegments(findSegmentsMultiprocess):
         return
 
 
-def _findsegments(conn, que, df):
+async def findsegments(df):
     '''
     Break out each trace into four segments of
     0V -> Vmax, Vmax -> 0, 0V -> Vmin, Vmin -> 0V.
     '''
     logger = logging.getLogger(__package__+".findsegments")
-    logger.addHandler(QueueHandler(que))
-    __sendattr = getattr(conn, "send", None)
-    use_pipe = callable(__sendattr)
+    # logger.addHandler(QueueHandler(que))
+    # __sendattr = getattr(conn, "send", None)
+    # use_pipe = callable(__sendattr)
     # TODO set num_segments in opts
     # NOTE this is a crude hack because I forgot how Pandas works
     if opts.ycol < 0:
@@ -149,7 +149,7 @@ def _findsegments(conn, que, df):
             for _V in segments[_seg][_trace]:
                 if _V not in segmenthists[_seg][_trace]:
                     segmenthists[_seg][_trace][_V] = {}
-                segmenthists[_seg][_trace][_V] = dohistogram(que,
+                segmenthists[_seg][_trace][_V] = dohistogram(
                                                              np.array([np.log10(abs(_j)) for _j in segments[_seg][_trace][_V]]),
                                                              label='segment')
                 if _trace > 0:
@@ -157,13 +157,13 @@ def _findsegments(conn, que, df):
         for _V in segments_combined[_seg]:
             if _V not in segmenthists[_seg]['combined']:
                 segmenthists[_seg]['combined'][_V] = {}
-            segmenthists[_seg]['combined'][_V] = dohistogram(que,
+            segmenthists[_seg]['combined'][_V] = dohistogram(
                                                              np.array([np.log10(abs(_j)) for _j in segments_combined[_seg][_V]]),
                                                              label='segment')
         for _V in segments_combined_nofirst[_seg]:
             if _V not in segmenthists_nofirst[_seg]['combined']:
                 segmenthists_nofirst[_seg]['combined'][_V] = {}
-            segmenthists_nofirst[_seg]['combined'][_V] = dohistogram(que,
+            segmenthists_nofirst[_seg]['combined'][_V] = dohistogram(
                                                                      np.array(
                                                                               [np.log10(abs(_j))
                                                                                for _j in segments_combined_nofirst[_seg][_V]]),
@@ -175,9 +175,10 @@ def _findsegments(conn, que, df):
                 logger.warning("Setting J = 0 for all V = 0 in nofirsttrace.")
         nofirsttrace[_V] = np.array(nofirsttrace[_V])
     logger.info("Findsegments done.")
-    if use_pipe:
-        conn.send((error, segmenthists, segmenthists_nofirst, nofirsttrace))
-        conn.close()
-    else:
-        with open(conn, 'w+b') as fh:
-            pickle.dump((error, segmenthists, segmenthists_nofirst, nofirsttrace), fh)
+    # if use_pipe:
+    #     conn.send((error, segmenthists, segmenthists_nofirst, nofirsttrace))
+    #     conn.close()
+    # else:
+    #     with open(conn, 'w+b') as fh:
+    #         pickle.dump((error, segmenthists, segmenthists_nofirst, nofirsttrace), fh)
+    return error, segmenthists, segmenthists_nofirst, nofirsttrace

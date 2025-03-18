@@ -57,12 +57,13 @@ try:
 except ImportError as msg:
     throwimportwarning(msg)
 
+from gaussfit.parse.libparse.findsegments import findsegments
 if platform.system() in ('Linux', 'Darwin', 'Windows'):
     from gaussfit.parse.libparse.dolag import doLagMultiprocess as doLag
-    from gaussfit.parse.libparse.findsegments import findSegmentsMultiprocess as findSegments
+    # from gaussfit.parse.libparse.findsegments import findSegmentsMultiprocess as findSegments
 else:
     from gaussfit.parse.libparse.dolag import doLag
-    from gaussfit.parse.libparse.findsegments import findSegments
+    # from gaussfit.parse.libparse.findsegments import findSegments
 
 warnings.filterwarnings('ignore', '.*divide by zero.*', RuntimeWarning)
 warnings.filterwarnings('ignore', '.*', UserWarning)
@@ -274,13 +275,22 @@ class Parse():
 
     async def __parsedataset(self):
         children = []
+        tasks = []
         xy = []
+        #
+        # Need to copy df and cascade:
+        # df1 = await self.task1()
+        # df2 = await self.task2(df1)
+        # df3 = await self.task3(df2)
+        # Pass each function(await function-1())
+        #
         for x, group in self.df.groupby('V'):
             xy.append((x, group))
         self.logger.info("* * * * * * Finding segments   * * * * * * * *")
-        conn = gettmpfilename()
-        children.append([conn, findSegments(conn, self.logqueue, self.df)])
-        children[-1][1].start()
+        # conn = gettmpfilename()
+        # children.append([conn, findSegments(conn, self.logqueue, self.df)])
+        # children[-1][1].start()
+        tasks.append(asyncio.create_task(findsegments(self.df), name="findsegments"))
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.loghandler.flush()
         self.findtraces()
@@ -297,21 +307,21 @@ class Parse():
         self.SLM['Vtposavg'] = self.FN["pos"]
         self.SLM['Vtnegavg'] = self.FN["neg"]
         R = self.dorect(xy)
-        children[1][1].join()
-        with open(children[1][0], 'r+b') as fh:
+        children[0][1].join()
+        with open(children[0][0], 'r+b') as fh:
             lag = pickle.load(fh)
-        os.unlink(children[1][0])
+        os.unlink(children[0][0])
         self.logger.info("* * * * * * Computing Gaussians  * * * * * * * * *")
         self.loghandler.flush()
         for x, group in xy:
             self.XY[x] = {
                 "Y": group['J'],
                 "LogY": group['logJ'],
-                "hist": dohistogram(self.logqueue, group['logJ'], label="J", warnings=True),
+                "hist": dohistogram(group['logJ'], label="J", warnings=True, que=self.logqueue),
                 "Y_nofirst": [0],
                 "LogY_nofirst": [0],
-                "hist_nofirst": dohistogram(self.logqueue, np.array([0]), label="J"),
-                "filtered_hist": dohistogram(self.logqueue, lag[x]['filtered'], label="lag"),
+                "hist_nofirst": dohistogram(np.array([0]), label="J", que=self.logqueue),
+                "filtered_hist": dohistogram(lag[x]['filtered'], label="lag", que=self.logqueue),
                 "lag": lag[x]['lagplot'],
                 "FN": group['FN'],
                 "R": R[x]}
@@ -320,23 +330,30 @@ class Parse():
             for x in self.XY:
                 self.GHists[x] = {}
                 self.GHists[x]['hist'] = self.XY[x]['hist']
-        children[0][1].join()
-        with open(children[0][0], 'r+b') as fh:
-            try:
-                self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.load(fh)
-            except EOFError:
-                if not self.opts.tracebyfile:
-                    self.logger.error("Catastrophic error computling segments.")
-                    self.error = True
-                self.segments = {}
-                self.segmenthists_nofirst = {}
-                nofirsttrace = {}
-        os.unlink(children[0][0])
+        # children[0][1].join()
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        # Map results to task names
+        task_results = {
+            task.get_name(): result 
+            for task, result in zip(tasks, results)
+        }
+        self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = task_results["findsegments"]
+        # with open(children[0][0], 'r+b') as fh:
+        #     try:
+        #         self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.load(fh)
+        #     except EOFError:
+        #         if not self.opts.tracebyfile:
+        #             self.logger.error("Catastrophic error computling segments.")
+        #             self.error = True
+        #         self.segments = {}
+        #         self.segmenthists_nofirst = {}
+        #         nofirsttrace = {}
+        # os.unlink(children[0][0])
         if nofirsttrace:
             for x, group in xy:
                 self.XY[x]["Y_nofirst"] = nofirsttrace[x]
                 self.XY[x]["LogY_nofirst"] = [np.log10(abs(_x)) for _x in nofirsttrace[x]]
-                self.XY[x]["hist_nofirst"] = dohistogram(self.logqueue, nofirsttrace[x], label="J")
+                self.XY[x]["hist_nofirst"] = dohistogram(nofirsttrace[x], label="J", que=self.logqueue)
 
         self.logger.info("* * * * * * Computing |V^2/J|  * * * * * * * * *")
         self.loghandler.flush()

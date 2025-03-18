@@ -99,8 +99,8 @@ def dodjdv(self):
         self.logger.info("NDC values not between 0 and 10: %s (%0.2f%%)", ndc_cut, (ndc_cut/ndc_tot)*100)
     self.loghandler.flush()
     for x in splhists:
-        splhists[x]['hist'] = dohistogram(self.logqueue, np.array(splhists[x]['spl']), label='DJDV')
-        spl_normhists[x]['hist'] = dohistogram(self.logqueue, np.array(spl_normhists[x]['spl']), label='NDC')
+        splhists[x]['hist'] = dohistogram(np.array(splhists[x]['spl']), label='DJDV', que=self.logqueue)
+        spl_normhists[x]['hist'] = dohistogram(np.array(spl_normhists[x]['spl']), label='NDC', que=self.logqueue)
     self.logger.info("dJdV complete.")
     self.loghandler.flush()
     self.DJDV, self.GHists, self.NDC, self.NDCHists, self.filtered = spls, splhists, spls_norm, spl_normhists, filtered
