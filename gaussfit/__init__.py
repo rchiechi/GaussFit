@@ -1,1 +1,1 @@
-from .parse import Parse
+from .gaussfit import main_cli, main_gui

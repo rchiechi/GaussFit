@@ -34,9 +34,9 @@ from tkinter import END, BOTH, VERTICAL, HORIZONTAL  # pylint: disable=unused-im
 from tkinter import EXTENDED, RAISED, DISABLED, NORMAL  # pylint: disable=unused-import
 from tkinter import PhotoImage
 from tkinter.font import Font
-from gui.prefs import PreferencesWindow
-from gui.colors import BLACK, YELLOW, WHITE, RED, TEAL, GREEN, BLUE, GREY  # pylint: disable=unused-import
-from gui.tooltip import createToolTip
+from .prefs import PreferencesWindow
+from .colors import BLACK, YELLOW, WHITE, RED, TEAL, GREEN, BLUE, GREY  # pylint: disable=unused-import
+from .tooltip import createToolTip
 from gaussfit.logger import GUIHandler
 from gaussfit.args import Opts, VERSION
 
@@ -54,8 +54,8 @@ class ChooseFiles(tk.Frame):
     '''The main frame for adding/removing files, accessing settings
        and parsing.'''
 
-    from gui.libparse import GUIParse
-    from gui.libparse import GUIPlot
+    from .libparse import GUIParse
+    from .libparse import GUIPlot
 
     gothreads = []
     plots = []

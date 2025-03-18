@@ -2,8 +2,8 @@
 
 import tkinter.ttk as tk
 from tkinter import Toplevel, Y, BOTTOM, LEFT, RIGHT, END, BOTH
-from gui.colors import GREY
-from gui.tooltip import createToolTip
+from .colors import GREY
+from .tooltip import createToolTip
 
 BOOLMAP = {1: True, 0: False}
 

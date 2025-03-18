@@ -20,13 +20,15 @@ Description:
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
+import asyncio
+import sys
 import cProfile
 import warnings
-from gaussfit import Parse
-from gaussfit.args import Opts
-from gaussfit.output import Writer, Plotter
-from gaussfit import colors
-from gaussfit.output.libwriter import doOutput
+from .parse import Parse
+from .args import Opts
+from .output import Writer, Plotter
+from .colors import *
+from .output.libwriter import doOutput
 
 try:
     import matplotlib.pyplot as plt
@@ -53,13 +55,16 @@ def do_cprofile(func):
 
 
 # @do_cprofile
-def do_gaussfit():
+async def do_gaussfit():
     '''
     Call this function to execute the parsing engine
     i.e., as main()
     '''
+    if not Opts.in_files:
+        print(RED+"\n\t\t> > > No input files! < < < "+RS)
+        sys.exit()
     parser = Parse(Opts)
-    parser.readfiles(Opts.in_files)
+    await parser.readfiles(Opts.in_files)
     if Opts.write and not parser.error:
         writer = Writer(parser)
         doOutput(writer)
@@ -71,6 +76,19 @@ def do_gaussfit():
         else:
             print(colors.RED+"Unable to show plots without matplotlib."+colors.RS)
 
+async def async_main(gui=False):
+    warnings.filterwarnings('ignore', '.*invalid escape sequence.*', SyntaxWarning)
+    if gui:
+        from GUI import filebrowser
+        gui = filebrowser.ChooseFiles()
+    else:
+        await do_gaussfit()
+
+def main_cli():
+    asyncio.run(async_main()) 
+    
+def main_gui():
+    asyncio.run(async_main(True)) 
 
 if __name__ == "__main__":
     warnings.filterwarnings('ignore', '.*invalid escape sequence.*', SyntaxWarning)
@@ -78,4 +96,5 @@ if __name__ == "__main__":
         from gui import filebrowser
         gui = filebrowser.ChooseFiles()
     else:
-        do_gaussfit()
+        asyncio.run(do_gaussfit())
+

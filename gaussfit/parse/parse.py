@@ -26,6 +26,7 @@ Description:
 '''
 # pylint: disable=line-too-long
 
+import asyncio
 import sys
 import os
 import logging
@@ -166,7 +167,7 @@ class Parse():
         fns.sort()
         return fns
 
-    def readfiles(self, _fns, parse=True):
+    async def readfiles(self, _fns, parse=True):
         '''Walk through input files and parse
         them into attributes '''
 
@@ -230,7 +231,7 @@ class Parse():
             self.df = self.df[self.df.V > -1 * abs(self.opts.xrange)]
             self.df = self.df[self.df.V < abs(self.opts.xrange)]
         # print(self.df)
-        self.__parse(parse)
+        await self.__parse(parse)
 
     def readpandas(self, df, parse):
         '''Take a pandas.DataFrame as input instead of files.'''
@@ -238,7 +239,7 @@ class Parse():
         self.df = df
         self.__parse(parse)
 
-    def __parse(self, parse):
+    async def __parse(self, parse):
         '''Read a pandas.DataFrame and compute Fowler-Nordheim
         values, log10 the J or I values and create a dictionary
         indexed by unique voltages.'''
@@ -258,7 +259,7 @@ class Parse():
         except ZeroDivisionError:
             self.logger.warning("Error computing FN (check your input data).")
             self.df['FN'] = np.array([x * 0 for x in range(0, len(self.df['V']))])
-        self.df.J.replace(0.0, value=1e-16, inplace=True)
+        self.df.replace({'J':0.0}, value=1e-16, inplace=True)
         self.df['logJ'] = np.log10(abs(self.df.J))  # Cannot log10 zero
         self.logger.info('%s values of log|J| above compliance (%s)',
                          len(self.df['logJ'][self.df['logJ'] > self.opts.compliance]), self.opts.compliance)
@@ -269,9 +270,9 @@ class Parse():
         # In the event that we want to call parsing method by hand
         # we stop here when just self.df is complete
         if parse:
-            self.__parsedataset()
+            await self.__parsedataset()
 
-    def __parsedataset(self):
+    async def __parsedataset(self):
         children = []
         xy = []
         for x, group in self.df.groupby('V'):
