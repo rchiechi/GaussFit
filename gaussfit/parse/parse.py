@@ -280,7 +280,7 @@ class Parse():
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.loghandler.flush()
         self.findtraces()
-        self.SLM['G_avg'] = self.doconductance()
+        self.SLM['G_avg'] = await self.doconductance()
         self.logger.info("* * * * * * Computing Lag  * * * * * * * * *")
         tasks.append(asyncio.create_task(dolag(xy, que=self.logqueue), name="dolag"))
         self.dodjdv()

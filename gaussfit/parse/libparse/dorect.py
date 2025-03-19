@@ -1,3 +1,4 @@
+import asyncio
 from gaussfit.parse.libparse.util import throwimportwarning
 from gaussfit.parse.libparse.dohistogram import dohistogram
 from collections import OrderedDict

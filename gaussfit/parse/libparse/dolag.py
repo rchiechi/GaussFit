@@ -1,4 +1,5 @@
 import asyncio
+import concurrent.futures
 import logging
 from logging.handlers import QueueHandler
 from gaussfit.parse.libparse.util import throwimportwarning, getdistances
@@ -18,24 +19,31 @@ async def dolag(xy, que):
     logger = logging.getLogger(__package__+".dolag")
     logger.addHandler(QueueHandler(que))
     results = []
-    
-    try:
-        async with asyncio.TaskGroup() as tg:
-            tasks = [tg.create_task(_lagx(x, group, logger)) for x, group in xy]
-        for task in tasks:
-            results.append(task.result())
-        for result_dict in results:
-            lag.update(result_dict)  # Merge dictionaries
-        
-    except ExceptionGroup as eg:
-        errors = set()
-        for exc in eg.exceptions:
-            set.add(str(exc))
-        logger.warning(f"Lag calculation encountered exceptions: {','.join(errors)}")
+
+    with concurrent.futures.ProcessPoolExecutor() as pool: #or ThreadPoolExecutor
+        loop = asyncio.get_running_loop()
+        tasks = [loop.run_in_executor(pool, _lagx, x, group, logger) for x, group in xy]
+        results = await asyncio.gather(*tasks)
+    for result_dict in results:
+        lag.update(result_dict)  # Merge dictionaries
+
+    # try:
+    #     async with asyncio.TaskGroup() as tg:
+    #         tasks = [tg.create_task(_lagx(x, group, logger)) for x, group in xy]
+    #     for task in tasks:
+    #         results.append(task.result())
+    #     for result_dict in results:
+    #         lag.update(result_dict)  # Merge dictionaries
+    #     
+    # except ExceptionGroup as eg:
+    #     errors = set()
+    #     for exc in eg.exceptions:
+    #         set.add(str(exc))
+    #     logger.warning(f"Lag calculation encountered exceptions: {','.join(errors)}")
     logger.info("Lag done.")
     return lag
 
-async def _lagx(x, group, logger):
+def _lagx(x, group, logger):
     exclude_warnings = []
     lag = {}
     lag[x] = {'lagplot': np.array([[], []]), 'filtered': np.array([])}
