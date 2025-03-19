@@ -30,10 +30,9 @@ import asyncio
 import sys
 import os
 import logging
-from logging.handlers import QueueListener
+from logging.handlers import QueueListener, QueueHandler
 from multiprocessing import Queue
 import warnings
-# import threading
 import time
 import pickle
 from collections import OrderedDict
@@ -46,6 +45,8 @@ from gaussfit.logger import DelayedHandler
 from gaussfit.parse.libparse.util import gettmpfilename
 from gaussfit.parse.libparse.util import getfilechecksum
 from gaussfit.parse.libparse.dohistogram import dohistogram
+from gaussfit.parse.libparse.findsegments import findsegments
+from gaussfit.parse.libparse.dolag  import dolag
 import platform
 try:
     import pandas as pd
@@ -57,13 +58,8 @@ try:
 except ImportError as msg:
     throwimportwarning(msg)
 
-from gaussfit.parse.libparse.findsegments import findsegments
-if platform.system() in ('Linux', 'Darwin', 'Windows'):
-    from gaussfit.parse.libparse.dolag import doLagMultiprocess as doLag
-    # from gaussfit.parse.libparse.findsegments import findSegmentsMultiprocess as findSegments
-else:
-    from gaussfit.parse.libparse.dolag import doLag
-    # from gaussfit.parse.libparse.findsegments import findSegments
+
+
 
 warnings.filterwarnings('ignore', '.*divide by zero.*', RuntimeWarning)
 warnings.filterwarnings('ignore', '.*', UserWarning)
@@ -277,28 +273,16 @@ class Parse():
         children = []
         tasks = []
         xy = []
-        #
-        # Need to copy df and cascade:
-        # df1 = await self.task1()
-        # df2 = await self.task2(df1)
-        # df3 = await self.task3(df2)
-        # Pass each function(await function-1())
-        #
         for x, group in self.df.groupby('V'):
             xy.append((x, group))
         self.logger.info("* * * * * * Finding segments   * * * * * * * *")
-        # conn = gettmpfilename()
-        # children.append([conn, findSegments(conn, self.logqueue, self.df)])
-        # children[-1][1].start()
-        tasks.append(asyncio.create_task(findsegments(self.df), name="findsegments"))
+        tasks.append(asyncio.create_task(findsegments(self.df, que=self.logqueue), name="findsegments"))
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.loghandler.flush()
         self.findtraces()
         self.SLM['G_avg'] = self.doconductance()
         self.logger.info("* * * * * * Computing Lag  * * * * * * * * *")
-        conn = gettmpfilename()
-        children.append([conn, doLag(conn, self.logqueue, xy)])
-        children[-1][1].start()
+        tasks.append(asyncio.create_task(dolag(xy, que=self.logqueue), name="dolag"))
         self.dodjdv()
         if self.opts.oldfn:
             self.old_findmin()
@@ -307,10 +291,14 @@ class Parse():
         self.SLM['Vtposavg'] = self.FN["pos"]
         self.SLM['Vtnegavg'] = self.FN["neg"]
         R = self.dorect(xy)
-        children[0][1].join()
-        with open(children[0][0], 'r+b') as fh:
-            lag = pickle.load(fh)
-        os.unlink(children[0][0])
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        # Map results to task names
+        task_results = {
+            task.get_name(): result 
+            for task, result in zip(tasks, results)
+        }
+        self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = task_results["findsegments"]
+        lag = task_results["dolag"]
         self.logger.info("* * * * * * Computing Gaussians  * * * * * * * * *")
         self.loghandler.flush()
         for x, group in xy:
@@ -330,25 +318,6 @@ class Parse():
             for x in self.XY:
                 self.GHists[x] = {}
                 self.GHists[x]['hist'] = self.XY[x]['hist']
-        # children[0][1].join()
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        # Map results to task names
-        task_results = {
-            task.get_name(): result 
-            for task, result in zip(tasks, results)
-        }
-        self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = task_results["findsegments"]
-        # with open(children[0][0], 'r+b') as fh:
-        #     try:
-        #         self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.load(fh)
-        #     except EOFError:
-        #         if not self.opts.tracebyfile:
-        #             self.logger.error("Catastrophic error computling segments.")
-        #             self.error = True
-        #         self.segments = {}
-        #         self.segmenthists_nofirst = {}
-        #         nofirsttrace = {}
-        # os.unlink(children[0][0])
         if nofirsttrace:
             for x, group in xy:
                 self.XY[x]["Y_nofirst"] = nofirsttrace[x]
@@ -365,9 +334,11 @@ class Parse():
         for x in self.XY:
             _v.append(x)
             _j.append(self.XY[x]['hist']['mean'])
+        SLM_logger = logging.getLogger(__package__+".SLM")
+        SLM_logger.addHandler(QueueHandler(self.logqueue))
         self.SLM['Gauss'] = {}
-        self.SLM['Gauss']['FN'] = findvtrans(_v, _j, logger=self.logger, unlog=True)
-        self.SLM['Gauss']['G'] = findG(_v, _j, logger=self.logger, unlog=True)['slope']
+        self.SLM['Gauss']['FN'] = findvtrans(_v, _j, logger=SLM_logger, unlog=True)
+        self.SLM['Gauss']['G'] = findG(_v, _j, logger=SLM_logger, unlog=True)['slope']
         epsillon, gamma = slm_param_func(self.SLM['Gauss']['FN']['vt_pos'], self.SLM['Gauss']['FN']['vt_neg'])
         big_gamma = Gamma_func(self.SLM['Gauss']['G'], self.opts.nmolecules,
                                self.SLM['Gauss']['FN']['vt_pos'], self.SLM['Gauss']['FN']['vt_neg'])

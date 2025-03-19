@@ -1,47 +1,16 @@
 import numpy as np
-import pickle
 import logging
 from logging.handlers import QueueHandler
-from multiprocessing import Process
 from gaussfit.parse.libparse.dohistogram import dohistogram
 from gaussfit.args import Opts as opts
 
-class findSegmentsMultiprocess(Process):
-
-    def __init__(self, conn, que, df):
-        super().__init__()
-        self.conn = conn
-        self.que = que
-        self.opts = opts
-        self.df = df
-
-    def run(self):
-        if self.opts.tracebyfile or self.opts.segments < 1:
-            # self.logger.error("Cannot generate segments from non-EGaIn datasets.")
-            return True, {}, {}, {}
-        return _findsegments(self.conn, self.que, self.df)
-
-
-class findSegments(findSegmentsMultiprocess):
-
-    def start(self):
-        if self.opts.tracebyfile or self.opts.segments < 1:
-            return True, {}, {}, {}
-        return _findsegments(self.conn, self.que, self.df)
-
-    def join(self):
-        return
-
-
-async def findsegments(df):
+async def findsegments(df, que):
     '''
     Break out each trace into four segments of
     0V -> Vmax, Vmax -> 0, 0V -> Vmin, Vmin -> 0V.
     '''
     logger = logging.getLogger(__package__+".findsegments")
-    # logger.addHandler(QueueHandler(que))
-    # __sendattr = getattr(conn, "send", None)
-    # use_pipe = callable(__sendattr)
+    logger.addHandler(QueueHandler(que))
     # TODO set num_segments in opts
     # NOTE this is a crude hack because I forgot how Pandas works
     if opts.ycol < 0:
@@ -74,6 +43,7 @@ async def findsegments(df):
             _n_traces = len(df.index.levels[0])
 
         _idx = [_idx for _idx in df.loc[_fn].index]
+        
         for _n, _i in enumerate(_idx):
             J = df.loc[_fn]['J'][_i]
             V = df.loc[_fn]['V'][_i]
@@ -175,10 +145,4 @@ async def findsegments(df):
                 logger.warning("Setting J = 0 for all V = 0 in nofirsttrace.")
         nofirsttrace[_V] = np.array(nofirsttrace[_V])
     logger.info("Findsegments done.")
-    # if use_pipe:
-    #     conn.send((error, segmenthists, segmenthists_nofirst, nofirsttrace))
-    #     conn.close()
-    # else:
-    #     with open(conn, 'w+b') as fh:
-    #         pickle.dump((error, segmenthists, segmenthists_nofirst, nofirsttrace), fh)
     return error, segmenthists, segmenthists_nofirst, nofirsttrace

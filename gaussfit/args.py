@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 '''
-Copyright (C) 2023 Ryan Chiechi <ryan.chiechi@ncsu.edu>
+Copyright (C) 2025 Ryan Chiechi <ryan.chiechi@ncsu.edu>
 Description:
         Parse all of the command line arguments for GaussFit.py
         and Stats.py
@@ -31,7 +31,7 @@ from gaussfit.colors import RED, YELLOW, RS
 
 warnings.filterwarnings('ignore', '.*divide by zero.*', RuntimeWarning)
 
-VERSION = '1.1.0b'
+VERSION = '1.2.0b'
 
 try:
     from scipy.optimize import curve_fit, OptimizeWarning  # pylint: disable=W0611
@@ -79,8 +79,8 @@ parser = argparse.ArgumentParser(description=desc,
 
 parser.add_argument('in_files', metavar='Files-to-parse', type=str, nargs='*', default=[],
                     help='Datafiles to parse (GaussFit mode).')
-parser.add_argument('-G', '--gui', action='store_true', default=False,
-                    help="Launch the GUI.")
+# parser.add_argument('-G', '--gui', action='store_true', default=False,
+#                     help="Launch the GUI.")
 parser.add_argument('-o', '--outfile', metavar="OUTPUT FILE", default="",
                     help="Outputfile (taken from first input)")
 parser.add_argument('--outdir', metavar="OUTPUT DIR", dest='out_dir', default=os.path.join(os.getcwd(), 'parsed'),

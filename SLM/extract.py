@@ -1,6 +1,7 @@
 import sys
 import logging
 import csv
+from logging.handlers import QueueHandler
 import numpy as np
 import scipy.interpolate
 from scipy.stats import linregress
