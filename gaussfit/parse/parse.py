@@ -262,7 +262,7 @@ class Parse():
         self.df['logJ'] = np.log10(abs(self.df.J))  # Cannot log10 zero
         self.logger.info('%s values of log|J| above compliance (%s)',
                          len(self.df['logJ'][self.df['logJ'] > self.opts.compliance]), self.opts.compliance)
-
+        self.df['lnJ'] = np.log(abs(self.df.J))  # Cannot ln zero
         # The default log handler only emits when you call flush() after setDelay() called
         self.loghandler.setDelay()
 
@@ -307,6 +307,7 @@ class Parse():
                 "Y": group['J'],
                 "LogY": group['logJ'],
                 "hist": dohistogram(self.logqueue, group['logJ'], label="J", warnings=True),
+                "ln_hist": dohistogram(self.logqueue, group['lnJ'], label="J", warnings=True),
                 "Y_nofirst": [0],
                 "LogY_nofirst": [0],
                 "hist_nofirst": dohistogram(self.logqueue, np.array([0]), label="J"),
