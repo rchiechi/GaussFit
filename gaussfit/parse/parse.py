@@ -57,12 +57,12 @@ try:
 except ImportError as msg:
     throwimportwarning(msg)
 
-from gaussfit.parse.libparse.dolag import doLag
+
 if platform.system() in ('Linux', 'Darwin', 'Windows'):
-    # from gaussfit.parse.libparse.dolag import doLagMultiprocess as doLag
+    from gaussfit.parse.libparse.dolag import doLagMultiprocess as doLag
     from gaussfit.parse.libparse.findsegments import findSegmentsMultiprocess as findSegments
 else:
-    # from gaussfit.parse.libparse.dolag import doLag
+    from gaussfit.parse.libparse.dolag import doLag
     from gaussfit.parse.libparse.findsegments import findSegments
 
 warnings.filterwarnings('ignore', '.*divide by zero.*', RuntimeWarning)
