@@ -79,8 +79,8 @@ parser = argparse.ArgumentParser(description=desc,
 
 parser.add_argument('in_files', metavar='Files-to-parse', type=str, nargs='*', default=[],
                     help='Datafiles to parse (GaussFit mode).')
-parser.add_argument('-G', '--gui', action='store_true', default=False,
-                    help="Launch the GUI.")
+# parser.add_argument('-G', '--gui', action='store_true', default=False,
+#                     help="Launch the GUI.")
 parser.add_argument('-o', '--outfile', metavar="OUTPUT FILE", default="",
                     help="Outputfile (taken from first input)")
 parser.add_argument('--outdir', metavar="OUTPUT DIR", dest='out_dir', default=os.path.join(os.getcwd(), 'parsed'),

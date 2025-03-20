@@ -33,7 +33,6 @@ import logging
 from logging.handlers import QueueListener
 from multiprocessing import Queue
 import warnings
-# import threading
 import time
 import pickle
 from collections import OrderedDict
@@ -43,10 +42,12 @@ from SLM.extract import findvtrans, findG
 from SLM.util import SLM_func, Gamma_func, slm_param_func
 from gaussfit.colors import WHITE, GREEN, TEAL, YELLOW
 from gaussfit.logger import DelayedHandler
-from gaussfit.parse.libparse.util import gettmpfilename
-from gaussfit.parse.libparse.util import getfilechecksum
-from gaussfit.parse.libparse.dohistogram import dohistogram
-import platform
+from .libparse.util import gettmpfilename
+from .libparse.dohistogram import dohistogram
+from .libparse import readfiles
+from .libparse import doLag
+from .libparse import findSegments
+# import platform
 try:
     import pandas as pd
     from scipy.optimize import OptimizeWarning
@@ -56,14 +57,6 @@ try:
 
 except ImportError as msg:
     throwimportwarning(msg)
-
-
-if platform.system() in ('Linux', 'Darwin', 'Windows'):
-    from gaussfit.parse.libparse.dolag import doLagMultiprocess as doLag
-    from gaussfit.parse.libparse.findsegments import findSegmentsMultiprocess as findSegments
-else:
-    from gaussfit.parse.libparse.dolag import doLag
-    from gaussfit.parse.libparse.findsegments import findSegments
 
 warnings.filterwarnings('ignore', '.*divide by zero.*', RuntimeWarning)
 warnings.filterwarnings('ignore', '.*', UserWarning)
@@ -95,7 +88,6 @@ class Parse():
     VERSION = '1.0.2a'
     error = False
     parsed = False
-    file_hashes = {}
     df = pd.DataFrame()
     avg = pd.DataFrame()
     XY = OrderedDict()
@@ -146,93 +138,99 @@ class Parse():
             self.logger.error("Alpha must be between 0 and 1")
             sys.exit()
 
-    def _checkfordupe(self, f):
-        _dupe = False
-        _digest = getfilechecksum(f)
-        if _digest in self.file_hashes:
-            self.logger.warning(f'{self.file_hashes[_digest]} and {f} are identical!')
-            _dupe = True
-        self.file_hashes[_digest] = f
-        return _dupe
+    # def _checkfordupe(self, f):
+    #     _dupe = False
+    #     _digest = getfilechecksum(f)
+    #     if _digest in self.file_hashes:
+    #         self.logger.warning(f'{self.file_hashes[_digest]} and {f} are identical!')
+    #         _dupe = True
+    #     self.file_hashes[_digest] = f
+    #     return _dupe
+# 
+#     def _dedupefiles(self, _fns):
+#         fns = []
+#         if isinstance(_fns, str):
+#             _fns = [_fns]
+#         for _f in _fns:
+#             if self._checkfordupe(_f):
+#                 self.logger.warning(f'Refusing to parse duplicate file {_f}.')
+#                 self.logger.warning('Parsing identical files will skew the results.')
+#             else:
+#                 fns.append(_f)
+#         fns.sort()
+#         return fns
 
-    def _dedupefiles(self, _fns):
-        fns = []
-        if isinstance(_fns, str):
-            _fns = [_fns]
-        for _f in _fns:
-            if self._checkfordupe(_f):
-                self.logger.warning(f'Refusing to parse duplicate file {_f}.')
-                self.logger.warning('Parsing identical files will skew the results.')
-            else:
-                fns.append(_f)
-        fns.sort()
-        return fns
-
-    async def readfiles(self, _fns, parse=True):
-        '''Walk through input files and parse
-        them into attributes '''
-
-        frames = {}
-        fns = self._dedupefiles(_fns)
-
-        self.logger.debug('Parsing %s', ', '.join(fns))
-        if self.opts.ycol > -1:
-            self.logger.info("Parsing two columns of data (X=%s, Y=%s).", self.opts.xcol + 1, self.opts.ycol + 1)
-            for f in fns:
-                with open(f, 'rb') as fh:
-                    try:
-                        _headers = fh.readline().split(bytes(self.opts.delim, encoding=self.opts.encoding))
-                        _headers = list(map(lambda x: str(x, encoding=self.opts.encoding), _headers))
-                    except UnicodeDecodeError:
-                        self.logger.warning("Encountered an illegal unicode character in headers.")
-                try:
-                    if _headers:
-                        _x, _y = _headers[self.opts.xcol].strip(), _headers[self.opts.ycol].strip()
-                        frames[f] = pd.read_csv(f, sep=self.opts.delim, encoding=self.opts.encoding,
-                                                usecols=(_x, _y))[[_x, _y]]
-                        frames[f].rename(columns={_x: 'V', _y: 'J'}, inplace=True)
-                        # self.logger.debug("Renaming headers %s -> V, %s -> J" % (_x, _y))
-                    elif self.opts.X > self.opts.Y:
-                        raise pd.errors.ParserError("xcol cannot be greater than ycol without column headers.")
-                    else:
-                        # self.logger.debug("No headers, manually setting V/J")
-                        frames[f] = pd.read_csv(f, sep=self.opts.delim,
-                                                usecols=(self.opts.xcol,
-                                                         self.opts.ycol),
-                                                names=('V', 'J'), header=0)
-                except OSError as msg:
-                    self.logger.warning("Skipping %s because %s", f, str(msg))
-                except pd.errors.ParserError as msg:
-                    self.logger.warning("Skipping malformatted %s because %s", f, str(msg))
-
-        else:
-            self.logger.info("Parsing all columns of data.")
-            for f in fns:
-                try:
-                    _df = pd.read_csv(f, sep=self.opts.delim,
-                                      index_col=self.opts.xcol,
-                                      header=0,
-                                      error_bad_lines=False,
-                                      warn_bad_lines=False)
-                    i = 0
-                    for col in _df:
-                        frames['%s_%.2d' % (f, i)] = pd.DataFrame({'V': _df.index, 'J': _df[col]})
-                        # self.logger.debug("Adding frame %s_%.2d" % (f,i) )
-                        i += 1
-                except OSError as msg:
-                    self.logger.warning("Skipping %s because %s", f, str(msg))
-
-        if not frames:
-            self.logger.error("No files to parse!")
+    async def readfiles(self, input_files):
+        self.df = await readfiles(input_files, logger=self.logger)
+        if self.df.empty:
+            logger.error("Did not parse any files!")
             sys.exit()
-        # Create main dataframe and parse it
-        self.df = pd.concat(frames)
-        if self.opts.xrange > 0:
-            self.logger.info(f"Pruning x-axis to +/- {self.opts.xrange}.")
-            self.df = self.df[self.df.V > -1 * abs(self.opts.xrange)]
-            self.df = self.df[self.df.V < abs(self.opts.xrange)]
-        # print(self.df)
-        await self.__parse(parse)
+
+#     async def readfiles(self, _fns, parse=True):
+#         '''Walk through input files and parse
+#         them into attributes '''
+# 
+#         frames = {}
+#         fns = self._dedupefiles(_fns)
+# 
+#         self.logger.debug('Parsing %s', ', '.join(fns))
+#         if self.opts.ycol > -1:
+#             self.logger.info("Parsing two columns of data (X=%s, Y=%s).", self.opts.xcol + 1, self.opts.ycol + 1)
+#             for f in fns:
+#                 with open(f, 'rb') as fh:
+#                     try:
+#                         _headers = fh.readline().split(bytes(self.opts.delim, encoding=self.opts.encoding))
+#                         _headers = list(map(lambda x: str(x, encoding=self.opts.encoding), _headers))
+#                     except UnicodeDecodeError:
+#                         self.logger.warning("Encountered an illegal unicode character in headers.")
+#                 try:
+#                     if _headers:
+#                         _x, _y = _headers[self.opts.xcol].strip(), _headers[self.opts.ycol].strip()
+#                         frames[f] = pd.read_csv(f, sep=self.opts.delim, encoding=self.opts.encoding,
+#                                                 usecols=(_x, _y))[[_x, _y]]
+#                         frames[f].rename(columns={_x: 'V', _y: 'J'}, inplace=True)
+#                         # self.logger.debug("Renaming headers %s -> V, %s -> J" % (_x, _y))
+#                     elif self.opts.X > self.opts.Y:
+#                         raise pd.errors.ParserError("xcol cannot be greater than ycol without column headers.")
+#                     else:
+#                         # self.logger.debug("No headers, manually setting V/J")
+#                         frames[f] = pd.read_csv(f, sep=self.opts.delim,
+#                                                 usecols=(self.opts.xcol,
+#                                                          self.opts.ycol),
+#                                                 names=('V', 'J'), header=0)
+#                 except OSError as msg:
+#                     self.logger.warning("Skipping %s because %s", f, str(msg))
+#                 except pd.errors.ParserError as msg:
+#                     self.logger.warning("Skipping malformatted %s because %s", f, str(msg))
+# 
+#         else:
+#             self.logger.info("Parsing all columns of data.")
+#             for f in fns:
+#                 try:
+#                     _df = pd.read_csv(f, sep=self.opts.delim,
+#                                       index_col=self.opts.xcol,
+#                                       header=0,
+#                                       error_bad_lines=False,
+#                                       warn_bad_lines=False)
+#                     i = 0
+#                     for col in _df:
+#                         frames['%s_%.2d' % (f, i)] = pd.DataFrame({'V': _df.index, 'J': _df[col]})
+#                         # self.logger.debug("Adding frame %s_%.2d" % (f,i) )
+#                         i += 1
+#                 except OSError as msg:
+#                     self.logger.warning("Skipping %s because %s", f, str(msg))
+# 
+#         if not frames:
+#             self.logger.error("No files to parse!")
+#             sys.exit()
+#         # Create main dataframe and parse it
+#         self.df = pd.concat(frames)
+#         if self.opts.xrange > 0:
+#             self.logger.info(f"Pruning x-axis to +/- {self.opts.xrange}.")
+#             self.df = self.df[self.df.V > -1 * abs(self.opts.xrange)]
+#             self.df = self.df[self.df.V < abs(self.opts.xrange)]
+#         # print(self.df)
+#         await self.__parse(parse)
 
     def readpandas(self, df, parse):
         '''Take a pandas.DataFrame as input instead of files.'''

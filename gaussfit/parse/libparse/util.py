@@ -99,6 +99,14 @@ def getfilechecksum(fn):
                 file_hash.update(chunk)
     return file_hash.digest()
 
+async def async_getfilechecksum(fn):
+    file_hash = hashlib.md5()
+    if os.path.exists(fn):
+        with open(fn, 'rb') as fh:
+            while chunk := fh.read(8192):
+                file_hash.update(chunk)
+    return file_hash.digest()
+
 # def guessSegments(_df):
 #     '''
 #     Try to guess how many segments to expect from a dataframe
