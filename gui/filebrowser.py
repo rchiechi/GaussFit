@@ -25,7 +25,7 @@ import platform
 import logging
 import threading
 import tkinter.ttk as tk
-from tkinter import Tk
+from tkinter import Toplevel
 from tkinter import filedialog
 from tkinter import Text, IntVar, StringVar, Listbox, Label
 from tkinter import N, S, E, W, X, Y  # pylint: disable=unused-import
@@ -68,13 +68,16 @@ class ChooseFiles(tk.Frame):
     boolmap = {1: True, 0: False}
     lock = threading.Lock
 
-    def __init__(self, **kwargs):
-        self.master = kwargs.get('master', Tk())
-        super().__init__(self.master)
+    def __init__(self, master=None, **kwargs):
+        super().__init__(master)
+        if master is None:
+            self.master = Toplevel() # Better, but STILL not the best approach
+        else:
+            self.master = master
         self.loop = kwargs.get('loop', asyncio.get_event_loop())
         self.logque = Queue(-1)
-        bgimg = PhotoImage(file=os.path.join(absdir, 'RCCLabFluidic.png'))
-        limg = Label(self.master, i=bgimg, background=GREY)
+        self.bgimg = PhotoImage(file=os.path.join(absdir, 'RCCLabFluidic.png'))
+        limg = Label(self.master, image=self.bgimg, background=GREY)
         limg.pack(side=TOP)
         try:
             self.last_input_path = os.getcwd()
@@ -84,7 +87,8 @@ class ChooseFiles(tk.Frame):
         self.degfreedom = {'init': self.opts.degfree, 'user': self.opts.degfree}
         self.master.tk_setPalette(background=GREY, activeBackground=GREY)
         self.master.title(f"RCCLab EGaIn Data Parser v{VERSION}")
-        self.master.geometry('800x1000+250+250')
+        self.master.geometry('800x1000+250+250')\
+
         self.pack(fill=BOTH)
         self.__createWidgets()
         self.ToFront()

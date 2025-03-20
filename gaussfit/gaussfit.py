@@ -94,7 +94,8 @@ async def do_gaussfit():
 
 def do_gui():
     from GUI import filebrowser
-    gui = filebrowser.ChooseFiles()
+    import tkinter as tk
+    gui = filebrowser.ChooseFiles(master=tk.Tk())
     gui.master.mainloop()
 
 # def do_gui():
