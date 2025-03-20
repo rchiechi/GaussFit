@@ -105,11 +105,10 @@ class DelayedMultiprocessHandler(logging.Handler):
     '''A dummy-delayed log handler that queues unique log messages for running
        in a background thread.'''
 
-    buff = []
-
     def __init__(self, que):
         super().__init__()
         self.que = que
+        self.buff = []
 
     def emit(self, record):
         self.buff.append(record.lineno)

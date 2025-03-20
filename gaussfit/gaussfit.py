@@ -25,6 +25,7 @@ import sys
 import cProfile
 import warnings
 import logging
+import threading
 from .logs import GaussfitFormatter
 from .parse import readfiles
 from .parse import Parse
@@ -91,16 +92,34 @@ async def do_gaussfit():
         else:
             print(colors.RED+"Unable to show plots without matplotlib."+colors.RS)
 
-async def do_gui():
+def do_gui():
     from GUI import filebrowser
-    gui = filebrowser.ChooseFiles(loop=asyncio.get_running_loop())
+    gui = filebrowser.ChooseFiles()
     gui.master.mainloop()
+
+# def main_gui():
+#     from GUI import filebrowser
+#     loop = asyncio.new_event_loop()  # Create a *new* event loop
+#     asyncio.set_event_loop(loop)  # Set it as the *current* loop for this thread
+# 
+#     def run_tk():
+#         nonlocal loop  # Access the outer scope's loop
+#         gui = filebrowser.ChooseFiles(loop=loop)  # Pass the loop to ChooseFiles
+#         gui.master.mainloop() #Run it
+# 
+#     tk_thread = threading.Thread(target=run_tk, daemon=True) #Run tkinter on a thread
+#     tk_thread.start()
+# 
+#     try:
+#         loop.run_forever()  # Run the asyncio loop *in the main thread*
+#     finally:
+#         loop.close()
 
 def main_cli():
     asyncio.run(do_gaussfit()) 
     
 def main_gui():
-    asyncio.run(do_gui()) 
+    do_gui() 
 
 if __name__ == "__main__":
     warnings.filterwarnings('ignore', '.*invalid escape sequence.*', SyntaxWarning)
