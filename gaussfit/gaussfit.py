@@ -78,7 +78,7 @@ async def do_gaussfit():
     # Add handler to logger
     logger.addHandler(console_handler)
     logger.info("Reading files")
-    df = await readfiles(Opts.in_files)
+    df = await readfiles(Opts)
     parser = Parse(df, logger=logger)
     await parser.parse()
     if Opts.write and not parser.error:
@@ -97,7 +97,7 @@ def do_gui():
     gui = filebrowser.ChooseFiles()
     gui.master.mainloop()
 
-# def main_gui():
+# def do_gui():
 #     from GUI import filebrowser
 #     loop = asyncio.new_event_loop()  # Create a *new* event loop
 #     asyncio.set_event_loop(loop)  # Set it as the *current* loop for this thread
@@ -105,6 +105,7 @@ def do_gui():
 #     def run_tk():
 #         nonlocal loop  # Access the outer scope's loop
 #         gui = filebrowser.ChooseFiles(loop=loop)  # Pass the loop to ChooseFiles
+#         gui.pack()
 #         gui.master.mainloop() #Run it
 # 
 #     tk_thread = threading.Thread(target=run_tk, daemon=True) #Run tkinter on a thread

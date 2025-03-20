@@ -1,7 +1,6 @@
 from gaussfit.parse.libparse.util import throwimportwarning
 from gaussfit.parse.libparse.dohistogram import dohistogram
 from collections import OrderedDict
-from gaussfit.args import Opts
 
 try:
     import numpy as np
@@ -26,22 +25,22 @@ def dorect(self, xy):
         for x in self.avg.loc[trace].index[self.avg.loc[trace].index >= 0]:
             if -1*x not in self.avg.loc[trace]['J']:
                 self.logger.warning("Rectification data missing voltages.")
-                if Opts.logr:
+                if self.opts.logr:
                     r[x].append(0.)
                 else:
                     r[x].append(1.)
                 continue
             elif x == 0.0:
-                if Opts.logr:
+                if self.opts.logr:
                     r[x].append(0.)
                 else:
                     r[x].append(1.)
                 continue
-            if Opts.logr:
+            if self.opts.logr:
                 r[x].append(np.log10(abs(self.avg.loc[trace]['J'][x]/self.avg.loc[trace]['J'][-1*x])))
             else:
                 r[x].append(abs(self.avg.loc[trace]['J'][x]/self.avg.loc[trace]['J'][-1*x]))
-            if r[x][-1] > Opts.maxr:
+            if r[x][-1] > self.opts.maxr:
                 clipped += 1
     for x in reversed(list(r)):
         if x >= 0:
@@ -49,16 +48,16 @@ def dorect(self, xy):
             R[-1*x] = R[x]
         if x not in R:
             self.logger.warning("Unequal +/- voltages in R-plot will be filled with R=1.")
-            if Opts.logr:
+            if self.opts.logr:
                 y = np.array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])
             else:
                 y = np.array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
             R[x] = {'r': y, 'hist': dohistogram(y, label="R", que=self.logqueue)}
     if clipped:
-        if Opts.logr:
+        if self.opts.logr:
             rstr = 'log|R|'
         else:
             rstr = '|R|'
-        self.logger.info("%s values of %s exceed maxR (%s)", clipped, rstr, Opts.maxr)
+        self.logger.info("%s values of %s exceed maxR (%s)", clipped, rstr, self.opts.maxr)
     self.logger.info("R complete.")
     return R

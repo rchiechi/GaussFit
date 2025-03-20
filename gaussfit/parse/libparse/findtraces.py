@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 from collections import OrderedDict
 from gaussfit.parse.libparse.util import signedgmean
-from gaussfit.args import Opts
 
 def findtraces(self):
     '''Try to find individual J/V traces. A trace is defined
@@ -27,7 +26,7 @@ def findtraces(self):
                     'file "%s" starts and ends with weird voltages (%s -> %s)', r, s, e)
             st.append(s)
             ed.append(e)
-        if Opts.tracebyfile:
+        if self.opts.tracebyfile:
             return True
         self.logger.debug("Checking V starting from slice %s:%s",
                           traces[0][0], traces[0][1])
@@ -52,7 +51,7 @@ def findtraces(self):
     traces = []
     ntraces = 0
 
-    if Opts.tracebyfile:
+    if self.opts.tracebyfile:
         self.logger.info("Assuming each file contains one (foward/backward) trace.")
         for r in self.df.index.levels[0]:
             traces.append(((r, self.df.loc[r].index[0]), (r, self.df.loc[r].index[-1])))

@@ -1,7 +1,7 @@
 import logging
 import time
 from logging.handlers import QueueHandler
-from gaussfit.args import Opts as opts
+from gaussfit.args import Opts
 from gaussfit.parse.libparse.util import throwimportwarning, signedgmean, lorenz, gauss
 try:
     import numpy as np
@@ -26,6 +26,7 @@ def dohistogram(Y, **kwargs):
     kwargs = {**defaultKwargs, **kwargs}
     logger = logging.getLogger(__package__+".dohistogram")
     que = kwargs.get('que')
+    opts = kwargs.get('opts', Opts)
     if que:
         logger.addHandler(QueueHandler(que))
 

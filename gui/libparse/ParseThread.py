@@ -8,15 +8,15 @@ class ParseThread(threading.Thread):
     '''A Thread object to run the parse in so it
        doesn't block the main GUI thread.'''
 
-    def __init__(self, in_files, handler):
+    def __init__(self, opts, handler):
         super().__init__()
-        self.in_files = in_files
+        self.opts = opts
         self.handler = handler
         self.parser = None
 
     async def parse(self):
-        df = await readfiles(self.in_files)
-        self.parser = Parse(df, handler=self.handler)
+        df = await readfiles(self.opts)
+        self.parser = Parse(df, handler=DelayedMultiprocessHandler(self.handler))
         await self.parser.parse()
         
     def run(self):

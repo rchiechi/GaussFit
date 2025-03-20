@@ -3,7 +3,6 @@ from collections import OrderedDict
 import scipy.interpolate  # type: ignore
 # from scipy.ndimage import gaussian_filter1d as gaussian_filter  # type: ignore
 from gaussfit.parse.libparse.dohistogram import dohistogram  # type: ignore
-from gaussfit.args import Opts
 
 def dodjdv(self):
     '''
@@ -13,13 +12,13 @@ def dodjdv(self):
     self.logger.info("* * * * * * Computing dY/dX  * * * * * * * *")
     self.loghandler.flush()
     linx = np.linspace(self.df.V.min(), self.df.V.max(), 200)
-    if Opts.vcutoff > 0:
-        self.logger.debug('Using %s cutoff for dj/dv', Opts.vcutoff)
-        vfilterneg, vfilterpos = np.linspace(-1*Opts.vcutoff, 0, 200), np.linspace(0, Opts.vcutoff.max(), 200)
+    if self.opts.vcutoff > 0:
+        self.logger.debug('Using %s cutoff for dj/dv', self.opts.vcutoff)
+        vfilterneg, vfilterpos = np.linspace(-1*self.opts.vcutoff, 0, 200), np.linspace(0, self.opts.vcutoff.max(), 200)
     else:
         vfilterneg, vfilterpos = np.linspace(self.df.V.min(), 0, 200), np.linspace(0, self.df.V.max(), 200)
-    if Opts.vcutoff > 0:
-        vfilterneg, vfilterpos = linx[-1*Opts.vcutoff < linx < 0], linx[0 < linx < Opts.vcutoff]
+    if self.opts.vcutoff > 0:
+        vfilterneg, vfilterpos = linx[-1*self.opts.vcutoff < linx < 0], linx[0 < linx < self.opts.vcutoff]
     else:
         vfilterneg, vfilterpos = linx[linx < 0], linx[linx > 0]
 
@@ -37,7 +36,7 @@ def dodjdv(self):
     for trace in self.avg.index.levels[0]:
         try:
             spl = scipy.interpolate.UnivariateSpline(
-                self.avg.loc[trace].index, self.avg.loc[trace]['J'], k=5, s=Opts.smooth)
+                self.avg.loc[trace].index, self.avg.loc[trace]['J'], k=5, s=self.opts.smooth)
             dd = scipy.interpolate.UnivariateSpline(
                 self.avg.loc[trace].index, self.avg.loc[trace]['J'], k=5, s=None).derivative(2)
         except Exception as msg:  # pylint: disable=broad-except
@@ -53,7 +52,7 @@ def dodjdv(self):
         if len(spldd[spldd < 0]):
             # record in the index where dY/dX is < 0 within vcutoff range
             self.ohmic.append(trace)
-            if Opts.skipohmic:
+            if self.opts.skipohmic:
                 continue
         else:
             for row in self.avg.loc[trace].iterrows():
@@ -71,12 +70,12 @@ def dodjdv(self):
             # except TypeError:
             #     self.logger.warning('Applying Guassian filter to prevent spline errors.')
             #     d = spl.derivatives(gaussian_filter(spl, 5))
-            if np.isnan(d[Opts.heatmapd]):
+            if np.isnan(d[self.opts.heatmapd]):
                 self.logger.warning("Got NaN computing dJ/dV")
                 # print("Got NaN computing dJ/dV")
                 continue
-            spls[x].append(d[Opts.heatmapd])
-            splhists[x]['spl'].append(np.log10(abs(d[Opts.heatmapd])))
+            spls[x].append(d[self.opts.heatmapd])
+            splhists[x]['spl'].append(np.log10(abs(d[self.opts.heatmapd])))
             ndc = d[1] * (x/spl(x))
             spls_norm[x].append(ndc)
             ndc_tot += 1
@@ -91,7 +90,7 @@ def dodjdv(self):
 
     self.logger.info("Non-tunneling traces: %s (out of %0d)",
                      len(self.ohmic), len(self.avg.index.levels[0]))
-    if (len(self.ohmic) == len(self.avg.index.levels[0])) and Opts.skipohmic:
+    if (len(self.ohmic) == len(self.avg.index.levels[0])) and self.opts.skipohmic:
         self.logger.error("You have elected to skip all traces: disable skip non-ohmic and re-parse!")
         self.DJDV, self.GHists, self.NDC, self.NDCHists, self.filtered = {}, {}, {}, {}, {}
         return

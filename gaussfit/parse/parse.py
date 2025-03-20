@@ -118,18 +118,16 @@ class Parse():
 
     def __init__(self, df, **kwargs):
         self.df = df
+        self.opts = kwargs.get('opts', Opts)
         self.logger = kwargs.get('logger', logging.getLogger(__package__))
         self.logger.handlers.clear()
         handler = kwargs.get("handler")
-        # Pass your own log handler, e.g., when calling from a GUI
-        # But make sure it supports flush(), setDelay() and unsetDelay() methods!
-        if not handler:
-            self.loghandler = DelayedHandler()
-            self.loghandler.setFormatter(GaussfitFormatter())
-        else:
-            self.loghandler = handler
+        self.loghandler = DelayedHandler()
+        self.loghandler.setFormatter(GaussfitFormatter())
+        if handler:
+            self.logger.addHandler(handler)
         self.logger.addHandler(self.loghandler)
-        self.logger.setLevel(getattr(logging, Opts.loglevel.upper()))
+        self.logger.setLevel(getattr(logging, self.opts.loglevel.upper()))
         self.loglistener = QueueListener(self.logqueue, self.loghandler)
         self.loglistener.start()
         self.logger.info("Gaussfit Parser v%s", VERSION)
@@ -143,7 +141,7 @@ class Parse():
             self.error = True
             return
         if self.df.J.first_valid_index() is None:
-            self.logger.error("Column %s is empty!", str(Opts.ycol + 1))
+            self.logger.error("Column %s is empty!", str(self.opts.ycol + 1))
             self.error = True
             return
         if self.df.J.hasnans:
@@ -156,41 +154,33 @@ class Parse():
         self.df.replace({'J':0.0}, value=1e-16, inplace=True)
         self.df['logJ'] = np.log10(abs(self.df.J))  # Cannot log10 zero
         self.logger.info('%s values of log|J| above compliance (%s)',
-                         len(self.df['logJ'][self.df['logJ'] > Opts.compliance]), Opts.compliance)
+                         len(self.df['logJ'][self.df['logJ'] > self.opts.compliance]), self.opts.compliance)
         self.df['lnJ'] = np.log(abs(self.df.J))  # Cannot log10 zero
         # The default log handler only emits when you call flush() after setDelay() called
         self.loghandler.setDelay()
 
-        await self.__parsedataset()
+        await self._parsedataset()
 
-    async def __parsedataset(self):
+    async def _parsedataset(self):
         children = {}
         tasks = []
         xy = []
-        #
-        # Need to copy df and cascade:
-        # df1 = await self.task1()
-        # df2 = await self.task2(df1)
-        # df3 = await self.task3(df2)
-        # Pass each function(await function-1())
-        #
         for x, group in self.df.groupby('V'):
             xy.append((x, group))
         self.logger.info("* * * * * * Finding segments   * * * * * * * *")
         conn = gettmpfilename()
-        children['findSegments'] = (conn, findSegments(conn, self.logqueue, self.df))
+        children['findSegments'] = (conn, findSegments(conn, self.opts, self.logqueue, self.df))
         children['findSegments'][1].start()
-        # tasks.append(asyncio.create_task(findsegments(self.df), name="findsegments"))
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.loghandler.flush()
         self.findtraces()
         self.SLM['G_avg'] = self.doconductance()
         self.logger.info("* * * * * * Computing Lag  * * * * * * * * *")
         conn = gettmpfilename()
-        children['doLag'] = (conn, doLag(conn, self.logqueue, xy))
+        children['doLag'] = (conn, doLag(conn, self.opts, self.logqueue, xy))
         children['doLag'][1].start()
         self.dodjdv()
-        if Opts.oldfn:
+        if self.opts.oldfn:
             self.old_findmin()
         else:
             self.findmin()
@@ -207,33 +197,26 @@ class Parse():
             self.XY[x] = {
                 "Y": group['J'],
                 "LogY": group['logJ'],
-                "hist": dohistogram(group['logJ'], label="J", warnings=True, que=self.logqueue),
-                "ln_hist": dohistogram(group['lnJ'], label="J", warnings=True, que=self.logqueue),
+                "hist": dohistogram(group['logJ'], label="J", warnings=True, que=self.logqueue, opts=self.opts),
+                "ln_hist": dohistogram(group['lnJ'], label="J", warnings=True, que=self.logqueue, opts=self.opts),
                 "Y_nofirst": [0],
                 "LogY_nofirst": [0],
-                "hist_nofirst": dohistogram(np.array([0]), label="J", que=self.logqueue),
-                "filtered_hist": dohistogram(lag[x]['filtered'], label="lag", que=self.logqueue),
+                "hist_nofirst": dohistogram(np.array([0]), label="J", que=self.logqueue, opts=self.opts),
+                "filtered_hist": dohistogram(lag[x]['filtered'], label="lag", que=self.logqueue, opts=self.opts),
                 "lag": lag[x]['lagplot'],
                 "FN": group['FN'],
                 "R": R[x]}
-        if Opts.heatmapd == 0:
+        if self.opts.heatmapd == 0:
             self.GHists = OrderedDict()
             for x in self.XY:
                 self.GHists[x] = {}
                 self.GHists[x]['hist'] = self.XY[x]['hist']
         children['findSegments'][1].join()
-        # results = await asyncio.gather(*tasks, return_exceptions=True)
-        # Map results to task names
-        # task_results = {
-        #     task.get_name(): result 
-        #     for task, result in zip(tasks, results)
-        # }
-        # self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = task_results["findsegments"]
         with open(children['findSegments'][0], 'r+b') as fh:
             try:
                 self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.load(fh)
             except EOFError:
-                if not Opts.tracebyfile:
+                if not self.opts.tracebyfile:
                     self.logger.error("Catastrophic error computling segments.")
                     self.error = True
                 self.segments = {}
@@ -244,7 +227,7 @@ class Parse():
             for x, group in xy:
                 self.XY[x]["Y_nofirst"] = nofirsttrace[x]
                 self.XY[x]["LogY_nofirst"] = [np.log10(abs(_x)) for _x in nofirsttrace[x]]
-                self.XY[x]["hist_nofirst"] = dohistogram(nofirsttrace[x], label="J", que=self.logqueue)
+                self.XY[x]["hist_nofirst"] = dohistogram(nofirsttrace[x], label="J", que=self.logqueue, opts=self.opts)
 
         self.logger.info("* * * * * * Computing |V^2/J|  * * * * * * * * *")
         self.loghandler.flush()
@@ -260,7 +243,7 @@ class Parse():
         self.SLM['Gauss']['FN'] = findvtrans(_v, _j, logger=self.logger, unlog=True)
         self.SLM['Gauss']['G'] = findG(_v, _j, logger=self.logger, unlog=True)['slope']
         epsillon, gamma = slm_param_func(self.SLM['Gauss']['FN']['vt_pos'], self.SLM['Gauss']['FN']['vt_neg'])
-        big_gamma = Gamma_func(self.SLM['Gauss']['G'], Opts.nmolecules,
+        big_gamma = Gamma_func(self.SLM['Gauss']['G'], self.opts.nmolecules,
                                self.SLM['Gauss']['FN']['vt_pos'], self.SLM['Gauss']['FN']['vt_neg'])
         self.SLM['Gauss']['epsillon'] = epsillon
         self.SLM['Gauss']['gamma'] = gamma
@@ -285,7 +268,7 @@ class Parse():
 
         if self.error:
             self.logger.error('Cannot compute statistics from these traces. (Did you set segments correctly?)')
-            if Opts.force:
+            if self.opts.force:
                 self.logger.warn('Continuing anyway.')
                 self.error = False
             self.loghandler.flush()

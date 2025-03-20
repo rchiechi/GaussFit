@@ -44,6 +44,8 @@ from gaussfit.args import Opts, VERSION
 from gaussfit.parse import Parse
 from gaussfit.parse import readfiles
 from .libparse.ParseThread import ParseThread
+from gaussfit.output.libwriter import doOutput
+from gaussfit.output import Writer
 
 try:
     import psutil
@@ -69,10 +71,8 @@ class ChooseFiles(tk.Frame):
     def __init__(self, **kwargs):
         self.master = kwargs.get('master', Tk())
         super().__init__(self.master)
-        # self.loop = kwargs.get('loop', asyncio.get_event_loop())
+        self.loop = kwargs.get('loop', asyncio.get_event_loop())
         self.logque = Queue(-1)
-        self.delayed_handler = DelayedMultiprocessHandler(self.logque)
-        # tk.Frame.__init__(self, self.master)
         bgimg = PhotoImage(file=os.path.join(absdir, 'RCCLabFluidic.png'))
         limg = Label(self.master, i=bgimg, background=GREY)
         limg.pack(side=TOP)
@@ -121,6 +121,7 @@ class ChooseFiles(tk.Frame):
         self.handler.setFormatter(logging.Formatter('%(levelname)s %(message)s'))
         self.logger.addHandler(self.handler)
         self.logger.setLevel(getattr(logging, self.opts.loglevel.upper()))
+        
         self.logger.info("Config file:%s", self.opts.configfile)
         self.handler.flush()
         self.updateFileListBox()
@@ -282,7 +283,7 @@ class ChooseFiles(tk.Frame):
             try:
                 # df = await readfiles(self.opts.in_files) # Await here!
                 # parser = Parse(df, handler=DelayedMultiprocessHandler(self.logque))
-                thread = ParseThread(self.opts.in_files, self.delayed_handler)
+                thread = ParseThread(self.opts, self.logque)
                 self.gothreads.append(thread)
                 thread.start()
                 self.master.after(100, self.check_queue)
@@ -302,6 +303,9 @@ class ChooseFiles(tk.Frame):
 
     def check_queue(self):
         if any(t.is_alive() for t in self.gothreads):
+            while not self.logque.empty():
+                self.handler.emit(self.logque.get_nowait())
+            self.handler.flush()
             self.master.after(100, self.check_queue)
         else:
             self.master.after(0, self.postParse) #Safely call on main thread
@@ -317,12 +321,15 @@ class ChooseFiles(tk.Frame):
         self.ButtonParse['state'] = NORMAL
         self.opts.degfree = self.degfreedom
         self.logger.info("Parse complete!")
-        gothread = self.gothreads.pop()
-        if self.opts.write and not gothread.parser.error:
-            writer = Writer(gothread.parser)
-            doOutput(writer)
-        if self.opts.plot and not gothread.parser.error:
-            self.GUIPlot(parser=gothread.parser)
+        try:
+            gothread = self.gothreads.pop()
+            if self.opts.write and not gothread.parser.error:
+                writer = Writer(gothread.parser)
+                doOutput(writer)
+            if self.opts.plot and not gothread.parser.error:
+                self.GUIPlot(parser=gothread.parser)
+        except (IndexError, ValueError) as e:
+            self.logger.error(e)
 
     def SettingsClick(self):
         self.checkOptions()

@@ -3,7 +3,7 @@ import logging
 from logging.handlers import QueueHandler
 from multiprocessing import Process
 from gaussfit.parse.libparse.util import throwimportwarning, getdistances
-from gaussfit.args import Opts as opts
+from gaussfit.args import Opts
 try:
     import numpy as np
     from scipy.stats import linregress
@@ -13,27 +13,27 @@ except ImportError as msg:
 
 class doLagMultiprocess(Process):
 
-    def __init__(self, conn, que, xy):
+    def __init__(self, conn, opts, que, xy):
         super().__init__()
         self.conn = conn
         self.que = que
-        # self.opts = opts
+        self.opts = opts
         self.xy = xy
 
     def run(self):
-        return _dolag(self.conn, self.que, self.xy)
+        return _dolag(self.conn, self.opts, self.que, self.xy)
 
 
 class doLag(doLagMultiprocess):
 
     def start(self):
-        return _dolag(self.conn, self.que, self.xy)
+        return _dolag(self.conn, self.opts, self.que, self.xy)
 
     def join(self):
         return
 
 
-def _dolag(conn, que, xy):
+def _dolag(conn, opts, que, xy):
     '''
     Make a lag plot of Y
     '''
