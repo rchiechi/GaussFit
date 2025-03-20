@@ -1,5 +1,7 @@
+import asyncio
 import threading
-
+from gaussfit.parse import Parse
+from gaussfit.parse import readfiles
 
 class ParseThread(threading.Thread):
     '''A Thread object to run the parse in so it
@@ -10,4 +12,4 @@ class ParseThread(threading.Thread):
         self.parser = parser
 
     def run(self):
-        self.parser.readfiles(self.parser.opts.in_files)
+        asyncio.run(self.parser.parse())

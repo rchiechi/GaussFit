@@ -223,10 +223,9 @@ Opts.ycol -= 1
 if Opts.degfree < 2 and len(Opts.in_files) > 1:
     Opts.degfree = len(Opts.in_files)-1
 
-# if not Opts.in_files and not Opts.gui:
-#     parser.print_help()
-#     print(RED+"\n\t\t> > > No input files! < < < "+RS)
-#     sys.exit()
+if not 0 < Opts.alpha < 1:
+    print(RED+"Alpha must be between 0 and 1"+RS)
+    sys.exit()
 
 
 # Setup CSV parser dialect and separator for pandas

@@ -6,7 +6,6 @@ from .findmin import findmin, old_findmin
 from .dummies import dummyListener, dummyPopen
 from .doconductance import doconductance
 from .doslm import doslm
-from .readfiles import readfiles
 
 if platform.system() in ('Linux', 'Darwin', 'Windows'):
     from .dolag import doLagMultiprocess as doLag

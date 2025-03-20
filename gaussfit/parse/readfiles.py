@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 import pandas as pd
 from gaussfit.args import Opts
-from .util import async_getfilechecksum
+from .libparse.util import async_getfilechecksum
 
 async def dedupe_files(input_files, logger):
     results = {}
@@ -70,7 +70,6 @@ def parse_all_columns(file_paths, logger):
 async def readfiles(input_files, **kwargs):
     '''Walk through input files and parse
     them into attributes '''
-    
     logger = kwargs.get('logger', logging.getLogger(__package__+".readfiles"))
     if not isinstance(input_files, list):
         input_files = [input_files]

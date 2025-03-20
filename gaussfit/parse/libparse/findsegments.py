@@ -4,7 +4,7 @@ import logging
 from logging.handlers import QueueHandler
 from multiprocessing import Process
 from gaussfit.parse.libparse.dohistogram import dohistogram
-from gaussfit.args import Opts as opts
+from gaussfit.args import Opts
 
 class findSegmentsMultiprocess(Process):
 
@@ -12,11 +12,10 @@ class findSegmentsMultiprocess(Process):
         super().__init__()
         self.conn = conn
         self.que = que
-        self.opts = opts
         self.df = df
 
     def run(self):
-        if self.opts.tracebyfile or self.opts.segments < 1:
+        if Opts.tracebyfile or Opts.segments < 1:
             # self.logger.error("Cannot generate segments from non-EGaIn datasets.")
             return True, {}, {}, {}
         return _findsegments(self.conn, self.que, self.df.copy())
@@ -25,7 +24,7 @@ class findSegmentsMultiprocess(Process):
 class findSegments(findSegmentsMultiprocess):
 
     def start(self):
-        if self.opts.tracebyfile or self.opts.segments < 1:
+        if Opts.tracebyfile or Opts.segments < 1:
             return True, {}, {}, {}
         return _findsegments(self.conn, self.que, self.df.copy())
 
@@ -42,13 +41,13 @@ def _findsegments(conn, que, df):
     logger.addHandler(QueueHandler(que))
     __sendattr = getattr(conn, "send", None)
     use_pipe = callable(__sendattr)
-    # TODO set num_segments in opts
+    # TODO set num_segments in Opts
     # NOTE this is a crude hack because I forgot how Pandas works
-    if opts.ycol < 0:
+    if Opts.ycol < 0:
         logger.warning("Parsing segments when all columns are parsed may produce weird results!")
     try:
-        if df.V.value_counts()[0] % int(opts.segments-1) != 0:
-            logger.warning("Dataset does not seem to have %s segments.", int(opts.segments))
+        if df.V.value_counts()[0] % int(Opts.segments-1) != 0:
+            logger.warning("Dataset does not seem to have %s segments.", int(Opts.segments))
     except KeyError:
         logger.warning("Could not segment data by 0's.")
         return {}
@@ -62,7 +61,7 @@ def _findsegments(conn, que, df):
     for _fn in df.index.levels[0]:
         _seg = None
         _trace = None
-        if opts.ycol > 0:
+        if Opts.ycol > 0:
             _n_traces = int(df.V.value_counts()[0] / 3)
             try:
                 if df.loc[_fn]['V'][0] != 0.0:
@@ -96,7 +95,7 @@ def _findsegments(conn, que, df):
             elif V in (_Vmax, _Vmin) and _next_V not in (_Vmax, _Vmin) and V != 0:  # Turnaround at ends
                 _seg += 1
 
-            if _seg in (-1, opts.segments):  # New trace starts with new segment
+            if _seg in (-1, Opts.segments):  # New trace starts with new segment
                 # print("_seg is 4\nLast V: %s\nThis V: %s\nNext V: %s\n" % (_last_V, V, _next_V))
                 _seg = 0
                 _trace += 1
@@ -128,9 +127,9 @@ def _findsegments(conn, que, df):
             if V != 0:
                 if len(nofirsttrace[V]) > max_column_width:
                     max_column_width = len(nofirsttrace[V])
-    if len(segments.keys()) != opts.segments:
+    if len(segments.keys()) != Opts.segments:
         error = True
-        logger.error('Expected %i segments, but found %i!', opts.segments, len(segments.keys()))
+        logger.error('Expected %i segments, but found %i!', Opts.segments, len(segments.keys()))
     else:
         logger.info('Found %s segments.', len(segments.keys()))
 

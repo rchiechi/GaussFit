@@ -1,4 +1,5 @@
 from gaussfit.parse.libparse.util import throwimportwarning
+from gaussfit.args import Opts
 
 try:
     from scipy.stats import linregress, gmean
@@ -21,7 +22,7 @@ def doconductance(self):
         voltages.append(self.avg.loc[0].index.tolist()[_idx])
     for trace in self.avg.index.levels[0]:
         self.SLM['G'][trace] = np.nan
-        if self.opts.skipohmic and trace in self.ohmic:
+        if Opts.skipohmic and trace in self.ohmic:
             tossed += 1
             continue
         _Y = []
@@ -36,11 +37,11 @@ def doconductance(self):
             self.logger.warning("Cannot compute conductance (probably because of unequal voltage steps.)")
             continue
         self.logger.debug(f"G:{_fit.slope:.2E} (R={_fit.rvalue:.2f})")
-        if _fit.rvalue ** 2 < self.opts.minr:
-            self.logger.warn("Tossing G-value with R < %s", self.opts.minr)
+        if _fit.rvalue ** 2 < Opts.minr:
+            self.logger.warn("Tossing G-value with R < %s", Opts.minr)
             continue
-        if _fit.slope > self.opts.maxG:
-            self.logger.warn(f"Tossing ridiculous G-value: {_fit.slope:.2E} > {self.opts.maxG}")
+        if _fit.slope > Opts.maxG:
+            self.logger.warn(f"Tossing ridiculous G-value: {_fit.slope:.2E} > {Opts.maxG}")
         self.G[trace] = _fit.slope
         self.SLM['G'][trace] = _fit.slope
     Gavg = gmean(list(self.G.values()), nan_policy='omit')

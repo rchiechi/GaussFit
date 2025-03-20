@@ -24,6 +24,9 @@ import asyncio
 import sys
 import cProfile
 import warnings
+import logging
+from .logs import GaussfitFormatter
+from .parse import readfiles
 from .parse import Parse
 from .args import Opts
 from .output import Writer, Plotter
@@ -37,6 +40,7 @@ except ImportError as msg:
     print("Cannot import matplotlib! %s", str(msg), exc_info=False)
     CAN_PLOT = False
 
+warnings.filterwarnings('ignore', '.*invalid escape sequence.*', SyntaxWarning)
 
 def do_cprofile(func):
     '''
@@ -63,8 +67,19 @@ async def do_gaussfit():
     if not Opts.in_files:
         print(RED+"\n\t\t> > > No input files! < < < "+RS)
         sys.exit()
-    parser = Parse(Opts)
-    await parser.readfiles(Opts.in_files)
+    # Create logger
+    logger = logging.getLogger(__name__.split(".")[0])
+    logger.setLevel(getattr(logging, Opts.loglevel.upper()))
+    # Create console handler
+    console_handler = logging.StreamHandler()
+    # Create formatter
+    console_handler.setFormatter(GaussfitFormatter())
+    # Add handler to logger
+    logger.addHandler(console_handler)
+    logger.info("Reading files")
+    df = await readfiles(Opts.in_files)
+    parser = Parse(df, logger=logger)
+    await parser.parse()
     if Opts.write and not parser.error:
         writer = Writer(parser)
         doOutput(writer)
@@ -76,19 +91,16 @@ async def do_gaussfit():
         else:
             print(colors.RED+"Unable to show plots without matplotlib."+colors.RS)
 
-async def async_main(gui=False):
-    warnings.filterwarnings('ignore', '.*invalid escape sequence.*', SyntaxWarning)
-    if gui:
-        from GUI import filebrowser
-        gui = filebrowser.ChooseFiles()
-    else:
-        await do_gaussfit()
+async def do_gui():
+    from GUI import filebrowser
+    gui = filebrowser.ChooseFiles(loop=asyncio.get_running_loop())
+    gui.master.mainloop()
 
 def main_cli():
-    asyncio.run(async_main()) 
+    asyncio.run(do_gaussfit()) 
     
 def main_gui():
-    asyncio.run(async_main(True)) 
+    asyncio.run(do_gui()) 
 
 if __name__ == "__main__":
     warnings.filterwarnings('ignore', '.*invalid escape sequence.*', SyntaxWarning)

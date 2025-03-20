@@ -1,6 +1,7 @@
 from gaussfit.parse.libparse.util import throwimportwarning
 from gaussfit.parse.libparse.dohistogram import dohistogram
 from SLM.extract import findvtrans
+from gaussfit.args import Opts
 
 try:
     import numpy as np
@@ -24,7 +25,7 @@ def findmin(self):
     # vmin, vmax = self.df.V.min(), self.df.V.max()
     # xneg, xpos = np.linspace(vmin, 0, 250), np.linspace(vmax, 0, 250)
     tossed = 0
-    if self.opts.skipohmic:
+    if Opts.skipohmic:
         # Vtrans has no physical meaning for curves with negative derivatives
         self.logger.info("Skipping %s (out of %s) non-tunneling traces for Vtrans calculation.",
                          len(self.ohmic), (len(self.avg.index.levels[0])))
@@ -32,7 +33,7 @@ def findmin(self):
     for trace in self.avg.index.levels[0]:
         self.SLM['Vtpos'][trace] = np.nan
         self.SLM['Vtneg'][trace] = np.nan
-        if self.opts.skipohmic and trace in self.ohmic:
+        if Opts.skipohmic and trace in self.ohmic:
             tossed += 1
             continue
         FN = findvtrans(self.avg.loc[trace].index.values, self.avg.loc[trace]['J'].values, logger=self.logger)
@@ -67,7 +68,7 @@ def old_findmin(self):
     vmin, vmax = self.df.V.min(), self.df.V.max()
     xneg, xpos = np.linspace(vmin, 0, 250), np.linspace(vmax, 0, 250)
     tossed = 0
-    if self.opts.skipohmic:
+    if Opts.skipohmic:
         # Vtrans has no physical meaning for curves with negative derivatives
         self.logger.info("Skipping %s (out of %s) non-tunneling traces for Vtrans calculation.",
                          len(self.ohmic), (len(self.avg.index.levels[0])))
@@ -75,7 +76,7 @@ def old_findmin(self):
     for trace in self.avg.index.levels[0]:
         self.SLM['Vtpos'][trace] = np.nan
         self.SLM['Vtneg'][trace] = np.nan
-        if self.opts.skipohmic and trace in self.ohmic:
+        if Opts.skipohmic and trace in self.ohmic:
             tossed += 1
             continue
         try:

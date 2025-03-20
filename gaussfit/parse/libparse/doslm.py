@@ -2,6 +2,7 @@ from SLM.util import SLM_func, Gamma_func, slm_param_func
 from gaussfit.parse.libparse.util import throwimportwarning
 from scipy.special import stdtrit
 from scipy.stats import gmean
+from gaussfit.args import Opts
 
 try:
     import numpy as np
@@ -15,7 +16,7 @@ def doslm(self):
     '''
 
     fits = 0
-    if not self.opts.SLM:
+    if not Opts.SLM:
         return fits
 
     _eh_vals = []
@@ -27,7 +28,7 @@ def doslm(self):
         _Vtpos = self.SLM["Vtpos"][trace]
         _Vtneg = self.SLM["Vtneg"][trace]
         epsillon, gamma = slm_param_func(_Vtpos, _Vtneg)
-        big_gamma = Gamma_func(_G, self.opts.nmolecules, _Vtpos, _Vtneg)
+        big_gamma = Gamma_func(_G, Opts.nmolecules, _Vtpos, _Vtneg)
         if False in [abs(gamma) > 0, abs(epsillon) > 0, abs(big_gamma) > 0]:
             continue
         V = []
@@ -61,16 +62,16 @@ def doslm(self):
         self.SLM['G_std'] = np.nanstd(_g_vals)
     except RuntimeWarning:
         self.logger.warning("Failed to compute any valid SLM values.")
-        self.opts.SLM = False
+        Opts.SLM = False
         return
     self.SLM['epsillon_sem'] = self.SLM['epsillon_std'] / np.sqrt(fits - 1 or 1)
-    self.SLM['epsillon_ci'] = self.SLM['epsillon_sem'] * stdtrit(fits - 1 or 1, 1 - self.opts.alpha)
+    self.SLM['epsillon_ci'] = self.SLM['epsillon_sem'] * stdtrit(fits - 1 or 1, 1 - Opts.alpha)
     self.SLM['gamma_sem'] = self.SLM['gamma_std'] / np.sqrt(fits - 1 or 1)
-    self.SLM['gamma_ci'] = self.SLM['gamma_sem'] * stdtrit(fits - 1 or 1, 1 - self.opts.alpha)
+    self.SLM['gamma_ci'] = self.SLM['gamma_sem'] * stdtrit(fits - 1 or 1, 1 - Opts.alpha)
     self.SLM['big_gamma_sem'] = self.SLM['big_gamma_std'] / np.sqrt(fits - 1 or 1)
-    self.SLM['big_gamma_ci'] = self.SLM['big_gamma_sem'] * stdtrit(fits - 1 or 1, 1 - self.opts.alpha)
+    self.SLM['big_gamma_ci'] = self.SLM['big_gamma_sem'] * stdtrit(fits - 1 or 1, 1 - Opts.alpha)
     self.SLM['G_sem'] = self.SLM['G_std'] / np.sqrt(fits - 1 or 1)
-    self.SLM['G_ci'] = self.SLM['G_sem'] * stdtrit(fits - 1 or 1, 1 - self.opts.alpha)
+    self.SLM['G_ci'] = self.SLM['G_sem'] * stdtrit(fits - 1 or 1, 1 - Opts.alpha)
 
     V = [_x for _x in self.avg.loc[0].index.tolist() if _x <= 1.25 * abs(self.SLM['epsillon_avg'])]
     V = np.array(self.avg.loc[0].index.tolist())

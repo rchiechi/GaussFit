@@ -41,10 +41,11 @@ from gaussfit.parse.libparse.util import printFN, throwimportwarning
 from SLM.extract import findvtrans, findG
 from SLM.util import SLM_func, Gamma_func, slm_param_func
 from gaussfit.colors import WHITE, GREEN, TEAL, YELLOW
+from gaussfit.logs import GaussfitFormatter
 from gaussfit.logger import DelayedHandler
+from gaussfit.args import Opts
 from .libparse.util import gettmpfilename
 from .libparse.dohistogram import dohistogram
-from .libparse import readfiles
 from .libparse import doLag
 from .libparse import findSegments
 # import platform
@@ -88,7 +89,6 @@ class Parse():
     VERSION = '1.0.2a'
     error = False
     parsed = False
-    df = pd.DataFrame()
     avg = pd.DataFrame()
     XY = OrderedDict()
     X = np.array([])
@@ -114,141 +114,36 @@ class Parse():
            'full': {}}  # SLM inputs and outputs by trace
     segments = {}
     segments_nofirst = {}
-    logger = logging.getLogger(__package__)
     logqueue = Queue()
 
-    def __init__(self, opts, handler=None):
-        self.opts = opts
+    def __init__(self, df, **kwargs):
+        self.df = df
+        self.logger = kwargs.get('logger', logging.getLogger(__package__))
+        self.logger.handlers.clear()
+        handler = kwargs.get("handler")
         # Pass your own log handler, e.g., when calling from a GUI
         # But make sure it supports flush(), setDelay() and unsetDelay() methods!
         if not handler:
             self.loghandler = DelayedHandler()
-            self.loghandler.setFormatter(logging.Formatter(
-                fmt=GREEN + os.path.basename(
-                    '%(name)s' + TEAL) + ' %(levelname)s ' + YELLOW + '%(message)s' + WHITE))
+            self.loghandler.setFormatter(GaussfitFormatter())
         else:
             self.loghandler = handler
         self.logger.addHandler(self.loghandler)
-        self.logger.setLevel(getattr(logging, self.opts.loglevel.upper()))
+        self.logger.setLevel(getattr(logging, Opts.loglevel.upper()))
         self.loglistener = QueueListener(self.logqueue, self.loghandler)
         self.loglistener.start()
-        self.logger.info("Gaussfit v%s", VERSION)
+        self.logger.info("Gaussfit Parser v%s", VERSION)
 
-        if not 0 < self.opts.alpha < 1:
-            self.logger.error("Alpha must be between 0 and 1")
-            sys.exit()
-
-    # def _checkfordupe(self, f):
-    #     _dupe = False
-    #     _digest = getfilechecksum(f)
-    #     if _digest in self.file_hashes:
-    #         self.logger.warning(f'{self.file_hashes[_digest]} and {f} are identical!')
-    #         _dupe = True
-    #     self.file_hashes[_digest] = f
-    #     return _dupe
-# 
-#     def _dedupefiles(self, _fns):
-#         fns = []
-#         if isinstance(_fns, str):
-#             _fns = [_fns]
-#         for _f in _fns:
-#             if self._checkfordupe(_f):
-#                 self.logger.warning(f'Refusing to parse duplicate file {_f}.')
-#                 self.logger.warning('Parsing identical files will skew the results.')
-#             else:
-#                 fns.append(_f)
-#         fns.sort()
-#         return fns
-
-    async def readfiles(self, input_files):
-        self.df = await readfiles(input_files, logger=self.logger)
-        if self.df.empty:
-            logger.error("Did not parse any files!")
-            sys.exit()
-
-#     async def readfiles(self, _fns, parse=True):
-#         '''Walk through input files and parse
-#         them into attributes '''
-# 
-#         frames = {}
-#         fns = self._dedupefiles(_fns)
-# 
-#         self.logger.debug('Parsing %s', ', '.join(fns))
-#         if self.opts.ycol > -1:
-#             self.logger.info("Parsing two columns of data (X=%s, Y=%s).", self.opts.xcol + 1, self.opts.ycol + 1)
-#             for f in fns:
-#                 with open(f, 'rb') as fh:
-#                     try:
-#                         _headers = fh.readline().split(bytes(self.opts.delim, encoding=self.opts.encoding))
-#                         _headers = list(map(lambda x: str(x, encoding=self.opts.encoding), _headers))
-#                     except UnicodeDecodeError:
-#                         self.logger.warning("Encountered an illegal unicode character in headers.")
-#                 try:
-#                     if _headers:
-#                         _x, _y = _headers[self.opts.xcol].strip(), _headers[self.opts.ycol].strip()
-#                         frames[f] = pd.read_csv(f, sep=self.opts.delim, encoding=self.opts.encoding,
-#                                                 usecols=(_x, _y))[[_x, _y]]
-#                         frames[f].rename(columns={_x: 'V', _y: 'J'}, inplace=True)
-#                         # self.logger.debug("Renaming headers %s -> V, %s -> J" % (_x, _y))
-#                     elif self.opts.X > self.opts.Y:
-#                         raise pd.errors.ParserError("xcol cannot be greater than ycol without column headers.")
-#                     else:
-#                         # self.logger.debug("No headers, manually setting V/J")
-#                         frames[f] = pd.read_csv(f, sep=self.opts.delim,
-#                                                 usecols=(self.opts.xcol,
-#                                                          self.opts.ycol),
-#                                                 names=('V', 'J'), header=0)
-#                 except OSError as msg:
-#                     self.logger.warning("Skipping %s because %s", f, str(msg))
-#                 except pd.errors.ParserError as msg:
-#                     self.logger.warning("Skipping malformatted %s because %s", f, str(msg))
-# 
-#         else:
-#             self.logger.info("Parsing all columns of data.")
-#             for f in fns:
-#                 try:
-#                     _df = pd.read_csv(f, sep=self.opts.delim,
-#                                       index_col=self.opts.xcol,
-#                                       header=0,
-#                                       error_bad_lines=False,
-#                                       warn_bad_lines=False)
-#                     i = 0
-#                     for col in _df:
-#                         frames['%s_%.2d' % (f, i)] = pd.DataFrame({'V': _df.index, 'J': _df[col]})
-#                         # self.logger.debug("Adding frame %s_%.2d" % (f,i) )
-#                         i += 1
-#                 except OSError as msg:
-#                     self.logger.warning("Skipping %s because %s", f, str(msg))
-# 
-#         if not frames:
-#             self.logger.error("No files to parse!")
-#             sys.exit()
-#         # Create main dataframe and parse it
-#         self.df = pd.concat(frames)
-#         if self.opts.xrange > 0:
-#             self.logger.info(f"Pruning x-axis to +/- {self.opts.xrange}.")
-#             self.df = self.df[self.df.V > -1 * abs(self.opts.xrange)]
-#             self.df = self.df[self.df.V < abs(self.opts.xrange)]
-#         # print(self.df)
-#         await self.__parse(parse)
-
-    def readpandas(self, df, parse):
-        '''Take a pandas.DataFrame as input instead of files.'''
-        self.logger.debug("Using Pandas as input")
-        self.df = df
-        self.__parse(parse)
-
-    async def __parse(self, parse):
+    async def parse(self, **kwgars):
         '''Read a pandas.DataFrame and compute Fowler-Nordheim
         values, log10 the J or I values and create a dictionary
         indexed by unique voltages.'''
-
         if (self.df.V.dtype, self.df.J.dtype) != ('float64', 'float64'):
             self.logger.error("Parsed data does not appear to contain numerical data!")
             self.error = True
             return
         if self.df.J.first_valid_index() is None:
-            self.logger.error("Column %s is empty!", str(self.opts.ycol + 1))
+            self.logger.error("Column %s is empty!", str(Opts.ycol + 1))
             self.error = True
             return
         if self.df.J.hasnans:
@@ -261,15 +156,12 @@ class Parse():
         self.df.replace({'J':0.0}, value=1e-16, inplace=True)
         self.df['logJ'] = np.log10(abs(self.df.J))  # Cannot log10 zero
         self.logger.info('%s values of log|J| above compliance (%s)',
-                         len(self.df['logJ'][self.df['logJ'] > self.opts.compliance]), self.opts.compliance)
+                         len(self.df['logJ'][self.df['logJ'] > Opts.compliance]), Opts.compliance)
         self.df['lnJ'] = np.log(abs(self.df.J))  # Cannot log10 zero
         # The default log handler only emits when you call flush() after setDelay() called
         self.loghandler.setDelay()
 
-        # In the event that we want to call parsing method by hand
-        # we stop here when just self.df is complete
-        if parse:
-            await self.__parsedataset()
+        await self.__parsedataset()
 
     async def __parsedataset(self):
         children = {}
@@ -298,7 +190,7 @@ class Parse():
         children['doLag'] = (conn, doLag(conn, self.logqueue, xy))
         children['doLag'][1].start()
         self.dodjdv()
-        if self.opts.oldfn:
+        if Opts.oldfn:
             self.old_findmin()
         else:
             self.findmin()
@@ -324,7 +216,7 @@ class Parse():
                 "lag": lag[x]['lagplot'],
                 "FN": group['FN'],
                 "R": R[x]}
-        if self.opts.heatmapd == 0:
+        if Opts.heatmapd == 0:
             self.GHists = OrderedDict()
             for x in self.XY:
                 self.GHists[x] = {}
@@ -341,7 +233,7 @@ class Parse():
             try:
                 self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.load(fh)
             except EOFError:
-                if not self.opts.tracebyfile:
+                if not Opts.tracebyfile:
                     self.logger.error("Catastrophic error computling segments.")
                     self.error = True
                 self.segments = {}
@@ -368,7 +260,7 @@ class Parse():
         self.SLM['Gauss']['FN'] = findvtrans(_v, _j, logger=self.logger, unlog=True)
         self.SLM['Gauss']['G'] = findG(_v, _j, logger=self.logger, unlog=True)['slope']
         epsillon, gamma = slm_param_func(self.SLM['Gauss']['FN']['vt_pos'], self.SLM['Gauss']['FN']['vt_neg'])
-        big_gamma = Gamma_func(self.SLM['Gauss']['G'], self.opts.nmolecules,
+        big_gamma = Gamma_func(self.SLM['Gauss']['G'], Opts.nmolecules,
                                self.SLM['Gauss']['FN']['vt_pos'], self.SLM['Gauss']['FN']['vt_neg'])
         self.SLM['Gauss']['epsillon'] = epsillon
         self.SLM['Gauss']['gamma'] = gamma
@@ -393,7 +285,7 @@ class Parse():
 
         if self.error:
             self.logger.error('Cannot compute statistics from these traces. (Did you set segments correctly?)')
-            if self.opts.force:
+            if Opts.force:
                 self.logger.warn('Continuing anyway.')
                 self.error = False
             self.loghandler.flush()
