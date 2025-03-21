@@ -3,12 +3,8 @@
 ## Synopsis
 
 This is a set of python scripts to parse raw I/V data, perform statistical analyses, generate plots and output parsed data as CSV files.
-Most functions and options are available via a `tkinter` GUI that you can call with `GaussFit.py -G`. The outputs of `GaussFit.py` have been tested extensively and, while the code is a mess, the results can be considered reliable provided all warning messages are heeded.
+Most functions and options are available via a `tkinter` GUI that you can call with `gaussfit-gui`. The outputs of `gaussfit` have been tested extensively and, while the code is a mess, the results can be considered reliable provided all warning messages are heeded.
 
-The `Stats.py` part is very much a work in progress, but it should, at the very least compute p-values using each file as a degree of freedom.
-The `autonobs` command will try to guess time intervals and use those as degrees of freedom, but it relies on metadata in the input files and has only been tested with output containing this metadata in a very specific format.
-
-The commands for `GaussFit.py` and `Stats.py` are identical (with a few special options for `Stats.py`); launching with `-G` will get you a GUI in either case.
 
 Although we have done some testing of the statistically functions, do not rely on this software without using some robust, external test of the veracity of the output!
 
@@ -33,45 +29,57 @@ Many of the functions, such as computing differential conductance and rectificat
 
 `GaussFit.py` is fairly verbose by default and will summarize data that it cannot parse, that can safely be considered numerical artifacts (e.g., when computing derivatives) or that fall outside of a cut-off range specified by the user. It is vital to pay attention to this output to ensure that the majority of the input data are actually being parsed into the final outputs.
 
-## Dependencies
+## Installation
 
-```
-python 3.4+
-pandas
-colorama
-numpy
-scipy
-matplotlib >= 3
-appdirs
-```
+Navigate to the directory in which you cloned this repo and type `python3.12 -mvenv /path/to/gaussgit/venv` (`add --system-site-packages` on MacOS if using Tkinter and homebrew). Then type  `/path/to/gaussgit/venv/bin/pip install -e ./`.
 
-### Usage
+### Updating
 
-You can just call the GUI with `GaussFit.py -G` and work from there.
+the `-e` switch tells pip to link to the source directory, so you can just `git pull` and the changes will be reflected the next time you run gaussfit.
+
+## Usage
+
+To invoke Gaussfit use either ``/path/to/gaussgit/venv/bin/gaussfit`` or ``/path/to/gaussgit/venv/bin/gaussfit-gui`` to launch the cli/gui versions respectively.
 
 To plot your data quickly without writing files:
 
 ```
-GaussFit.py -n (-G) <files>
+gaussfit -n <files>
+```
+or
+```
+gaussfit-gui -n <files>
 ```
 
 To write your data quickly and without plotting:
 
 ```
-GaussFit.py -o <output name> (-G) <files>
+gaussfit -o <output name> <files>
 ```
+or
 
+```
+gaussfit-gui -o <output name> <files>
+```
 To do both:
 
 ```
-GaussFit.py -o <output name> -p (-G) <files>
+gaussfit -o <output name> -p <files>
 ```
-
+or
+```
+gaussfit-gui -o <output name> -p <files>
+```
 A default configuration file will be created on first-run. To see where it is:
 
 ```
-GaussFit.py -h
+gaussfit -h
 ```
+It is also displayed at the top of the GUI.
+
+### Parsing
+
+Pay close attention to the log output. It will tell you what is and is not working.
 
 ### Issues
 
