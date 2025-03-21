@@ -1,36 +1,7 @@
 import numpy as np
-import pickle
 import logging
 from logging.handlers import QueueHandler
-from multiprocessing import Process
 from gaussfit.parse.libparse.dohistogram import dohistogram
-
-# class findSegmentsMultiprocess(Process):
-# 
-#     def __init__(self, conn, opts, que, df):
-#         super().__init__()
-#         self.conn = conn
-#         self.que = que
-#         self.df = df
-#         self.opts = opts
-# 
-#     def run(self):
-#         if self.opts.tracebyfile or self.opts.segments < 1:
-#             # self.logger.error("Cannot generate segments from non-EGaIn datasets.")
-#             return True, {}, {}, {}
-#         return _findsegments(self.conn, self.opts, self.que, self.df.copy())
-# 
-# 
-# class findSegments(findSegmentsMultiprocess):
-# 
-#     def start(self):
-#         if self.opts.tracebyfile or self.opts.segments < 1:
-#             return True, {}, {}, {}
-#         return _findsegments(self.conn, self.que, self.df.copy())
-# 
-#     def join(self):
-#         return
-
 
 def findSegments(conn, opts, que, df):
     '''
@@ -39,8 +10,7 @@ def findSegments(conn, opts, que, df):
     '''
     logger = logging.getLogger(__package__+".findsegments")
     logger.addHandler(QueueHandler(que))
-    # __sendattr = getattr(conn, "send", None)
-    # use_pipe = callable(__sendattr)
+    logger.info("* * * * * * Finding segments   * * * * * * * *")
     # TODO set num_segments in opts
     # NOTE this is a crude hack because I forgot how Pandas works
     if opts.ycol < 0:
@@ -175,10 +145,3 @@ def findSegments(conn, opts, que, df):
         nofirsttrace[_V] = np.array(nofirsttrace[_V])
     logger.info("Findsegments done.")
     conn.put((error, segmenthists, segmenthists_nofirst, nofirsttrace))
-    # if use_pipe:
-    #     conn.send((error, segmenthists, segmenthists_nofirst, nofirsttrace))
-    #     conn.close()
-    # else:
-    #     with open(conn, 'w+b') as fh:
-    #         pickle.dump((error, segmenthists, segmenthists_nofirst, nofirsttrace), fh)
-    # return error, segmenthists, segmenthists_nofirst, nofirsttrace

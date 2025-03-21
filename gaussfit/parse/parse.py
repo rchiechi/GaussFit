@@ -31,7 +31,6 @@ import sys
 import os
 import logging
 from logging.handlers import QueueListener
-# from multiprocessing import Queue
 from queue import Queue
 import threading
 import warnings
@@ -50,6 +49,8 @@ from .libparse.util import gettmpfilename
 from .libparse.dohistogram import dohistogram
 from .libparse import doLag
 from .libparse import findSegments
+from .libparse import doconductance
+
 # import platform
 try:
     import pandas as pd
@@ -70,6 +71,19 @@ warnings.filterwarnings('ignore', '.*Mean of empty slice.*', RuntimeWarning)
 warnings.filterwarnings('error', '.*Degrees of freedom <= 0 for slice.*', RuntimeWarning)
 # warnings.filterwarnings('ignore','.*impossible result.*',UserWarning)
 
+def background(func, *args):
+    conn = Queue()
+    thread = threading.Thread(target=func, args=(conn, *args))
+    thread.start()
+    return conn, thread
+
+def get_result(child):
+    child[1].join()
+    result = child[0].get()
+    if isinstance(result, Exception):
+        raise result
+    else:
+        return result
 
 class Parse():
     '''
@@ -84,7 +98,6 @@ class Parse():
     from gaussfit.parse.libparse import dodjdv
     from gaussfit.parse.libparse import findmin, old_findmin
     from gaussfit.parse.libparse import dorect
-    from gaussfit.parse.libparse import doconductance
     from gaussfit.parse.libparse import doslm
 
     # Class variables
@@ -103,8 +116,9 @@ class Parse():
     NDCHists = OrderedDict()
     filtered = []
     R = {}
-    G = {}  # Conductance indexed by trace
+    # G = {}  # Conductance indexed by trace
     SLM = {'G': {},
+           'Gavg': 0.0,
            'Vtpos': {},
            'Vtneg': {},
            'epsillon': {},
@@ -169,23 +183,14 @@ class Parse():
         xy = []
         for x, group in self.df.groupby('V'):
             xy.append((x, group))
-        self.logger.info("* * * * * * Finding segments   * * * * * * * *")
-        # conn = gettmpfilename()
-        conn = Queue()
-        children['findSegments'] = (conn, threading.Thread(target=findSegments, args=(conn, self.opts, self.logqueue, self.df)))
-        # (conn, findSegments(conn, self.opts, self.logqueue, self.df))
-        children['findSegments'][1].start()
+        children['findSegments'] = background(findSegments, self.opts, self.logqueue, self.df.copy())
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.loghandler.flush()
-        self.findtraces()
-        self.SLM['G_avg'] = self.doconductance()
-        self.logger.info("* * * * * * Computing Lag  * * * * * * * * *")
-        # conn = gettmpfilename()
-        # children['doLag'] = (conn, doLag(conn, self.opts, self.logqueue, xy))
-        conn = Queue()
-        children['doLag'] = (conn, threading.Thread(target=doLag, args=(conn, self.opts, self.logqueue, xy)))
-        children['doLag'][1].start()
-        self.dodjdv()
+        self.findtraces() # Sets self.avg
+        # self.SLM['G_avg'] = self.doconductance()
+        children['doLag'] = background(doLag, self.opts, self.logqueue, xy)
+        self.dodjdv() # sets self.ohmic
+        children['doconductance'] = background(doconductance, self.opts, self.logqueue, self.ohmic, self.avg.copy())
         if self.opts.oldfn:
             self.old_findmin()
         else:
@@ -193,15 +198,7 @@ class Parse():
         self.SLM['Vtposavg'] = self.FN["pos"]
         self.SLM['Vtnegavg'] = self.FN["neg"]
         R = self.dorect(xy)
-        children['doLag'][1].join()
-        result = children['doLag'][0].get()
-        if isinstance(result, Exception):
-            raise result  # Re-raise the exception in the main thread.
-        else:
-            lag = result
-        # with open(children['doLag'][0], 'r+b') as fh:
-        #     lag = pickle.load(fh)
-        # os.unlink(children['doLag'][0])
+        lag = get_result(children['doLag'])
         self.logger.info("* * * * * * Computing Gaussians  * * * * * * * * *")
         self.loghandler.flush()
         for x, group in xy:
@@ -223,22 +220,7 @@ class Parse():
                 self.GHists[x] = {}
                 self.GHists[x]['hist'] = self.XY[x]['hist']
         children['findSegments'][1].join()
-        result = children['findSegments'][0].get()
-        if isinstance(result, Exception):
-            raise result  # Re-raise the exception in the main thread.
-        else:
-            self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = result
-        # with open(children['findSegments'][0], 'r+b') as fh:
-        #     try:
-        #         self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.load(fh)
-        #     except EOFError:
-        #         if not self.opts.tracebyfile:
-        #             self.logger.error("Catastrophic error computling segments.")
-        #             self.error = True
-        #         self.segments = {}
-        #         self.segmenthists_nofirst = {}
-        #         nofirsttrace = {}
-        # os.unlink(children['findSegments'][0])
+        self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = get_result(children['findSegments'])
         if nofirsttrace:
             for x, group in xy:
                 self.XY[x]["Y_nofirst"] = nofirsttrace[x]
@@ -249,6 +231,9 @@ class Parse():
         self.loghandler.flush()
         for x in self.XY:
             self.XY[x]['VT'] = abs(x**2 / 10**self.XY[x]['hist']['mean'])
+        _SLM = get_result(children['doconductance'])
+        for key in _SLM:
+            self.SLM[key] = _SLM[key]
         self.logger.info("* * * * * * Computing SLM from Gaussian LogJ  * * * * * * * * *")
         self.loghandler.flush()
         _v, _j = [], []
