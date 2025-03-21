@@ -72,19 +72,20 @@ def findvtrans(V, J, **kwargs):
     if len(V) != len(J):
         logger.error("J/V data differ in length")
         return FN
-    for _i in range(0, len(V)):
-        if not V[_i]:
+    for idx, v in enumerate(V):
+        if not v:
             continue
-        _j = J[_i]
+        j = J[idx]
         if kwargs.get('unlog', False):
-            _j = np.power(10, _j)
-        _fn = abs(V[_i] ** 2 / _j)
-        if V[_i] < 0:
-            FN['neg'][0].append(V[_i])
-            FN['neg'][1].append(_fn)
-        if V[_i] > 0:
-            FN['pos'][0].append(V[_i])
-            FN['pos'][1].append(_fn)
+            j = np.power(10, j)
+        fn = abs(v ** 2 / j)
+        if v < 0:
+            FN['neg'][0].append(v)
+            FN['neg'][1].append(fn)
+        if v > 0:
+            FN['pos'][0].append(v)
+            FN['pos'][1].append(fn)
+    
     for _i in (0, 1):
         FN['pos'][_i] = np.array(FN['pos'][_i])
         FN['neg'][_i] = np.array(FN['neg'][_i])

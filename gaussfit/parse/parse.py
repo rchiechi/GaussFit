@@ -232,18 +232,12 @@ class Parse():
         self.loghandler.flush()
         for x in self.XY:
             self.XY[x]['VT'] = abs(x**2 / 10**self.XY[x]['hist']['mean'])
-        _SLM = get_result(children['doconductance'])
-        for key in _SLM:
-            self.SLM[key] = _SLM[key]
+        self.SLM.update(get_result(children['doconductance']))
         self.logger.info("* * * * * * Computing SLM from Gaussian LogJ  * * * * * * * * *")
         self.loghandler.flush()
-        _v, _j = [], []
-        for x in self.XY:
-            _v.append(x)
-            _j.append(self.XY[x]['hist']['mean'])
         self.SLM['Gauss'] = {}
-        self.SLM['Gauss']['FN'] = findvtrans(_v, _j, logger=self.logger, unlog=True)
-        self.SLM['Gauss']['G'] = findG(_v, _j, logger=self.logger, unlog=True)['slope']
+        self.SLM['Gauss']['FN'] = findvtrans([x for x in self.XY], [self.XY[x]['hist']['mean'] for x in self.XY], logger=self.logger, unlog=True)
+        self.SLM['Gauss']['G'] = findG([x for x in self.XY], [self.XY[x]['hist']['mean'] for x in self.XY], logger=self.logger, unlog=True)['slope']
         epsillon, gamma = slm_param_func(self.SLM['Gauss']['FN']['vt_pos'], self.SLM['Gauss']['FN']['vt_neg'])
         big_gamma = Gamma_func(self.SLM['Gauss']['G'], self.opts.nmolecules,
                                self.SLM['Gauss']['FN']['vt_pos'], self.SLM['Gauss']['FN']['vt_neg'])
