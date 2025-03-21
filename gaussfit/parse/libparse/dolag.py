@@ -10,36 +10,36 @@ try:
 except ImportError as msg:
     throwimportwarning(msg)
 
+# 
+# class doLagMultiprocess(Process):
+# 
+#     def __init__(self, conn, opts, que, xy):
+#         super().__init__()
+#         self.conn = conn
+#         self.que = que
+#         self.opts = opts
+#         self.xy = xy
+# 
+#     def run(self):
+#         return _dolag(self.conn, self.opts, self.que, self.xy)
+# 
+# 
+# class doLag(doLagMultiprocess):
+# 
+#     def start(self):
+#         return _dolag(self.conn, self.opts, self.que, self.xy)
+# 
+#     def join(self):
+#         return
 
-class doLagMultiprocess(Process):
 
-    def __init__(self, conn, opts, que, xy):
-        super().__init__()
-        self.conn = conn
-        self.que = que
-        self.opts = opts
-        self.xy = xy
-
-    def run(self):
-        return _dolag(self.conn, self.opts, self.que, self.xy)
-
-
-class doLag(doLagMultiprocess):
-
-    def start(self):
-        return _dolag(self.conn, self.opts, self.que, self.xy)
-
-    def join(self):
-        return
-
-
-def _dolag(conn, opts, que, xy):
+def doLag(conn, opts, que, xy):
     '''
     Make a lag plot of Y
     '''
 
-    __sendattr = getattr(conn, "send", None)
-    use_pipe = callable(__sendattr)
+    # __sendattr = getattr(conn, "send", None)
+    # use_pipe = callable(__sendattr)
     lag = {}
     exclude_warnings = []
     logger = logging.getLogger(__package__+".dolag")
@@ -82,9 +82,10 @@ def _dolag(conn, opts, que, xy):
     if exclude_warnings:
         logger.warning("Lag filter excluded all data at these voltages: %s", ",".join(exclude_warnings))
     logger.info("Lag done.")
-    if use_pipe:
-        conn.send(lag)
-        conn.close()
-    else:
-        with open(conn, 'w+b') as fh:
-            pickle.dump(lag, fh)
+    conn.put(lag)
+    # if use_pipe:
+    #     conn.send(lag)
+    #     conn.close()
+    # else:
+    #     with open(conn, 'w+b') as fh:
+    #         pickle.dump(lag, fh)

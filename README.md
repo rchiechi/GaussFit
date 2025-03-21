@@ -31,7 +31,7 @@ Many of the functions, such as computing differential conductance and rectificat
 
 ## Installation
 
-Navigate to the directory in which you cloned this repo and type `python3.12 -mvenv /path/to/gaussgit/venv` (`add --system-site-packages` on MacOS if using Tkinter and homebrew). Then type  `/path/to/gaussgit/venv/bin/pip install -e ./`.
+Navigate to the directory in which you cloned this repo and type `python3.12 -mvenv /path/to/gaussgit/venv` (`add --system-site-packages` on MacOS if using Tkinter and homebrew). Then type  `/path/to/gaussgit/venv/bin/pip install -e ./`. You're on your own for installing tkinter if you want the GUI, but on MacOS `brew install python-tk@3.12` should get you there and Linux distros will make it available in their pacakge managers.
 
 ### Updating
 

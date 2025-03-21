@@ -31,7 +31,9 @@ import sys
 import os
 import logging
 from logging.handlers import QueueListener
-from multiprocessing import Queue
+# from multiprocessing import Queue
+from queue import Queue
+import threading
 import warnings
 import time
 import pickle
@@ -168,16 +170,20 @@ class Parse():
         for x, group in self.df.groupby('V'):
             xy.append((x, group))
         self.logger.info("* * * * * * Finding segments   * * * * * * * *")
-        conn = gettmpfilename()
-        children['findSegments'] = (conn, findSegments(conn, self.opts, self.logqueue, self.df))
+        # conn = gettmpfilename()
+        conn = Queue()
+        children['findSegments'] = (conn, threading.Thread(target=findSegments, args=(conn, self.opts, self.logqueue, self.df)))
+        # (conn, findSegments(conn, self.opts, self.logqueue, self.df))
         children['findSegments'][1].start()
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.loghandler.flush()
         self.findtraces()
         self.SLM['G_avg'] = self.doconductance()
         self.logger.info("* * * * * * Computing Lag  * * * * * * * * *")
-        conn = gettmpfilename()
-        children['doLag'] = (conn, doLag(conn, self.opts, self.logqueue, xy))
+        # conn = gettmpfilename()
+        # children['doLag'] = (conn, doLag(conn, self.opts, self.logqueue, xy))
+        conn = Queue()
+        children['doLag'] = (conn, threading.Thread(target=doLag, args=(conn, self.opts, self.logqueue, xy)))
         children['doLag'][1].start()
         self.dodjdv()
         if self.opts.oldfn:
@@ -188,9 +194,14 @@ class Parse():
         self.SLM['Vtnegavg'] = self.FN["neg"]
         R = self.dorect(xy)
         children['doLag'][1].join()
-        with open(children['doLag'][0], 'r+b') as fh:
-            lag = pickle.load(fh)
-        os.unlink(children['doLag'][0])
+        result = children['doLag'][0].get()
+        if isinstance(result, Exception):
+            raise result  # Re-raise the exception in the main thread.
+        else:
+            lag = result
+        # with open(children['doLag'][0], 'r+b') as fh:
+        #     lag = pickle.load(fh)
+        # os.unlink(children['doLag'][0])
         self.logger.info("* * * * * * Computing Gaussians  * * * * * * * * *")
         self.loghandler.flush()
         for x, group in xy:
@@ -212,17 +223,22 @@ class Parse():
                 self.GHists[x] = {}
                 self.GHists[x]['hist'] = self.XY[x]['hist']
         children['findSegments'][1].join()
-        with open(children['findSegments'][0], 'r+b') as fh:
-            try:
-                self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.load(fh)
-            except EOFError:
-                if not self.opts.tracebyfile:
-                    self.logger.error("Catastrophic error computling segments.")
-                    self.error = True
-                self.segments = {}
-                self.segmenthists_nofirst = {}
-                nofirsttrace = {}
-        os.unlink(children['findSegments'][0])
+        result = children['findSegments'][0].get()
+        if isinstance(result, Exception):
+            raise result  # Re-raise the exception in the main thread.
+        else:
+            self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = result
+        # with open(children['findSegments'][0], 'r+b') as fh:
+        #     try:
+        #         self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = pickle.load(fh)
+        #     except EOFError:
+        #         if not self.opts.tracebyfile:
+        #             self.logger.error("Catastrophic error computling segments.")
+        #             self.error = True
+        #         self.segments = {}
+        #         self.segmenthists_nofirst = {}
+        #         nofirsttrace = {}
+        # os.unlink(children['findSegments'][0])
         if nofirsttrace:
             for x, group in xy:
                 self.XY[x]["Y_nofirst"] = nofirsttrace[x]
