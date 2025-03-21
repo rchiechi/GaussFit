@@ -5,9 +5,14 @@ import numpy as np
 from scipy.stats import linregress
 
 
-
-
 def doLag(conn, opts, que, xy):
+    try:
+        conn.put(_doLag(opts, que, xy))
+    except Exception as e:
+        conn.put(e)
+
+
+def _doLag(opts, que, xy):
     '''
     Make a lag plot of Y
     '''
@@ -53,4 +58,4 @@ def doLag(conn, opts, que, xy):
     if exclude_warnings:
         logger.warning("Lag filter excluded all data at these voltages: %s", ",".join(exclude_warnings))
     logger.info("Lag done.")
-    conn.put(lag)
+    return lag

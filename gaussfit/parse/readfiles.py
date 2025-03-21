@@ -12,7 +12,11 @@ async def dedupe_files(input_files, logger):
     checksums = {}
     for task, fn in tasks.items():
         try:
-            checksums[task.result()] = Path(fn)
+            file_path = Path(fn)
+            if file_path.exists():
+                checksums[task.result()] = file_path
+            else:
+                logger.warning(f"{file_path} does not exist.")
         except Exception as e:
             # Log or handle specific exceptions
             logger.error(f"Error parsing {fn}")

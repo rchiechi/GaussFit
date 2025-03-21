@@ -50,6 +50,7 @@ from .libparse.dohistogram import dohistogram
 from .libparse import doLag
 from .libparse import findSegments
 from .libparse import doconductance
+from .libparse import dodjdv
 
 # import platform
 try:
@@ -95,7 +96,6 @@ class Parse():
     '''
 
     from gaussfit.parse.libparse import findtraces
-    from gaussfit.parse.libparse import dodjdv
     from gaussfit.parse.libparse import findmin, old_findmin
     from gaussfit.parse.libparse import dorect
     from gaussfit.parse.libparse import doslm
@@ -187,10 +187,9 @@ class Parse():
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.loghandler.flush()
         self.findtraces() # Sets self.avg
-        # self.SLM['G_avg'] = self.doconductance()
         children['doLag'] = background(doLag, self.opts, self.logqueue, xy)
-        self.dodjdv() # sets self.ohmic
-        children['doconductance'] = background(doconductance, self.opts, self.logqueue, self.ohmic, self.avg.copy())
+        #self.dodjdv() # sets self.ohmic  self.DJDV, self.GHists, self.NDC, self.NDCHists, self.filtered
+        children['dodjdv'] = background(dodjdv, self.opts, self.logqueue, self.df.copy(), self.avg.copy()) # sets self.ohmic
         if self.opts.oldfn:
             self.old_findmin()
         else:
@@ -199,6 +198,8 @@ class Parse():
         self.SLM['Vtnegavg'] = self.FN["neg"]
         R = self.dorect(xy)
         lag = get_result(children['doLag'])
+        self.ohmic,  self.DJDV, self.GHists, self.NDC, self.NDCHists, self.filtered = get_result(children['dodjdv'])
+        children['doconductance'] = background(doconductance, self.opts, self.logqueue, self.ohmic, self.avg.copy())
         self.logger.info("* * * * * * Computing Gaussians  * * * * * * * * *")
         self.loghandler.flush()
         for x, group in xy:

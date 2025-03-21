@@ -4,6 +4,12 @@ from logging.handlers import QueueHandler
 from gaussfit.parse.libparse.dohistogram import dohistogram
 
 def findSegments(conn, opts, que, df):
+    try:
+        conn.put(_findSegments(opts, que, df))
+    except Exception as e:
+        conn.put(e)
+
+def _findSegments(opts, que, df):
     '''
     Break out each trace into four segments of
     0V -> Vmax, Vmax -> 0, 0V -> Vmin, Vmin -> 0V.
@@ -144,4 +150,4 @@ def findSegments(conn, opts, que, df):
                 logger.warning("Setting J = 0 for all V = 0 in nofirsttrace.")
         nofirsttrace[_V] = np.array(nofirsttrace[_V])
     logger.info("Findsegments done.")
-    conn.put((error, segmenthists, segmenthists_nofirst, nofirsttrace))
+    return error, segmenthists, segmenthists_nofirst, nofirsttrace

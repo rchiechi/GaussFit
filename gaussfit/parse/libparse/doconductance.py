@@ -1,15 +1,16 @@
 from gaussfit.parse.libparse.util import throwimportwarning
 import logging
 from logging.handlers import QueueHandler
-
-try:
-    from scipy.stats import linregress, gmean
-    import numpy as np
-except ImportError as msg:
-    throwimportwarning(msg)
-
+from scipy.stats import linregress, gmean
+import numpy as np
 
 def doconductance(conn, opts, que, ohmic, avg):
+    try:
+        conn.put(_doconductance(opts, que, ohmic, avg))
+    except Exception as e:
+        conn.put(e)
+
+def _doconductance(opts, que, ohmic, avg):
     '''
     Find the conductance using a linear regression on the first four data points.
     '''
@@ -50,4 +51,4 @@ def doconductance(conn, opts, que, ohmic, avg):
     # Gavg = gmean(list(SLM['G'].values()), nan_policy='omit')
     logger.info("Average conductance: %.2E", Gavg)
     SLM['Gavg'] = Gavg
-    conn.put(SLM)
+    return SLM
