@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 '''
-Copyright (C) 2023 Ryan Chiechi <ryan.chiechi@ncsu.edu>
+Copyright (C) 2025 Ryan Chiechi <ryan.chiechi@ncsu.edu>
 Description:
         Parse all of the command line arguments for GaussFit.py
         and Stats.py
@@ -31,7 +31,7 @@ from gaussfit.colors import RED, YELLOW, RS
 
 warnings.filterwarnings('ignore', '.*divide by zero.*', RuntimeWarning)
 
-VERSION = '1.1.0b'
+VERSION = '1.2.0'
 
 try:
     from scipy.optimize import curve_fit, OptimizeWarning  # pylint: disable=W0611
