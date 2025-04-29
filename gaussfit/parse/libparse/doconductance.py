@@ -1,48 +1,54 @@
 from gaussfit.parse.libparse.util import throwimportwarning
+import logging
+from logging.handlers import QueueHandler
+from scipy.stats import linregress, gmean
+import numpy as np
 
-try:
-    from scipy.stats import linregress, gmean
-    import numpy as np
-except ImportError as msg:
-    throwimportwarning(msg)
+def doconductance(conn, opts, que, ohmic, avg):
+    try:
+        conn.put(_doconductance(opts, que, ohmic, avg))
+    except Exception as e:
+        conn.put(e)
 
-
-def doconductance(self):
+def _doconductance(opts, que, ohmic, avg):
     '''
     Find the conductance using a linear regression on the first four data points.
     '''
-    self.logger.info("* * * * * * Computing G * * * * * * * *")
-    self.loghandler.flush()
+    logger = logging.getLogger(__package__+".doconductance")
+    logger.addHandler(QueueHandler(que))
+    logger.info("* * * * * * Computing G * * * * * * * *")
+    SLM = {'G':{}}
     tossed = 0
     voltages = []
     # Make a list of V = 0 the three values of V above and below
     for _i in range(-3, 4):
-        _idx = self.avg.loc[0].index.tolist().index(0) + _i
-        voltages.append(self.avg.loc[0].index.tolist()[_idx])
-    for trace in self.avg.index.levels[0]:
-        self.SLM['G'][trace] = np.nan
-        if self.opts.skipohmic and trace in self.ohmic:
+        _idx = avg.loc[0].index.tolist().index(0) + _i
+        voltages.append(avg.loc[0].index.tolist()[_idx])
+    for trace in avg.index.levels[0]:
+        SLM['G'][trace] = np.nan
+        if opts.skipohmic and trace in ohmic:
             tossed += 1
             continue
         _Y = []
         for _v in voltages:
             try:
-                _Y.append(self.avg.loc[trace]['J'][_v])
+                _Y.append(avg.loc[trace]['J'][_v])
             except KeyError:
                 continue
         try:
             _fit = linregress(voltages, _Y)
         except ValueError:
-            self.logger.warning("Cannot compute conductance (probably because of unequal voltage steps.)")
+            logger.warning("Cannot compute conductance (probably because of unequal voltage steps.)")
             continue
-        self.logger.debug(f"G:{_fit.slope:.2E} (R={_fit.rvalue:.2f})")
-        if _fit.rvalue ** 2 < self.opts.minr:
-            self.logger.warn("Tossing G-value with R < %s", self.opts.minr)
+        logger.debug(f"G:{_fit.slope:.2E} (R={_fit.rvalue:.2f})")
+        if _fit.rvalue ** 2 < opts.minr:
+            logger.warn("Tossing G-value with R < %s", opts.minr)
             continue
-        if _fit.slope > self.opts.maxG:
-            self.logger.warn(f"Tossing ridiculous G-value: {_fit.slope:.2E} > {self.opts.maxG}")
-        self.G[trace] = _fit.slope
-        self.SLM['G'][trace] = _fit.slope
-    Gavg = gmean(list(self.G.values()), nan_policy='omit')
-    self.logger.info("Average conductance: %.2E", Gavg)
-    return Gavg
+        if _fit.slope > opts.maxG:
+            logger.warn(f"Tossing ridiculous G-value: {_fit.slope:.2E} > {opts.maxG}")
+        SLM['G'][trace] = _fit.slope
+    Gavg =gmean( [SLM['G'][trace] for trace in SLM['G']], nan_policy='omit' )
+    # Gavg = gmean(list(SLM['G'].values()), nan_policy='omit')
+    logger.info("Average conductance: %.2E", Gavg)
+    SLM['Gavg'] = Gavg
+    return SLM

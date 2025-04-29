@@ -79,8 +79,8 @@ parser = argparse.ArgumentParser(description=desc,
 
 parser.add_argument('in_files', metavar='Files-to-parse', type=str, nargs='*', default=[],
                     help='Datafiles to parse (GaussFit mode).')
-parser.add_argument('-G', '--gui', action='store_true', default=False,
-                    help="Launch the GUI.")
+# parser.add_argument('-G', '--gui', action='store_true', default=False,
+#                     help="Launch the GUI.")
 parser.add_argument('-o', '--outfile', metavar="OUTPUT FILE", default="",
                     help="Outputfile (taken from first input)")
 parser.add_argument('--outdir', metavar="OUTPUT DIR", dest='out_dir', default=os.path.join(os.getcwd(), 'parsed'),
@@ -223,9 +223,8 @@ Opts.ycol -= 1
 if Opts.degfree < 2 and len(Opts.in_files) > 1:
     Opts.degfree = len(Opts.in_files)-1
 
-if not Opts.in_files and not Opts.gui:
-    parser.print_help()
-    print(RED+"\n\t\t> > > No input files! < < < "+RS)
+if not 0 < Opts.alpha < 1:
+    print(RED+"Alpha must be between 0 and 1"+RS)
     sys.exit()
 
 

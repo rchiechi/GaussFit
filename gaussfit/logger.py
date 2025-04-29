@@ -98,24 +98,23 @@ class GUIHandler(DelayedHandler):
         self.console.insert(self.END, message+"\n")  # Inserting the logger message in the widget
         self.console["state"] = self.DISABLED
         self.console.see(self.END)
-        emittoconsole(message, level)
+        # emittoconsole(message, level)
 
 
 class DelayedMultiprocessHandler(logging.Handler):
     '''A dummy-delayed log handler that queues unique log messages for running
        in a background thread.'''
 
-    buff = []
-
     def __init__(self, que):
         super().__init__()
         self.que = que
+        self.buff = []
 
     def emit(self, record):
         self.buff.append(record.lineno)
         if Counter(self.buff)[record.lineno] == 1:
             self.que.put_nowait(record)
-        emittoconsole(logging.Formatter(FMT).format(record), record.levelname)
+        # emittoconsole(logging.Formatter(FMT).format(record), record.levelname)
 
     def setDelay(self):
         return

@@ -20,13 +20,19 @@ Description:
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
+import asyncio
+import sys
 import cProfile
 import warnings
-from gaussfit import Parse
-from gaussfit.args import Opts
-from gaussfit.output import Writer, Plotter
-from gaussfit import colors
-from gaussfit.output.libwriter import doOutput
+import logging
+import threading
+from .logs import GaussfitFormatter
+from .parse import readfiles
+from .parse import Parse
+from .args import Opts
+from .output import Writer, Plotter
+from .colors import *
+from .output.libwriter import doOutput
 
 try:
     import matplotlib.pyplot as plt
@@ -35,6 +41,7 @@ except ImportError as msg:
     print("Cannot import matplotlib! %s", str(msg), exc_info=False)
     CAN_PLOT = False
 
+warnings.filterwarnings('ignore', '.*invalid escape sequence.*', SyntaxWarning)
 
 def do_cprofile(func):
     '''
@@ -53,13 +60,27 @@ def do_cprofile(func):
 
 
 # @do_cprofile
-def do_gaussfit():
+async def do_gaussfit():
     '''
     Call this function to execute the parsing engine
     i.e., as main()
     '''
-    parser = Parse(Opts)
-    parser.readfiles(Opts.in_files)
+    if not Opts.in_files:
+        print(RED+"\n\t\t> > > No input files! < < < "+RS)
+        sys.exit()
+    # Create logger
+    logger = logging.getLogger(__name__.split(".")[0])
+    logger.setLevel(getattr(logging, Opts.loglevel.upper()))
+    # Create console handler
+    console_handler = logging.StreamHandler()
+    # Create formatter
+    console_handler.setFormatter(GaussfitFormatter())
+    # Add handler to logger
+    logger.addHandler(console_handler)
+    logger.info("Reading files")
+    df = await readfiles(Opts)
+    parser = Parse(df, logger=logger)
+    await parser.parse()
     if Opts.write and not parser.error:
         writer = Writer(parser)
         doOutput(writer)
@@ -71,6 +92,36 @@ def do_gaussfit():
         else:
             print(colors.RED+"Unable to show plots without matplotlib."+colors.RS)
 
+def do_gui():
+    from GUI import filebrowser
+    import tkinter as tk
+    gui = filebrowser.ChooseFiles(master=tk.Tk())
+    gui.master.mainloop()
+
+# def do_gui():
+#     from GUI import filebrowser
+#     loop = asyncio.new_event_loop()  # Create a *new* event loop
+#     asyncio.set_event_loop(loop)  # Set it as the *current* loop for this thread
+# 
+#     def run_tk():
+#         nonlocal loop  # Access the outer scope's loop
+#         gui = filebrowser.ChooseFiles(loop=loop)  # Pass the loop to ChooseFiles
+#         gui.pack()
+#         gui.master.mainloop() #Run it
+# 
+#     tk_thread = threading.Thread(target=run_tk, daemon=True) #Run tkinter on a thread
+#     tk_thread.start()
+# 
+#     try:
+#         loop.run_forever()  # Run the asyncio loop *in the main thread*
+#     finally:
+#         loop.close()
+
+def main_cli():
+    asyncio.run(do_gaussfit()) 
+    
+def main_gui():
+    do_gui() 
 
 if __name__ == "__main__":
     warnings.filterwarnings('ignore', '.*invalid escape sequence.*', SyntaxWarning)
@@ -78,4 +129,5 @@ if __name__ == "__main__":
         from gui import filebrowser
         gui = filebrowser.ChooseFiles()
     else:
-        do_gaussfit()
+        asyncio.run(do_gaussfit())
+

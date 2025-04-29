@@ -20,12 +20,12 @@ Description:
         along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 import os
+import asyncio
 import platform
 import logging
 import threading
 import tkinter.ttk as tk
-from tkinter import Tk
-# from tkinter import Toplevel
+from tkinter import Toplevel
 from tkinter import filedialog
 from tkinter import Text, IntVar, StringVar, Listbox, Label
 from tkinter import N, S, E, W, X, Y  # pylint: disable=unused-import
@@ -34,11 +34,18 @@ from tkinter import END, BOTH, VERTICAL, HORIZONTAL  # pylint: disable=unused-im
 from tkinter import EXTENDED, RAISED, DISABLED, NORMAL  # pylint: disable=unused-import
 from tkinter import PhotoImage
 from tkinter.font import Font
-from gui.prefs import PreferencesWindow
-from gui.colors import BLACK, YELLOW, WHITE, RED, TEAL, GREEN, BLUE, GREY  # pylint: disable=unused-import
-from gui.tooltip import createToolTip
+from .prefs import PreferencesWindow
+from .colors import BLACK, YELLOW, WHITE, RED, TEAL, GREEN, BLUE, GREY  # pylint: disable=unused-import
+from .tooltip import createToolTip
+from queue import Queue, Empty
+from gaussfit.logger import DelayedMultiprocessHandler
 from gaussfit.logger import GUIHandler
 from gaussfit.args import Opts, VERSION
+from gaussfit.parse import Parse
+from gaussfit.parse import readfiles
+from .libparse.ParseThread import ParseThread
+from gaussfit.output.libwriter import doOutput
+from gaussfit.output import Writer
 
 try:
     import psutil
@@ -47,15 +54,13 @@ except ImportError:
     HASPSUTIL = False
 
 absdir = os.path.dirname(os.path.realpath(__file__))
-absroot = Tk()
-
 
 class ChooseFiles(tk.Frame):
     '''The main frame for adding/removing files, accessing settings
        and parsing.'''
 
-    from gui.libparse import GUIParse
-    from gui.libparse import GUIPlot
+    # from .libparse import GUIParse
+    from .libparse import GUIPlot
 
     gothreads = []
     plots = []
@@ -63,12 +68,16 @@ class ChooseFiles(tk.Frame):
     boolmap = {1: True, 0: False}
     lock = threading.Lock
 
-    def __init__(self):
-        self.master = absroot
-        super().__init__(self.master)
-        # tk.Frame.__init__(self, self.master)
-        bgimg = PhotoImage(file=os.path.join(absdir, 'RCCLabFluidic.png'))
-        limg = Label(self.master, i=bgimg, background=GREY)
+    def __init__(self, master=None, **kwargs):
+        super().__init__(master)
+        if master is None:
+            self.master = Toplevel() # Better, but STILL not the best approach
+        else:
+            self.master = master
+        self.loop = kwargs.get('loop', asyncio.get_event_loop())
+        self.logque = Queue(-1)
+        self.bgimg = PhotoImage(file=os.path.join(absdir, 'RCCLabFluidic.png'))
+        limg = Label(self.master, image=self.bgimg, background=GREY)
         limg.pack(side=TOP)
         try:
             self.last_input_path = os.getcwd()
@@ -78,11 +87,12 @@ class ChooseFiles(tk.Frame):
         self.degfreedom = {'init': self.opts.degfree, 'user': self.opts.degfree}
         self.master.tk_setPalette(background=GREY, activeBackground=GREY)
         self.master.title(f"RCCLab EGaIn Data Parser v{VERSION}")
-        self.master.geometry('800x1000+250+250')
+        self.master.geometry('800x1000+250+250')\
+
         self.pack(fill=BOTH)
         self.__createWidgets()
         self.ToFront()
-        self.master.mainloop()
+        # self.master.mainloop()
 
     def __createWidgets(self):
 
@@ -115,6 +125,7 @@ class ChooseFiles(tk.Frame):
         self.handler.setFormatter(logging.Formatter('%(levelname)s %(message)s'))
         self.logger.addHandler(self.handler)
         self.logger.setLevel(getattr(logging, self.opts.loglevel.upper()))
+        
         self.logger.info("Config file:%s", self.opts.configfile)
         self.handler.flush()
         self.updateFileListBox()
@@ -251,9 +262,78 @@ class ChooseFiles(tk.Frame):
     def Quit(self):
         self.master.destroy()
 
+    # def ParseClick(self):        
+    #     self.checkOptions()
+    #     self.GUIParse()
+
     def ParseClick(self):
-        self.checkOptions()
+        self.checkOptions()  # Assuming this is synchronous
+        self.ButtonParse['state'] = DISABLED  # Disable the button immediately
+        if self.gothreads and any(t.is_alive() for t in self.gothreads):
+            self.logger.warning("Another parse is already running!") #Or display on GUI
+            self.ButtonParse['state'] = NORMAL  # Re-enable if already running
+            return
+
+        self.preParse()
+        # Schedule _async_GUIParse to run on the asyncio loop
+        # self.loop.call_soon_threadsafe(self._async_GUIParse) #Key change
         self.GUIParse()
+        # self.master.after(100, self.check_queue)  # Start checking the queue
+
+
+    def GUIParse(self):
+        # async def do_parse(): #Inner async function
+        if self.opts.in_files:
+            try:
+                # df = await readfiles(self.opts.in_files) # Await here!
+                # parser = Parse(df, handler=DelayedMultiprocessHandler(self.logque))
+                thread = ParseThread(self.opts, self.logque)
+                self.gothreads.append(thread)
+                thread.start()
+                self.master.after(100, self.check_queue)
+
+            except Exception as e:
+                logger.error(f"Unhandled exception in _async_GUIParse: {e}")
+                import traceback
+                traceback.print_exc()
+                # Handle the exception (e.g., put an error message in the queue)
+                self.master.after(0, self.postParse) #Safely call on main thread
+
+        else:
+            self.logger.warning("No input files!")
+            self.handler.flush()  # No `await` needed
+            self.master.after(0, self.postParse) #Safely call on main thread
+        # asyncio.run_coroutine_threadsafe(do_parse(), self.loop) #Run do_parse on event loop
+
+    def check_queue(self):
+        if any(t.is_alive() for t in self.gothreads):
+            while not self.logque.empty():
+                self.handler.emit(self.logque.get_nowait())
+            self.handler.flush()
+            self.master.after(100, self.check_queue)
+        else:
+            self.master.after(0, self.postParse) #Safely call on main thread
+
+    def preParse(self):
+        '''We need to check a couple of things right before we start parsing'''
+        self.degfreedom = self.opts.degfree
+        if self.opts.degfree == 1 and len(self.opts.in_files) > 1:
+            self.opts.degfree = len(self.opts.in_files) - 1
+
+    def postParse(self):
+        '''We need to check a couple of things right after we finish parsing'''
+        self.ButtonParse['state'] = NORMAL
+        self.opts.degfree = self.degfreedom
+        self.logger.info("Parse complete!")
+        try:
+            gothread = self.gothreads.pop()
+            if self.opts.write and not gothread.parser.error:
+                writer = Writer(gothread.parser)
+                doOutput(writer)
+            if self.opts.plot and not gothread.parser.error:
+                self.GUIPlot(parser=gothread.parser)
+        except (IndexError, ValueError) as e:
+            self.logger.error(e)
 
     def SettingsClick(self):
         self.checkOptions()
@@ -341,3 +421,15 @@ class ChooseFiles(tk.Frame):
     def checkOutputFileName(self, event=None):
         self.opts.outfile = self.OutputFileName.get()
         self.UpdateFileListBoxFrameLabel()
+
+
+    def run_async_task(self):
+        async def wrapper():
+            result = await self.other_class.async_task(self.update_gui)
+            self.update_gui(f"Result: {result}")
+
+        asyncio.run(wrapper())
+
+    def update_gui(self, message):
+        #Safely update GUI from within async task
+        self.root.after(0, lambda: self.label.config(text=message))

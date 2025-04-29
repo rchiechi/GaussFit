@@ -49,8 +49,8 @@ def findmin(self):
         self.logger.error("Did not parse any FN values!")
         self.FN["neg"], self.FN["pos"] = {}, {}
     else:
-        self.FN["neg"] = dohistogram(self.logqueue, neg_min_x, label="Vtrans(-)", density=True)
-        self.FN["pos"] = dohistogram(self.logqueue, pos_min_x, label="Vtrans(+)", density=True)
+        self.FN["neg"] = dohistogram(neg_min_x, label="Vtrans(-)", density=True, que=self.logqueue)
+        self.FN["pos"] = dohistogram(pos_min_x, label="Vtrans(+)", density=True, que=self.logqueue)
 
 
 def old_findmin(self):
@@ -155,5 +155,5 @@ def old_findmin(self):
         self.logger.error("Did not parse any FN values!")
         self.FN["neg"], self.FN["pos"] = {}, {}
     else:
-        self.FN["neg"] = dohistogram(self.logqueue, neg_min_x, label="Vtrans(-)", density=True)
-        self.FN["pos"] = dohistogram(self.logqueue, pos_min_x, label="Vtrans(+)", density=True)
+        self.FN["neg"] = dohistogram(neg_min_x, label="Vtrans(-)", density=True, que=self.logqueue)
+        self.FN["pos"] = dohistogram(pos_min_x, label="Vtrans(+)", density=True, que=self.logqueue)

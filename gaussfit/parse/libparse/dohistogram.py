@@ -1,7 +1,7 @@
 import logging
 import time
 from logging.handlers import QueueHandler
-from gaussfit.args import Opts as opts
+from gaussfit.args import Opts
 from gaussfit.parse.libparse.util import throwimportwarning, signedgmean, lorenz, gauss
 try:
     import numpy as np
@@ -11,7 +11,7 @@ except ImportError as msg:
     throwimportwarning(msg)
 
 
-def dohistogram(que, Y, **kwargs):
+def dohistogram(Y, **kwargs):
     '''
     Return a histogram of Y-values and a gaussian
     fit of the histogram, excluding values that
@@ -25,7 +25,10 @@ def dohistogram(que, Y, **kwargs):
     defaultKwargs = {'label': '', 'density': False, 'warnings': False}
     kwargs = {**defaultKwargs, **kwargs}
     logger = logging.getLogger(__package__+".dohistogram")
-    logger.addHandler(QueueHandler(que))
+    que = kwargs.get('que')
+    opts = kwargs.get('opts', Opts)
+    if que:
+        logger.addHandler(QueueHandler(que))
 
     def __handlematherror(msg):
         # TODO we can now split out the file name with the bad data in it!
