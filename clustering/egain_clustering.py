@@ -296,6 +296,11 @@ class EGaInClustering(JVCurveClustering):
         unique_labels = unique_labels[unique_labels >= 0]  # Remove noise label if present
         n_examples = 3
         
+        # Verify data alignment
+        if len(egain_traces) != len(self.labels):
+            self.logger.warning(f"Data mismatch: {len(egain_traces)} traces but {len(self.labels)} labels!")
+            return fig
+        
         for i, label in enumerate(unique_labels[:5]):  # Show max 5 clusters
             if i >= 5:  # Subplot limit
                 break
@@ -312,16 +317,17 @@ class EGaInClustering(JVCurveClustering):
                 if idx < len(egain_traces):
                     voltage, current = egain_traces[idx]
                     
-                    # Debug: Log trace details
-                    self.logger.debug(f"Plotting trace {idx}: V range {voltage.min():.2f} to {voltage.max():.2f}, {len(voltage)} points")
-                    self.logger.debug(f"Plotting trace {idx} voltage sequence: {voltage[:5]}...{voltage[-5:]}")
-                    
                     # Ensure we have complete voltage range
                     if len(voltage) > 0 and len(current) > 0:
+                        # Sort by voltage for proper line plotting (EGaIn traces are in measurement order: 0→+→0→-→0)
+                        sort_indices = np.argsort(voltage)
+                        voltage_sorted = voltage[sort_indices]
+                        current_sorted = current[sort_indices]
+                        
                         if log_scale:
-                            ax.semilogy(voltage, np.abs(current), alpha=0.7, linewidth=1.5)
+                            ax.semilogy(voltage_sorted, np.abs(current_sorted), alpha=0.7, linewidth=1.5)
                         else:
-                            ax.plot(voltage, current, alpha=0.7, linewidth=1.5)
+                            ax.plot(voltage_sorted, current_sorted, alpha=0.7, linewidth=1.5)
                     else:
                         self.logger.warning(f"Empty trace data for index {idx}")
                 else:
