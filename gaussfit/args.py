@@ -172,6 +172,8 @@ parser.add_argument('--cluster-method', dest='cluster_estimation_method',
                     help="Method for determining optimal number of clusters.")
 parser.add_argument('--cluster-resolution', dest='cluster_resolution', type=int, default=100,
                     help="Resolution for clustering feature space. Higher values create more detailed features but require more memory/computation. Default 100 (~10k features), modern systems can handle 200+ (40k+ features).")
+parser.add_argument('--cluster-as-egain', dest='cluster_as_egain', action='store_true', default=False,
+                    help="When clustering, use complete EGaIn traces (0→min→0→max→0) instead of individual voltage sweeps. Requires --cluster.")
 parser.add_argument('--force', default=False, action='store_true',
                     help="Force GaussFit to attempt to plot/write bad data.")
 

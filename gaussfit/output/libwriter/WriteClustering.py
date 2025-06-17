@@ -162,6 +162,9 @@ def _write_egain_traces_by_cluster(writer, clusterer, jv_curves, cluster_labels,
         original_df = writer.parser.df
         trace_mapping = writer.parser.trace_mapping
         
+        # Check if we're in EGaIn clustering mode
+        egain_mode = hasattr(writer.parser, 'cluster') and writer.parser.cluster.get('egain_mode', False)
+        
         # Get unique cluster labels (excluding noise)
         unique_labels = np.unique(cluster_labels[cluster_labels >= 0])
         
@@ -177,11 +180,15 @@ def _write_egain_traces_by_cluster(writer, clusterer, jv_curves, cluster_labels,
             cluster_traces_data = []
             
             for trace_idx in cluster_trace_indices:
-                # Convert individual sweep index to compressed trace index
-                # XY structure has individual sweeps (forward/reverse), trace_mapping has compressed traces
-                # If we have 10 individual sweeps from 5 EGaIn traces, mapping is: 
-                # sweep 0,1 -> trace 0; sweep 2,3 -> trace 1; etc.
-                compressed_trace_idx = trace_idx // 2  # Integer division to map pairs to single trace
+                if egain_mode:
+                    # In EGaIn mode, trace_idx directly maps to compressed trace index
+                    compressed_trace_idx = trace_idx
+                else:
+                    # In sweep mode, convert individual sweep index to compressed trace index
+                    # XY structure has individual sweeps (forward/reverse), trace_mapping has compressed traces
+                    # If we have 10 individual sweeps from 5 EGaIn traces, mapping is: 
+                    # sweep 0,1 -> trace 0; sweep 2,3 -> trace 1; etc.
+                    compressed_trace_idx = trace_idx // 2  # Integer division to map pairs to single trace
                 
                 if compressed_trace_idx < len(trace_mapping):
                     trace_start, trace_end = trace_mapping[compressed_trace_idx]
@@ -196,7 +203,7 @@ def _write_egain_traces_by_cluster(writer, clusterer, jv_curves, cluster_labels,
                         logger.warning(f"Could not extract trace {trace_idx} (compressed {compressed_trace_idx}) for cluster {cluster_id}: {e}")
                         continue
                 else:
-                    logger.warning(f"Compressed trace index {compressed_trace_idx} (from sweep {trace_idx}) >= trace_mapping length {len(trace_mapping)}, skipping")
+                    logger.warning(f"Compressed trace index {compressed_trace_idx} (from trace {trace_idx}) >= trace_mapping length {len(trace_mapping)}, skipping")
             
             if cluster_traces_data:
                 # Combine all traces for this cluster
