@@ -42,13 +42,26 @@ def extract_egain_traces_from_avg(avg_data, logger=None):
             currents = trace_data['J'].values   # Current values
             
             if len(voltages) > 0 and len(currents) > 0:
-                egain_traces.append((np.array(voltages), np.array(currents)))
-                logger.debug(f"Extracted EGaIn trace {trace_idx}: {len(voltages)} points")
+                # Sort by voltage to ensure proper ordering
+                sort_indices = np.argsort(voltages)
+                voltages_sorted = voltages[sort_indices]
+                currents_sorted = currents[sort_indices]
+                
+                egain_traces.append((np.array(voltages_sorted), np.array(currents_sorted)))
+                logger.debug(f"Extracted EGaIn trace {trace_idx}: {len(voltages)} points, V range: {voltages_sorted.min():.2f} to {voltages_sorted.max():.2f}")
+            else:
+                logger.warning(f"Empty trace data for trace {trace_idx}")
         except (KeyError, IndexError) as e:
             logger.warning(f"Could not extract EGaIn trace {trace_idx}: {e}")
             continue
     
     logger.info(f"Extracted {len(egain_traces)} complete EGaIn traces for clustering")
+    
+    # Debug: Print voltage ranges and structure for first few traces
+    for i, (v, i_vals) in enumerate(egain_traces[:3]):
+        logger.debug(f"Trace {i} voltage range: {v.min():.2f} to {v.max():.2f} V, {len(v)} points")
+        logger.debug(f"Trace {i} voltage sequence: {v[:5]}...{v[-5:]}")  # First and last 5 points
+    
     return egain_traces
 
 
@@ -244,6 +257,172 @@ class EGaInClustering(JVCurveClustering):
         self.logger.info(f"Extracted EGaIn features: {self.features.shape}")
         
         return self.features
+
+    def plot_results(self, egain_traces: List[Tuple[np.ndarray, np.ndarray]], 
+                    figsize: Tuple[int, int] = (15, 10),
+                    log_scale: bool = False) -> 'plt.Figure':
+        """
+        Comprehensive visualization of EGaIn clustering results.
+        
+        Parameters:
+        -----------
+        egain_traces : list of tuples
+            List of complete EGaIn traces (voltage, current)
+        figsize : tuple
+            Figure size
+        log_scale : bool
+            Whether to plot current in log scale
+        """
+        if self.labels is None:
+            raise ValueError("Perform clustering first using cluster()")
+        
+        import matplotlib.pyplot as plt
+        
+        fig = plt.figure(figsize=figsize)
+        
+        # 1. Plot 2D projection with clusters
+        ax1 = plt.subplot(2, 3, 1)
+        if hasattr(self, 'reduced_features'):
+            scatter = ax1.scatter(self.reduced_features[:, 0], 
+                                self.reduced_features[:, 1], 
+                                c=self.labels, cmap='viridis', alpha=0.6)
+            ax1.set_xlabel('Component 1')
+            ax1.set_ylabel('Component 2')
+            plt.colorbar(scatter, ax=ax1)
+        ax1.set_title('2D Projection of EGaIn Clusters')
+        
+        # 2. Plot example complete EGaIn traces from each cluster
+        unique_labels = np.unique(self.labels)
+        unique_labels = unique_labels[unique_labels >= 0]  # Remove noise label if present
+        n_examples = 3
+        
+        for i, label in enumerate(unique_labels[:5]):  # Show max 5 clusters
+            if i >= 5:  # Subplot limit
+                break
+                
+            ax = plt.subplot(2, 3, i+2)
+            
+            # Get traces in this cluster
+            cluster_indices = np.where(self.labels == label)[0]
+            example_indices = cluster_indices[:n_examples]
+            
+            self.logger.debug(f"Plotting cluster {label}: {len(cluster_indices)} traces, showing {len(example_indices)} examples")
+            
+            for idx in example_indices:
+                if idx < len(egain_traces):
+                    voltage, current = egain_traces[idx]
+                    
+                    # Debug: Log trace details
+                    self.logger.debug(f"Plotting trace {idx}: V range {voltage.min():.2f} to {voltage.max():.2f}, {len(voltage)} points")
+                    self.logger.debug(f"Plotting trace {idx} voltage sequence: {voltage[:5]}...{voltage[-5:]}")
+                    
+                    # Ensure we have complete voltage range
+                    if len(voltage) > 0 and len(current) > 0:
+                        if log_scale:
+                            ax.semilogy(voltage, np.abs(current), alpha=0.7, linewidth=1.5)
+                        else:
+                            ax.plot(voltage, current, alpha=0.7, linewidth=1.5)
+                    else:
+                        self.logger.warning(f"Empty trace data for index {idx}")
+                else:
+                    self.logger.warning(f"Trace index {idx} out of range (max: {len(egain_traces)-1})")
+            
+            ax.set_xlabel('Voltage (V)')
+            ax.set_ylabel('Current (A)' if not log_scale else '|Current| (A)')
+            ax.set_title(f'EGaIn Cluster {label} (n={len(cluster_indices)})')
+            ax.grid(True, alpha=0.3)
+            
+            # Ensure full voltage range is visible - use voltage_range from clustering setup
+            try:
+                # Set voltage limits based on the full expected range, not just the examples
+                v_min, v_max = self.voltage_range
+                ax.set_xlim(v_min * 1.1, v_max * 1.1)
+                
+                # Set current limits based on the plotted data
+                all_currents = []
+                for idx in example_indices:
+                    if idx < len(egain_traces):
+                        v, i = egain_traces[idx]
+                        all_currents.extend(i)
+                
+                if all_currents:
+                    if log_scale:
+                        positive_currents = [abs(c) for c in all_currents if abs(c) > 0]
+                        if positive_currents:
+                            ax.set_ylim(min(positive_currents) * 0.5, max(positive_currents) * 2)
+                    else:
+                        current_range = max(all_currents) - min(all_currents)
+                        if current_range > 0:
+                            ax.set_ylim(min(all_currents) - 0.1 * current_range, 
+                                       max(all_currents) + 0.1 * current_range)
+                
+                self.logger.debug(f"Set axis limits for cluster {label}: V={v_min:.2f} to {v_max:.2f}")
+                
+            except Exception as e:
+                self.logger.warning(f"Could not set axis limits for cluster {label}: {e}")
+        
+        plt.tight_layout()
+        return fig
+
+    def plot_2d_histograms(self, egain_traces: List[Tuple[np.ndarray, np.ndarray]], 
+                          n_examples: int = 3) -> 'plt.Figure':
+        """
+        Plot example 2D histograms from each EGaIn cluster.
+        """
+        if self.labels is None:
+            raise ValueError("Perform clustering first using cluster()")
+        
+        import matplotlib.pyplot as plt
+        
+        unique_labels = np.unique(self.labels)
+        unique_labels = unique_labels[unique_labels != -1]  # Remove noise label
+        n_clusters = len(unique_labels)
+        
+        if n_clusters == 0:
+            raise ValueError("No valid clusters found")
+        
+        fig, axes = plt.subplots(n_clusters, n_examples, 
+                                figsize=(3*n_examples, 3*n_clusters))
+        
+        if n_clusters == 1:
+            axes = axes.reshape(1, -1)
+        if n_examples == 1:
+            axes = axes.reshape(-1, 1)
+        
+        for i, label in enumerate(unique_labels):
+            cluster_indices = np.where(self.labels == label)[0]
+            example_indices = cluster_indices[:min(n_examples, len(cluster_indices))]
+            
+            for j, idx in enumerate(example_indices):
+                if idx < len(egain_traces):
+                    voltage, current = egain_traces[idx]
+                    hist2d = self.curve_to_2d_histogram(voltage, current)
+                    
+                    if n_clusters > 1 and n_examples > 1:
+                        ax = axes[i, j]
+                    elif n_clusters == 1:
+                        ax = axes[j]
+                    elif n_examples == 1:
+                        ax = axes[i]
+                    else:
+                        ax = axes.flat[i*n_examples + j]
+                    
+                    # Plot histogram
+                    extent = [self.voltage_range[0], self.voltage_range[1],
+                             self.current_range[0], self.current_range[1]]
+                    
+                    im = ax.imshow(hist2d, aspect='auto', origin='lower',
+                                 extent=extent, cmap='viridis')
+                    
+                    if j == 0:
+                        ax.set_ylabel(f'EGaIn Cluster {label}\nCurrent (A)')
+                    if i == n_clusters - 1:
+                        ax.set_xlabel('Voltage (V)')
+                    
+                    ax.set_title(f'Trace {idx}')
+        
+        plt.tight_layout()
+        return fig
 
 
 def cluster_egain_traces(egain_traces: List[Tuple[np.ndarray, np.ndarray]], 
