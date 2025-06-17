@@ -48,6 +48,7 @@ class Writer():
     from gaussfit.output.libwriter import WriteGauss
     from gaussfit.output.libwriter import WriteVT
     from gaussfit.output.libwriter import WriteSLM
+    from gaussfit.output.libwriter import WriteClustering
     from gaussfit.output.libwriter import WriteData
     from gaussfit.output.libwriter import WriteDJDV
     from gaussfit.output.libwriter import WriteNDC
@@ -66,6 +67,9 @@ class Writer():
         if not os.path.exists(opts.slm_dir):
             logger.info("Creating %s", opts.slm_dir)
             os.makedirs(opts.slm_dir)
+        if not os.path.exists(opts.cluster_dir):
+            logger.info("Creating %s", opts.cluster_dir)
+            os.makedirs(opts.cluster_dir)
 
     def __getattr__(self, name):
         try:

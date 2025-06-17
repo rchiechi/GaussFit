@@ -52,16 +52,25 @@ def parse_two_columns(file_paths, opts, logger):
             logger.warning("Skipping malformatted %s because %s", f, str(msg))
     return pd.concat(frames)
 
-def parse_all_columns(file_paths, logger):
+def parse_all_columns(file_paths, opts, logger):
     df = pd.DataFrame()
     frames = {}
     for checksum, f in file_paths.items():
         try:
-            df = pd.read_csv(f, sep=opts.delim,
-                              index_col=opts.xcol,
-                              header=0,
-                              error_bad_lines=False,
-                              warn_bad_lines=False)
+            # Handle pandas version compatibility for bad lines parameter
+            try:
+                # Modern pandas (2.0+) uses on_bad_lines
+                df = pd.read_csv(f, sep=opts.delim,
+                                  index_col=opts.xcol,
+                                  header=0,
+                                  on_bad_lines='skip')
+            except TypeError:
+                # Fallback for older pandas versions (< 2.0)
+                df = pd.read_csv(f, sep=opts.delim,
+                                  index_col=opts.xcol,
+                                  header=0,
+                                  error_bad_lines=False,
+                                  warn_bad_lines=False)
             i = 0
             for col in df:
                 frames['%s_%.2d' % (f, i)] = pd.DataFrame({'V': df.index, 'J': df[col]})
@@ -86,7 +95,7 @@ async def readfiles(opts, **kwargs):
         df = parse_two_columns(file_paths, opts, logger)
     else:
         logger.info("Parsing all columns of data.")
-        df = parse_all_columns(file_paths, logger)
+        df = parse_all_columns(file_paths, opts, logger)
 
     if opts.xrange > 0 and not df.empty:
         logger.info(f"Pruning x-axis to +/- {opts.xrange}.")

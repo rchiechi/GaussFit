@@ -12,6 +12,7 @@ def doOutput(writer):
     writer.WriteFN()
     writer.WriteVT()
     writer.WriteSLM()
+    writer.WriteClustering()
     writer.WriteGNUplot('VTplot')
     writer.WriteGauss()
     writer.WriteSegmentedGauss()

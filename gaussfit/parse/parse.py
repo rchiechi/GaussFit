@@ -51,6 +51,7 @@ from .libparse import doLag
 from .libparse import findSegments
 from .libparse import doconductance
 from .libparse import dodjdv
+from .libparse import doclustering
 
 # import platform
 try:
@@ -99,6 +100,7 @@ class Parse():
     from gaussfit.parse.libparse import findmin, old_findmin
     from gaussfit.parse.libparse import dorect
     from gaussfit.parse.libparse import doslm
+    from gaussfit.parse.libparse import doclustering
 
     # Class variables
     VERSION = '1.0.2a'
@@ -128,6 +130,10 @@ class Parse():
            'calc': {},
            'exp': {},
            'full': {}}  # SLM inputs and outputs by trace
+    cluster = {'clusterer': None,
+               'clusters': None,
+               'jv_curves': [],
+               'n_clusters': 0}  # Clustering results
     segments = {}
     segments_nofirst = {}
     logqueue = Queue()
@@ -181,7 +187,7 @@ class Parse():
         children = {}
         tasks = []
         xy = []
-        for x, group in self.df.groupby('V'):
+        for x, group in self.df.groupby(self.df['V']):
             xy.append((x, group))
         children['findSegments'] = background(findSegments, self.opts, self.logqueue, self.df.copy())
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
@@ -247,6 +253,11 @@ class Parse():
         self.logger.info("* * * * * * Computing SLM  * * * * * * * * *")
         self.loghandler.flush()
         self.logger.info(f"Fit {self.doslm()} traces to SLM.")
+        self.logger.info("* * * * * * Computing Clustering  * * * * * * * * *")
+        self.loghandler.flush()
+        n_clusters = self.doclustering()
+        if n_clusters > 0:
+            self.logger.info(f"Found {n_clusters} clusters from clustering analysis.")
         self.logger.info("* * * * * * * * * * * * * * * * * * * * * * ")
         self.loghandler.flush()
         if not self.error:

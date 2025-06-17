@@ -165,6 +165,13 @@ parser.add_argument('--SLM', action='store_true', default=False,
                     help="Compute SLM fits of each trace.")
 parser.add_argument('--nmolecules', type=int, default=2.45e6,
                     help="Number of molecules per-junction to use for SLM calculations.")
+parser.add_argument('--cluster', action='store_true', default=False,
+                    help="Perform clustering analysis on J/V curves.")
+parser.add_argument('--cluster-method', dest='cluster_estimation_method', 
+                    default='elbow', choices=['elbow', 'silhouette', 'gap'],
+                    help="Method for determining optimal number of clusters.")
+parser.add_argument('--cluster-resolution', dest='cluster_resolution', type=int, default=100,
+                    help="Resolution for clustering feature space. Higher values create more detailed features but require more memory/computation. Default 100 (~10k features), modern systems can handle 200+ (40k+ features).")
 parser.add_argument('--force', default=False, action='store_true',
                     help="Force GaussFit to attempt to plot/write bad data.")
 
@@ -203,6 +210,7 @@ if len(Opts.in_files) and not Opts.outfile:
         Opts.outfile = Opts.in_files[0]
 
 Opts.slm_dir = os.path.join(Opts.out_dir, 'SLM')
+Opts.cluster_dir = os.path.join(Opts.out_dir, 'Clustering')
 
 if Opts.xcol == Opts.ycol:
     print(RED+"Xcol and Ycol must be different."+RS)

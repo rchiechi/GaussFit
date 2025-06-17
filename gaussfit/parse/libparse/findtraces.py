@@ -100,6 +100,8 @@ def findtraces(self):
     self.logger.info("Found %s traces (%s).", ntraces, len(traces))
     idx = []
     frames = {}
+    # Store trace mapping for clustering reconstruction
+    self.trace_mapping = traces.copy()
     self.logger.info("Compressing forward/reverse sweeps to single traces.")
     for col, _t in enumerate(traces):
         fbtrace = self.df[traces[col][0]:traces[col][1]].sort_values('V')

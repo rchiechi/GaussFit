@@ -92,6 +92,35 @@ class Plotter():
         ax.plot(_v, np.log10(abs(np.array(_j))), lw=3.0, color='b', label='Gmean of per-Trace')
         ax.legend()
 
+    def PlotClustering(self, ax):
+        '''Plot clustering results'''
+        if not hasattr(self.parser, 'cluster') or self.parser.cluster['clusterer'] is None:
+            ax.text(0.5, 0.5, 'No clustering data available', 
+                   horizontalalignment='center', verticalalignment='center', 
+                   transform=ax.transAxes)
+            ax.set_title("Clustering Analysis")
+            return
+        
+        clusterer = self.parser.cluster['clusterer']
+        jv_curves = self.parser.cluster['jv_curves']
+        
+        try:
+            # Plot clustering results
+            fig = clusterer.plot_results(jv_curves, figsize=(8, 6), log_scale=False)
+            
+            # Copy the plot to our axis (simplified version)
+            ax.set_title(f"J/V Curve Clustering ({self.parser.cluster['n_clusters']} clusters)")
+            ax.set_xlabel("Representative clusters shown in main analysis")
+            ax.text(0.5, 0.5, f"Found {self.parser.cluster['n_clusters']} clusters\nSee separate clustering plots", 
+                   horizontalalignment='center', verticalalignment='center', 
+                   transform=ax.transAxes, fontsize=12, 
+                   bbox=dict(boxstyle="round,pad=0.3", facecolor="lightblue"))
+        except Exception as e:
+            ax.text(0.5, 0.5, f'Clustering plot error: {str(e)}', 
+                   horizontalalignment='center', verticalalignment='center', 
+                   transform=ax.transAxes)
+            ax.set_title("Clustering Analysis - Error")
+
     def PlotSegmentedGauss(self, ax):
         '''Plot segmented J/V data'''
         ax.set_title("Semilog Plots of |J| by Trace")
@@ -283,6 +312,24 @@ class Plotter():
             self.PlotNDC(ax3)
         elif self.opts.histplots == 'G':
             self.PlotG(ax3)
+        
+        # Show clustering results after main plots if --cluster is enabled
+        if self.opts.cluster and hasattr(self.parser, 'cluster') and self.parser.cluster['clusterer'] is not None:
+            try:
+                # Create and display separate clustering plots
+                clusterer = self.parser.cluster['clusterer']
+                jv_curves = self.parser.cluster['jv_curves']
+                
+                # Show the comprehensive clustering results
+                clustering_fig = clusterer.plot_results(jv_curves, figsize=(15, 10), log_scale=False)
+                
+                # Show 2D histograms if there are enough clusters
+                if self.parser.cluster['n_clusters'] <= 5:
+                    histogram_fig = clusterer.plot_2d_histograms(jv_curves, n_examples=3)
+                
+            except Exception as e:
+                logger.warning(f"Failed to display clustering plots: {e}")
+        
         if self.opts.write:
             # workaround for older versions of matplot lib / python3
             try:
