@@ -1,4 +1,5 @@
 from clustering.jvclustering import cluster_jv_curves
+from clustering.egain_clustering import cluster_egain_traces, extract_egain_traces_from_avg
 from gaussfit.parse.libparse.util import throwimportwarning
 
 try:
@@ -14,6 +15,72 @@ def doclustering(self):
     
     if not self.opts.cluster:
         return 0
+    
+    # Check if we should use EGaIn-specific clustering
+    if self.opts.cluster_as_egain:
+        return _doclustering_egain(self)
+    else:
+        return _doclustering_sweeps(self)
+
+
+def _doclustering_egain(self):
+    '''
+    Perform clustering analysis on complete EGaIn traces (0→min→0→max→0)
+    '''
+    self.logger.info("Using EGaIn trace clustering mode")
+    
+    # Extract complete EGaIn traces from averaged data
+    if not hasattr(self, 'avg') or self.avg.empty:
+        self.logger.warning("No averaged trace data found for EGaIn clustering analysis.")
+        return 0
+    
+    egain_traces = extract_egain_traces_from_avg(self.avg, logger=self.logger)
+    
+    if len(egain_traces) == 0:
+        self.logger.warning("No EGaIn traces found for clustering analysis.")
+        return 0
+    
+    # Determine voltage and current ranges from EGaIn traces
+    all_voltages = []
+    all_currents = []
+    for v_vals, i_vals in egain_traces:
+        all_voltages.extend(v_vals)
+        all_currents.extend(i_vals)
+    
+    voltage_range = (min(all_voltages), max(all_voltages))
+    current_range = (min(np.abs(all_currents)), max(np.abs(all_currents)))
+    
+    # Set clustering parameters for EGaIn traces
+    clustering_params = {
+        'voltage_range': voltage_range,
+        'current_range': current_range,
+        'resolution': self.opts.cluster_resolution,
+        'feature_type': 'egain_complete',  # Use EGaIn-specific features
+        'cluster_method': 'kmeans',
+        'n_clusters': None,  # Auto-determine
+        'estimation_method': self.opts.cluster_estimation_method,
+        'dim_reduction': 'umap'
+    }
+    
+    # Perform EGaIn clustering
+    self.logger.info(f"Clustering {len(egain_traces)} complete EGaIn traces with resolution {self.opts.cluster_resolution}...")
+    clusterer = cluster_egain_traces(egain_traces, clustering_params, logger=self.logger)
+    
+    # Store results in self.cluster (compatible with existing output system)
+    self.cluster['clusterer'] = clusterer
+    self.cluster['clusters'] = clusterer.labels
+    self.cluster['jv_curves'] = egain_traces  # Store EGaIn traces as jv_curves for compatibility
+    self.cluster['n_clusters'] = len(np.unique(clusterer.labels[clusterer.labels >= 0]))
+    self.cluster['egain_mode'] = True  # Flag for output writers
+    
+    return self.cluster['n_clusters']
+
+
+def _doclustering_sweeps(self):
+    '''
+    Perform clustering analysis on individual voltage sweeps (original behavior)
+    '''
+    self.logger.info("Using individual sweep clustering mode")
     
     # Prepare J/V curve data for clustering
     jv_curves = []
