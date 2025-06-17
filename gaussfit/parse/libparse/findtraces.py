@@ -102,6 +102,18 @@ def findtraces(self):
     frames = {}
     # Store trace mapping for clustering reconstruction
     self.trace_mapping = traces.copy()
+    
+    # Store complete EGaIn traces if EGaIn clustering is enabled
+    if hasattr(self.opts, 'cluster_as_egain') and self.opts.cluster_as_egain:
+        self.complete_egain_traces = []
+        for col, _t in enumerate(traces):
+            trace_data = self.df[traces[col][0]:traces[col][1]].copy()
+            if len(trace_data) > 0:
+                voltages = trace_data['V'].values
+                currents = trace_data['J'].values
+                self.complete_egain_traces.append((np.array(voltages), np.array(currents)))
+        self.logger.info(f"Stored {len(self.complete_egain_traces)} complete EGaIn traces for clustering.")
+    
     self.logger.info("Compressing forward/reverse sweeps to single traces.")
     for col, _t in enumerate(traces):
         fbtrace = self.df[traces[col][0]:traces[col][1]].sort_values('V')

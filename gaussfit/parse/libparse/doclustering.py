@@ -1,5 +1,5 @@
 from clustering.jvclustering import cluster_jv_curves
-from clustering.egain_clustering import cluster_egain_traces, extract_egain_traces_from_avg
+from clustering.egain_clustering import cluster_egain_traces
 from gaussfit.parse.libparse.util import throwimportwarning
 
 try:
@@ -29,18 +29,12 @@ def _doclustering_egain(self):
     '''
     self.logger.info("Using EGaIn trace clustering mode")
     
-    # Extract complete EGaIn traces using the same logic as findtraces.py
-    # but WITHOUT the averaging step that creates self.avg
-    if not hasattr(self, 'df') or self.df.empty:
-        self.logger.warning("No raw trace data found for EGaIn clustering analysis.")
+    # Use complete EGaIn traces stored by findtraces.py
+    if not hasattr(self, 'complete_egain_traces') or not self.complete_egain_traces:
+        self.logger.warning("No complete EGaIn traces found. Make sure findtraces.py was run with --cluster-as-egain.")
         return 0
     
-    if not hasattr(self, 'trace_mapping') or not self.trace_mapping:
-        self.logger.warning("No trace mapping found for EGaIn clustering analysis.")
-        return 0
-    
-    # Use the trace boundaries found by findtraces.py to extract complete EGaIn traces
-    egain_traces = _extract_complete_egain_traces_from_trace_mapping(self.df, self.trace_mapping, logger=self.logger)
+    egain_traces = self.complete_egain_traces
     
     if len(egain_traces) == 0:
         self.logger.warning("No EGaIn traces found for clustering analysis.")
@@ -81,61 +75,6 @@ def _doclustering_egain(self):
     
     return self.cluster['n_clusters']
 
-
-def _extract_complete_egain_traces_from_trace_mapping(df, trace_mapping, logger=None):
-    """
-    Extract complete EGaIn traces (0→min→0→max→0) from raw data using trace mapping.
-    This replicates the trace finding logic from findtraces.py but without averaging.
-    
-    Parameters:
-    -----------
-    df : pandas.DataFrame
-        Raw data with complete EGaIn traces
-    trace_mapping : list
-        List of (start_idx, end_idx) tuples for each trace (from findtraces.py)
-    logger : logging.Logger, optional
-        Logger for debug messages
-        
-    Returns:
-    --------
-    egain_traces : list of tuples
-        List of (voltage_array, current_array) for complete EGaIn traces
-    """
-    if logger is None:
-        logger = logging.getLogger(__name__)
-    
-    egain_traces = []
-    
-    for trace_idx, (start_idx, end_idx) in enumerate(trace_mapping):
-        try:
-            # Extract complete EGaIn trace from raw data using the same slicing as findtraces.py
-            trace_data = df[start_idx:end_idx].copy()
-            
-            if len(trace_data) > 0:
-                voltages = trace_data['V'].values
-                currents = trace_data['J'].values
-                
-                logger.debug(f"Complete EGaIn trace {trace_idx}: {len(voltages)} points, V range: {voltages.min():.2f} to {voltages.max():.2f}")
-                logger.debug(f"Complete EGaIn trace {trace_idx} voltage sequence: {voltages[:5]}...{voltages[-5:]}")
-                
-                # Verify this looks like an EGaIn trace (should have exactly 3 zeros)
-                zero_count = np.sum(np.abs(voltages) < 0.01)  # Count near-zero voltages
-                logger.debug(f"Complete EGaIn trace {trace_idx}: {zero_count} zero-voltage points (should be 3 for EGaIn)")
-                
-                if zero_count >= 2:  # Should have at least 2-3 zeros for a valid EGaIn trace
-                    egain_traces.append((np.array(voltages), np.array(currents)))
-                else:
-                    logger.warning(f"Trace {trace_idx} doesn't look like EGaIn trace (only {zero_count} zeros)")
-                    
-            else:
-                logger.warning(f"Empty trace data for trace {trace_idx}")
-                
-        except (KeyError, IndexError) as e:
-            logger.warning(f"Could not extract complete EGaIn trace {trace_idx}: {e}")
-            continue
-    
-    logger.info(f"Extracted {len(egain_traces)} complete EGaIn traces using trace mapping")
-    return egain_traces
 
 
 def _doclustering_sweeps(self):
