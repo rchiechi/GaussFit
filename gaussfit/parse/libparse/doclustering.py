@@ -36,7 +36,7 @@ def _doclustering_egain(logger, opts, egain_traces):
     '''
     Perform clustering analysis on complete EGaIn traces (0→min→0→max→0)
     '''
-    cluster = {}
+    cluster = {'clusterer': None}
     logger.info("Using EGaIn trace clustering mode")
     
     if len(egain_traces) == 0:
@@ -85,7 +85,7 @@ def _doclustering_sweeps(logger, opts, XY):
     Perform clustering analysis on individual voltage sweeps (original behavior)
     '''
     logger.info("Using individual sweep clustering mode")
-    cluster = {}
+    cluster = {'clusterer': None}
     # Prepare J/V curve data for clustering
     jv_curves = []
     voltage_range = None
@@ -94,7 +94,7 @@ def _doclustering_sweeps(logger, opts, XY):
     # The XY structure has voltage as keys and each voltage has lists of current values
     # We need to reconstruct individual J/V traces from this structure
     voltages = sorted(list(XY.keys()))
-    
+
     # Determine the number of traces (curves) from the first voltage point
     if voltages:
         n_traces = len(XY[voltages[0]]['Y'])

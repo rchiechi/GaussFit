@@ -193,8 +193,6 @@ class Parse():
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.loghandler.flush()
         self.findtraces() # Sets self.avg
-        self.cluster = {}
-        children['doclustering'] = background(doclustering, self.opts, self.logqueue, self.complete_egain_traces.copy(), self.XY.copy())
         children['doLag'] = background(doLag, self.opts, self.logqueue, xy)
         #self.dodjdv() # sets self.ohmic  self.DJDV, self.GHists, self.NDC, self.NDCHists, self.filtered
         children['dodjdv'] = background(dodjdv, self.opts, self.logqueue, self.df.copy(), self.avg.copy()) # sets self.ohmic
@@ -223,6 +221,8 @@ class Parse():
                 "lag": lag[x]['lagplot'],
                 "FN": group['FN'],
                 "R": R[x]}
+        self.cluster = {'clusterer': None}
+        children['doclustering'] = background(doclustering, self.opts, self.logqueue, self.complete_egain_traces.copy(), self.XY.copy())
         if self.opts.heatmapd == 0:
             self.GHists = OrderedDict()
             for x in self.XY:
