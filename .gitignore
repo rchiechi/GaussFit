@@ -44,3 +44,4 @@ __pycache__
 # Test outputs
 ##############
 tests/egain_data/**/parsed/**
+parsed
