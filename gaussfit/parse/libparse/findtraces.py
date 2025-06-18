@@ -60,6 +60,8 @@ def findtraces(self):
     if not ntraces and self.df.V.value_counts().index[0] == 0.0:
         # NOTE t is a tuple with both indices 0 = filename, 1 = index
         try:
+            if self.df.V.value_counts()[0] % 3:
+                raise ValueError("Number of zeros in Voltages not divisble by 3.")
             ntraces = int(self.df.V.value_counts()[0]/3)  # Three zeros in every trace!
             self.logger.info("This looks like an EGaIn dataset.")
             for t in zip(*(iter(self.df[self.df.V == 0.00].V.index),) * 3):
@@ -103,20 +105,28 @@ def findtraces(self):
     # Store trace mapping for clustering reconstruction
     self.trace_mapping = traces.copy()
     
+    # DEBUG
+    from rich import print
+    
     # Store complete EGaIn traces if EGaIn clustering is enabled
-    if hasattr(self.opts, 'cluster_as_egain') and self.opts.cluster_as_egain:
-        self.complete_egain_traces = []
-        for col, _t in enumerate(traces):
-            trace_data = self.df[traces[col][0]:traces[col][1]].copy()
-            if len(trace_data) > 0:
-                voltages = trace_data['V'].values
-                currents = trace_data['J'].values
-                self.complete_egain_traces.append((np.array(voltages), np.array(currents)))
-        self.logger.info(f"Stored {len(self.complete_egain_traces)} complete EGaIn traces for clustering.")
+    self.complete_egain_traces = []
+    for col, _t in enumerate(traces):
+        # print(f"From V = {self.df[traces[col][0]]} to {self.df[traces[col][1]]}")
+        trace_data = self.df[traces[col][0]:traces[col][1]].copy()
+        if len(trace_data) > 0:
+            voltages = trace_data['V'].values
+            currents = trace_data['J'].values
+            self.complete_egain_traces.append((np.array(voltages), np.array(currents)))
+    self.logger.info(f"Stored {len(self.complete_egain_traces)} complete EGaIn traces for clustering.")
+    
+    # DEBUG
+    # print(f"complete_egain_traces: {self.complete_egain_traces}")
     
     self.logger.info("Compressing forward/reverse sweeps to single traces.")
     for col, _t in enumerate(traces):
-        fbtrace = self.df[traces[col][0]:traces[col][1]].sort_values('V')
+        fbtrace = self.df[traces[col][0]:traces[col][1]].sort_values('V').copy()
+        # DEBUG
+        # print(f"fbtrace: {fbtrace['V']}")
         avg = OrderedDict({'J': [], 'FN': []})
         idx = []
         for x, group in fbtrace.groupby('V'):

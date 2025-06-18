@@ -300,6 +300,10 @@ class EGaInClustering(JVCurveClustering):
         if len(egain_traces) != len(self.labels):
             self.logger.warning(f"Data mismatch: {len(egain_traces)} traces but {len(self.labels)} labels!")
             return fig
+            
+        # # DEBUG    
+        # from rich import print
+        # print(f"egain_traces: {egain_traces}")
         
         for i, label in enumerate(unique_labels[:5]):  # Show max 5 clusters
             if i >= 5:  # Subplot limit
@@ -323,6 +327,10 @@ class EGaInClustering(JVCurveClustering):
                         sort_indices = np.argsort(voltage)
                         voltage_sorted = voltage[sort_indices]
                         current_sorted = current[sort_indices]
+                        
+                        # # DEBUG
+                        # print(f"Voltages: {voltage_sorted}")
+                        # print(f"Currents: {current_sorted}")
                         
                         if log_scale:
                             ax.semilogy(voltage_sorted, np.abs(current_sorted), alpha=0.7, linewidth=1.5)

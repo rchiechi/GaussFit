@@ -218,11 +218,11 @@ def _write_egain_traces_by_cluster(writer, clusterer, jv_curves, cluster_labels,
                     writer_csv = csv.writer(csvfile, dialect='JV')
                     
                     # Write header
-                    writer_csv.writerow(["V", "J", "FN"])  # Standard EGaIn format
+                    writer_csv.writerow(["V", "J"])  # Standard EGaIn format
                     
                     # Write all trace data
                     for _, row in cluster_df.iterrows():
-                        writer_csv.writerow([f"{row['V']:0.4f}", f"{row['J']:0.6E}", f"{row['FN']:0.6E}"])
+                        writer_csv.writerow([f"{row['V']:0.4f}", f"{row['J']:0.6E}"])
                 
                 logger.info(f"Wrote {len(cluster_trace_indices)} EGaIn traces for cluster {cluster_id} to egain_traces.txt")
     

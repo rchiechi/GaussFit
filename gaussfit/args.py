@@ -82,16 +82,16 @@ parser.add_argument('in_files', metavar='Files-to-parse', type=str, nargs='*', d
 # parser.add_argument('-G', '--gui', action='store_true', default=False,
 #                     help="Launch the GUI.")
 parser.add_argument('-o', '--outfile', metavar="OUTPUT FILE", default="",
-                    help="Outputfile (taken from first input)")
+                    help="Output file name (taken from first input)")
 parser.add_argument('--outdir', metavar="OUTPUT DIR", dest='out_dir', default=os.path.join(os.getcwd(), 'parsed'),
                     help="Output directory (combined with -o).")
-parser.add_argument('-l', '--loglevel', default='info', choices=('info', 'warn', 'error', 'debug'),
+parser.add_argument('--loglevel', default='info', choices=('info', 'warn', 'error', 'debug'),
                     help="Set the logging level.")
 parser.add_argument('-p', '--plot', action='store_true', default=False,
                     help="Plot data and save to png file.")
 parser.add_argument('-n', '--nowrite', dest='write', action='store_false', default=True,
                     help="Do not write output files (implies -p).")
-parser.add_argument('-d', '--delim', default='tab', choices=('tab', 'comma', 'space'),
+parser.add_argument('--delim', default='tab', choices=('tab', 'comma', 'space'),
                     help="Delimeter in inputfiles.")
 parser.add_argument('--encoding', default='ISO-8859-1', choices=('ISO-8859-1', 'utf-8', 'ascii'),
                     help="Delimeter in inputfiles.")
@@ -101,11 +101,11 @@ parser.add_argument('-Y', '--ycol', type=int, default=3,
                     help="Column to treat as Y. Set to 0 to grab all columns except Xcol.")
 parser.add_argument('--xrange', type=int, default=0,
                     help="Only parse x-axis to +/- X (useful for mistmatched volage ranges in inputs).")
-parser.add_argument('-b', '--bins', default=50, type=int,
+parser.add_argument('--bins', default=50, type=int,
                     help='Number of bins for histograms (except heatmap).')
-parser.add_argument('-m', '--maxr', type=float, default=3.0,
+parser.add_argument('--maxr', type=float, default=3.0,
                     help="Maximum allowable value of log|R| or (R if -R).")
-parser.add_argument('-c', '--compliance', default=np.inf, type=float,
+parser.add_argument('--compliance', default=np.inf, type=float,
                     help="Set compliance limit for gaussian fits.")
 parser.add_argument('--interpolateminfn', action='store_true', default=False,
                     help="DEPRECATED: Compute Vtrans from the minimum of the derivative of the FN plot.")
@@ -113,9 +113,9 @@ parser.add_argument('--oldfn', action='store_true', default=False,
                     help="Use the old FN function.")
 parser.add_argument('--noskip', action='store_false', dest='skipohmic', default=True,
                     help="Do NOT skip plots with negative d2J/dV2 values at vcutoff for Vtrans calcuation and conductance plot.")
-parser.add_argument('-S', '--smooth', type=float, default=0,
+parser.add_argument('--smooth', type=float, default=0,
                     help="Cutoff for residuals when smoothing splines for dJ/dV 0 to disable. 1e-4 for artifacts, 1e-12 for smooth plots.")
-parser.add_argument('-v', '--vcutoff', type=float, default=-1,
+parser.add_argument('--vcutoff', type=float, default=-1,
                     help="Voltage (absolute value) cut-off for dJ/dV skipping routine (-1 for Vmin/Vmax)")
 parser.add_argument('--Glower', metavar='GLOWER', dest='mlow', type=float, default=-6,
                     help="Lower cutoff value for conductance heat map plot.")
@@ -127,13 +127,13 @@ parser.add_argument('--NDCupper', metavar='NDCUPPER', dest='ndc_mhi', type=float
                     help="Upper cutoff value for conductance heat map plot.")
 parser.add_argument('--heatmapbins', default=25, type=int,
                     help="Number of bins for the conductance heatmap plot.")
-parser.add_argument('-R', '--logr', default=True, action='store_false',
+parser.add_argument('--nologr', dest='logr', default=True, action='store_false',
                     help="Compute |R| instead of log|R| for histograms of rectification.")
-parser.add_argument('-L', '--lorenzian', default=False, action='store_true',
+parser.add_argument('--lorenzian', default=False, action='store_true',
                     help="Fit data to a Lorenzian instead of a Gaussian.")
 parser.add_argument('--nolag', action='store_true', default=False,
                     help="Do NOT compute lag plots.")
-parser.add_argument('-N', '--nobs', type=int, default=0,
+parser.add_argument('--nobs', type=int, default=0,
                     help="Number of observations for statistical tests on J (but not Gmean!).")
 parser.add_argument('--maxfev', type=int, default=10000,
                     help="Maximum interations for fitting histograms.")
@@ -141,7 +141,7 @@ parser.add_argument('--plots', type=str, default='J', choices=['J', 'R', 'FN', '
                     help="Log data to plot.")
 parser.add_argument('--histplots', type=str, default='NDC', choices=['NDC', 'G'],
                     help="Heatmap data to plot.")
-parser.add_argument('-T', '--threads', type=int, default=8,
+parser.add_argument('--threads', type=int, default=8,
                     help="Use n threads for parsing for marginal speed boost.")
 parser.add_argument('--autonobs', default=False, action='store_true',
                     help="Try to find reasonable values of N automatically.")

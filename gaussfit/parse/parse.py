@@ -193,6 +193,8 @@ class Parse():
         self.logger.info("* * * * * * Finding traces   * * * * * * * *")
         self.loghandler.flush()
         self.findtraces() # Sets self.avg
+        self.cluster = {}
+        children['doclustering'] = background(doclustering, self.opts, self.logqueue, self.complete_egain_traces.copy(), self.XY.copy())
         children['doLag'] = background(doLag, self.opts, self.logqueue, xy)
         #self.dodjdv() # sets self.ohmic  self.DJDV, self.GHists, self.NDC, self.NDCHists, self.filtered
         children['dodjdv'] = background(dodjdv, self.opts, self.logqueue, self.df.copy(), self.avg.copy()) # sets self.ohmic
@@ -253,11 +255,6 @@ class Parse():
         self.logger.info("* * * * * * Computing SLM  * * * * * * * * *")
         self.loghandler.flush()
         self.logger.info(f"Fit {self.doslm()} traces to SLM.")
-        self.logger.info("* * * * * * Computing Clustering  * * * * * * * * *")
-        self.loghandler.flush()
-        n_clusters = self.doclustering()
-        if n_clusters > 0:
-            self.logger.info(f"Found {n_clusters} clusters from clustering analysis.")
         self.logger.info("* * * * * * * * * * * * * * * * * * * * * * ")
         self.loghandler.flush()
         if not self.error:
@@ -266,6 +263,10 @@ class Parse():
         self.logger.info(f"{self.SLM['Gauss']['FN']['vt_pos']:0.2f} / {self.SLM['Gauss']['FN']['vt_neg']:0.2f}")
         self.logger.info("SLM from Gaussian LogJ data:")
         self.logger.info(f"G = {self.SLM['Gauss']['G']:0.2E}, ε = {epsillon:0.2f}, γ = {gamma:0.2f}, Γ = {big_gamma:0.2E}")
+        self.cluster = get_result(children['doclustering'])
+        if self.cluster.get('n_clusters', 0) > 0:
+            self.logger.info(f"Found {self.cluster['n_clusters']} clusters from clustering analysis.")
+        
         self.loghandler.unsetDelay()
 
         try:
