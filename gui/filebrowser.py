@@ -38,7 +38,8 @@ from tkinter.font import Font
 from .prefs import PreferencesWindow
 from .colors import BLACK, YELLOW, WHITE, RED, TEAL, GREEN, BLUE, GREY  # pylint: disable=unused-import
 from .tooltip import createToolTip
-from queue import Queue, Empty
+# from queue import Queue, Empty
+import multiprocessing
 from gaussfit.logger import DelayedMultiprocessHandler
 from gaussfit.logger import GUIHandler
 from gaussfit.args import get_args, VERSION
@@ -76,7 +77,7 @@ class ChooseFiles(tk.Frame):
         else:
             self.master = master
         self.loop = kwargs.get('loop', asyncio.get_event_loop())
-        self.logque = Queue(-1)
+        self.logque = multiprocessing.Queue(-1)
         self.bgimg = PhotoImage(file=os.path.join(absdir, 'RCCLabFluidic.png'))
         limg = Label(self.master, image=self.bgimg, background=GREY)
         limg.pack(side=TOP)

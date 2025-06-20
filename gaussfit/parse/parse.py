@@ -138,7 +138,6 @@ class Parse():
                'n_clusters': 0}  # Clustering results
     segments = {}
     segments_nofirst = {}
-    logqueue = multiprocessing.Queue()
 
     def __init__(self, df, **kwargs):
         self.df = df
@@ -152,6 +151,7 @@ class Parse():
             self.logger.addHandler(handler)
         self.logger.addHandler(self.loghandler)
         self.logger.setLevel(getattr(logging, self.opts.loglevel.upper()))
+        self.logqueue = kwargs.get("logqueue", multiprocessing.Queue())
         self.loglistener = QueueListener(self.logqueue, self.loghandler)
         self.loglistener.start()
         self.logger.info("Gaussfit Parser v%s", VERSION)
@@ -182,7 +182,6 @@ class Parse():
         self.df['lnJ'] = np.log(abs(self.df.J))  # Cannot log10 zero
         # The default log handler only emits when you call flush() after setDelay() called
         self.loghandler.setDelay()
-        print(self.opts)
         await self._parsedataset()
 
     async def _parsedataset(self):
