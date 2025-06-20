@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 '''
 Copyright (C) 2025 Ryan Chiechi <ryan.chiechi@ncsu.edu>
 Description:
@@ -183,7 +182,7 @@ class Parse():
         self.df['lnJ'] = np.log(abs(self.df.J))  # Cannot log10 zero
         # The default log handler only emits when you call flush() after setDelay() called
         self.loghandler.setDelay()
-
+        print(self.opts)
         await self._parsedataset()
 
     async def _parsedataset(self):

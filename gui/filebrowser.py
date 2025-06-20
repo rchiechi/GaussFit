@@ -24,6 +24,7 @@ import asyncio
 import platform
 import logging
 import threading
+import copy
 import tkinter.ttk as tk
 from tkinter import Toplevel
 from tkinter import filedialog
@@ -41,7 +42,7 @@ from queue import Queue, Empty
 from gaussfit.logger import DelayedMultiprocessHandler
 from gaussfit.logger import GUIHandler
 from gaussfit.args import get_args, VERSION
-from gaussfit.parse import Parse
+# from gaussfit.parse import Parse
 from gaussfit.parse import readfiles
 from .libparse.ParseThread import ParseThread
 from gaussfit.output.libwriter import doOutput
@@ -336,8 +337,20 @@ class ChooseFiles(tk.Frame):
             self.logger.error(e)
 
     def SettingsClick(self):
+        """
+        Opens a modal preferences window. If the user saves, it updates the
+        canonical self.opts object in-place and then syncs the GUI.
+        """
+        # First, ensure self.opts is up-to-date with any last-minute GUI changes.
         self.checkOptions()
-        PreferencesWindow(self.master, self.opts_parser, self.opts)
+        dialog = PreferencesWindow(self.master, self.opts_parser, self.opts)
+        self.master.wait_window(dialog)
+    
+        if dialog.saved:
+            self._update_gui_from_opts()
+            self.logger.info("Preferences have been updated and applied.")
+        else:
+            self.logger.info("Preference changes were discarded.")
 
     def RemoveFileClick(self):
         self.checkOptions()
@@ -396,27 +409,66 @@ class ChooseFiles(tk.Frame):
             self.LabelcpuString.set("CPU: %0.1f %%" % psutil.cpu_percent())
             self.Labelcpu.after(500, self.UpdateLabelcpu)
 
+
     def checkOptions(self, event=None):
+        """
+        Reads all values from the GUI widgets and updates the self.opts namespace.
+        This is the primary public callback for all interactive widgets.
+        It then applies any dependent UI logic.
+        """
+        # Part 1: Read all values from the GUI widgets into self.opts
         for c in self.checks:
             setattr(self.opts, c['name'], self.boolmap[getattr(self, c['name']).get()])
-
-        if self.OptionsHistPlotsString.get() == 'NDC':
+    
+        self.opts.plots = self.OptionsPlotsString.get()
+        self.opts.histplots = self.OptionsHistPlotsString.get()
+        self.opts.heatmapd = int(self.OptionsHeatmapdString.get())
+        self.opts.outfile = self.OutputFileName.get()
+    
+        # Part 2: Apply UI logic based on the new, authoritative state in self.opts
+        if self.opts.histplots == 'NDC':
             self.OptionHeatmapd["state"] = DISABLED
+            # This logic can override user settings for consistency.
+            # We must update both the UI and the underlying opts object.
             self.opts.heatmapd = 1
             self.OptionsHeatmapdString.set('1')
         else:
             self.OptionHeatmapd["state"] = NORMAL
-
+    
         if not self.opts.write:
+            # If write is off, plot must be on. Enforce this in opts and the UI.
             self.opts.plot = True
-            self.plot.set(1)
+            self.plot.set(1) # Also update the widget that gets disabled
             self.Check_plot["state"] = DISABLED
         else:
             self.Check_plot["state"] = NORMAL
+    
+        # Finally, update any dependent display labels
+        self.UpdateFileListBoxFrameLabel()
 
-        self.opts.plots = self.OptionsPlotsString.get()
-        self.opts.histplots = self.OptionsHistPlotsString.get()
-        self.opts.heatmapd = int(self.OptionsHeatmapdString.get())
+
+    def _update_gui_from_opts(self):
+        """
+        (Internal Helper) Reads all values from self.opts and forces the GUI widgets to match.
+        This should be called ONLY after self.opts has been updated from an
+        external source, like the preferences dialog.
+        """
+        # Force all GUI widgets to match the state of self.opts.
+        for c in self.checks:
+            val = 1 if getattr(self.opts, c['name'], False) else 0
+            getattr(self, c['name']).set(val)
+    
+        self.OptionsPlotsString.set(self.opts.plots)
+        self.OptionsHistPlotsString.set(self.opts.histplots)
+        self.OptionsHeatmapdString.set(str(self.opts.heatmapd))
+        self.OutputFileName.delete(0, 'end')
+        self.OutputFileName.insert(0, self.opts.outfile)
+    
+        # After forcing the GUI to match the new opts, we must call checkOptions()
+        # to apply any dependent UI logic (like disabling widgets).
+        self.checkOptions()
+
+
 
     def checkOutputFileName(self, event=None):
         self.opts.outfile = self.OutputFileName.get()

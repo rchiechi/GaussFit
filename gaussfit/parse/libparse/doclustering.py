@@ -21,7 +21,7 @@ def _doclustering(opts, que, complete_egain_traces, XY):
     '''
     
     if not opts.cluster:
-        return 0
+        return {'clusterer': None}
     logger = logging.getLogger(__package__+".clustering")
     logger.addHandler(QueueHandler(que))
     logger.info("* * * * * * Computing Clustering  * * * * * * * * *")

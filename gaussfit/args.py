@@ -178,8 +178,8 @@ def get_args():
                         help="Maximum interations for fitting histograms.")
     fit_group.add_argument('--nobs', type=int, default=0,
                         help="Number of observations for statistical tests on J (but not Gmean!).")
-    fit_group.add_argument('--autonobs', default=False, action='store_true',
-                        help="Try to find reasonable values of N automatically.")
+    # fit_group.add_argument('--autonobs', default=False, action='store_true',
+    #                     help="Try to find reasonable values of N automatically.")
     fit_group.add_argument('--alpha', type=float, default=0.025,
                         help="Alpha value for confidence intervals (p-cutoff = 1-Alpha).")
     fit_group.add_argument('--degfree', type=int, default=1,
@@ -190,8 +190,8 @@ def get_args():
                         help="Largest G-value to consider physically realistic.")
     fit_group.add_argument('--oldfn', action='store_true', default=False,
                         help="Use the old FN function.")
-    fit_group.add_argument('--interpolateminfn', action='store_true', default=False,
-                        help="DEPRECATED: Compute Vtrans from the minimum of the derivative of the FN plot.")
+    # fit_group.add_argument('--interpolateminfn', action='store_true', default=False,
+    #                     help="DEPRECATED: Compute Vtrans from the minimum of the derivative of the FN plot.")
 
     # =============================================================================
     # SLM & Clustering Group

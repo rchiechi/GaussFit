@@ -16,7 +16,7 @@ class ParseThread(threading.Thread):
 
     async def parse(self):
         df = await readfiles(self.opts)
-        self.parser = Parse(df, handler=DelayedMultiprocessHandler(self.handler))
+        self.parser = Parse(df, opts=self.opts, handler=DelayedMultiprocessHandler(self.handler))
         await self.parser.parse()
         
     def run(self):
