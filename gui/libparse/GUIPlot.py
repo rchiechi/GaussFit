@@ -19,51 +19,48 @@ class PlotWindow(Toplevel):
         self.title("Data Preview")
 
 
+# In your GUI class
+
 def GUIPlot(self, parser):
     '''An interactive matplotlib pyplot that
    doesn't block the main GUI thread.'''
 
     if not HASMATPLOTLIB:
-        self.logger.warn("Matplot lib is not installed, cannot generate plots!")
+        self.logger.warn("Matplotlib is not installed, cannot generate plots!")
         return
 
+    # --- Main Plot Window ---
     fig = Figure(figsize=(16, 10), dpi=100)
     plotter = Plotter(parser, fig)
-    plotter.DoPlots()
+    
+    # Capture the extra figures returned by DoPlots
+    extra_figs = plotter.DoPlots()
+
     root = PlotWindow(self.master)
-    canvas = FigureCanvasTkAgg(fig, master=root)  # A tk.DrawingArea.
+    root.title("Main Data Plots") # Give it a more specific title
+    canvas = FigureCanvasTkAgg(fig, master=root)
     canvas.draw()
+    
     if int(matplotlib.__version__.split('.')[0]) > 2:
         toolbar = NavigationToolbar2Tk(canvas, root, pack_toolbar=False)
         toolbar.update()
         toolbar.pack(side=BOTTOM, fill=X)
     canvas.get_tk_widget().pack(side=TOP, fill=BOTH, expand=1)
 
+    # --- Create New Windows for Extra Plots ---
+    for i, extra_fig in enumerate(extra_figs):
+        # Create a new Toplevel window for each extra figure
+        extra_root = Toplevel(self.master)
+        extra_root.title(f"Clustering Plot {i+1}")
+        
+        extra_canvas = FigureCanvasTkAgg(extra_fig, master=extra_root)
+        extra_canvas.draw()
+        
+        # Add a toolbar to the new window for interactivity
+        extra_toolbar = NavigationToolbar2Tk(extra_canvas, extra_root, pack_toolbar=False)
+        extra_toolbar.update()
+        extra_toolbar.pack(side=BOTTOM, fill=X)
+        
+        extra_canvas.get_tk_widget().pack(side=TOP, fill=BOTH, expand=1)
 
-# def GUIPlotMultiprocessing(self, parser=None):
-#     '''An interactive matplotlib pyplot that
-#        doesn't block the main GUI thread.'''
 
-#     if not HASMATPLOTLIB:
-#         self.logger.warn("Matplot lib is not installed, cannot generate plots!")
-#         return
-
-#     if parser is None:
-#         __plts = []
-#         while self.plots:
-#             __plts.append(self.plots.pop())
-#         for __plt in __plts:
-#             if __plt.get_fignums():
-#                 __plt.gcf().canvas.draw_idle()
-#                 __plt.gcf().canvas.start_event_loop(0.1)
-#                 self.plots.append(__plt)
-#         if self.plots:
-#             self.master.after('100', self.GUIPlot)
-#         return
-#     self.logger.info("Generating plots in background...")
-#     plotter = Plotter(parser, plt)
-#     plotter.DoPlots()
-#     plt.ion()
-#     plt.pause(1)
-#     self.plots.append(plt)
-#     self.master.after('100', self.GUIPlot)

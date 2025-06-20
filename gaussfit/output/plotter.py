@@ -287,6 +287,7 @@ class Plotter():
         ax.plot(self.XY[key]['hist']['bin'], self.XY[key]['hist']['fit'], lw=2.0, color='b', label='Fit')
 
     def DoPlots(self):
+        new_figs = []
         ax1 = self.fig.add_axes([0.06, 0.55, 0.4, 0.4])
         ax2 = self.fig.add_axes([0.56, 0.55, 0.4, 0.4])
         ax3 = self.fig.add_axes([0.06, 0.05, 0.4, 0.4])
@@ -313,22 +314,23 @@ class Plotter():
         elif self.opts.histplots == 'G':
             self.PlotG(ax3)
         
-        # Show clustering results after main plots if --cluster is enabled
+        # Show clustering results after main plots
         if self.opts.cluster and hasattr(self.parser, 'cluster') and self.parser.cluster['clusterer'] is not None:
             try:
-                # Create and display separate clustering plots
                 clusterer = self.parser.cluster['clusterer']
                 jv_curves = self.parser.cluster['jv_curves']
                 
-                # Show the comprehensive clustering results
+                # Capture the returned figure and add it to our list
                 clustering_fig = clusterer.plot_results(jv_curves, figsize=(15, 10), log_scale=False)
+                new_figs.append(clustering_fig)
                 
-                # Show 2D histograms if there are enough clusters
                 if self.parser.cluster['n_clusters'] <= 5:
+                    # Capture this figure as well
                     histogram_fig = clusterer.plot_2d_histograms(jv_curves, n_examples=3)
-                
+                    new_figs.append(histogram_fig)
+            
             except Exception as e:
-                logger.warning(f"Failed to display clustering plots: {e}")
+                logger.warning(f"Failed to create clustering plots: {e}")
         
         if self.opts.write:
             # workaround for older versions of matplot lib / python3
@@ -336,3 +338,5 @@ class Plotter():
                 self.fig.savefig(os.path.join(self.opts.out_dir, self.opts.outfile+"_fig.png"), format="png")
             except AttributeError:
                 logger.warning('Unable to save plots as image. Try upgrading python3 and matplotlib.')
+        
+        return new_figs

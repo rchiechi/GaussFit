@@ -38,12 +38,10 @@ from tkinter.font import Font
 from .prefs import PreferencesWindow
 from .colors import BLACK, YELLOW, WHITE, RED, TEAL, GREEN, BLUE, GREY  # pylint: disable=unused-import
 from .tooltip import createToolTip
-# from queue import Queue, Empty
 import multiprocessing
 from gaussfit.logger import DelayedMultiprocessHandler
 from gaussfit.logger import GUIHandler
 from gaussfit.args import get_args, VERSION
-# from gaussfit.parse import Parse
 from gaussfit.parse import readfiles
 from .libparse.ParseThread import ParseThread
 from gaussfit.output.libwriter import doOutput
