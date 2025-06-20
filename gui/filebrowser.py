@@ -77,6 +77,7 @@ class ChooseFiles(tk.Frame):
         self.loop = kwargs.get('loop', asyncio.get_event_loop())
         self.logque = multiprocessing.Queue(-1)
         self.bgimg = PhotoImage(file=os.path.join(absdir, 'RCCLabFluidic.png'))
+        self.icon = PhotoImage(file=os.path.join(absdir, 'gaussfiticon.png'))
         limg = Label(self.master, image=self.bgimg, background=GREY)
         limg.pack(side=TOP)
         try:
@@ -85,6 +86,7 @@ class ChooseFiles(tk.Frame):
             self.last_input_path = os.path.expanduser('~')
         self.opts_parser, self.opts = get_args()
         self.degfreedom = {'init': self.opts.degfree, 'user': self.opts.degfree}
+        self.master.iconphoto(True, self.icon )
         self.master.tk_setPalette(background=GREY, activeBackground=GREY)
         self.master.title(f"RCCLab EGaIn Data Parser v{VERSION}")
         self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
