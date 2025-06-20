@@ -45,7 +45,7 @@ from SLM.util import SLM_func, Gamma_func, slm_param_func
 from gaussfit.colors import WHITE, GREEN, TEAL, YELLOW
 from gaussfit.logs import GaussfitFormatter
 from gaussfit.logger import DelayedHandler
-from gaussfit.args import Opts
+from gaussfit.args import get_args
 from .libparse.util import gettmpfilename
 from .libparse.dohistogram import dohistogram
 from .libparse import doLag
@@ -143,7 +143,7 @@ class Parse():
 
     def __init__(self, df, **kwargs):
         self.df = df
-        self.opts = kwargs.get('opts', Opts)
+        self.opts = kwargs.get('opts', get_args()[1])
         self.logger = kwargs.get('logger', logging.getLogger(__package__))
         self.logger.handlers.clear()
         handler = kwargs.get("handler")

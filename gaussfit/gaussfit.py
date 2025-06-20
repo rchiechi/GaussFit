@@ -29,7 +29,7 @@ import threading
 from .logs import GaussfitFormatter
 from .parse import readfiles
 from .parse import Parse
-from .args import Opts
+from .args import get_args
 from .output import Writer, Plotter
 from .colors import *
 from .output.libwriter import doOutput
@@ -65,12 +65,13 @@ async def do_gaussfit():
     Call this function to execute the parsing engine
     i.e., as main()
     '''
-    if not Opts.in_files:
+    parser, opts = get_args()
+    if not opts.in_files:
         print(RED+"\n\t\t> > > No input files! < < < "+RS)
         sys.exit()
     # Create logger
     logger = logging.getLogger(__name__.split(".")[0])
-    logger.setLevel(getattr(logging, Opts.loglevel.upper()))
+    logger.setLevel(getattr(logging, opts.loglevel.upper()))
     # Create console handler
     console_handler = logging.StreamHandler()
     # Create formatter
@@ -78,13 +79,13 @@ async def do_gaussfit():
     # Add handler to logger
     logger.addHandler(console_handler)
     logger.info("Reading files")
-    df = await readfiles(Opts)
+    df = await readfiles(opts)
     parser = Parse(df, logger=logger)
     await parser.parse()
-    if Opts.write and not parser.error:
+    if opts.write and not parser.error:
         writer = Writer(parser)
         doOutput(writer)
-    if Opts.plot and not parser.error:
+    if opts.plot and not parser.error:
         if CAN_PLOT:
             plotter = Plotter(parser, plt)
             plotter.DoPlots()
@@ -123,11 +124,12 @@ def main_cli():
 def main_gui():
     do_gui() 
 
-if __name__ == "__main__":
-    warnings.filterwarnings('ignore', '.*invalid escape sequence.*', SyntaxWarning)
-    if Opts.gui:
-        from gui import filebrowser
-        gui = filebrowser.ChooseFiles()
-    else:
-        asyncio.run(do_gaussfit())
+# if __name__ == "__main__":
+#     parser, opts = get_args()
+#     warnings.filterwarnings('ignore', '.*invalid escape sequence.*', SyntaxWarning)
+#     if opts.gui:
+#         from gui import filebrowser
+#         gui = filebrowser.ChooseFiles()
+#     else:
+#         asyncio.run(do_gaussfit())
 

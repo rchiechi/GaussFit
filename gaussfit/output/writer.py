@@ -26,7 +26,7 @@ import warnings
 from shutil import copyfile
 import logging
 from gaussfit.colors import GREEN, TEAL, YELLOW, WHITE
-from gaussfit.args import Opts as opts
+# from gaussfit.args import Opts as opts
 
 logger = logging.getLogger('output')
 loghandler = logging.StreamHandler()
@@ -60,15 +60,15 @@ class Writer():
 
     def __init__(self, parser):
         self.parser = parser
-        self.opts = opts
-        if not os.path.exists(opts.out_dir):
-            logger.info("Creating %s", opts.out_dir)
-            os.makedirs(opts.out_dir)
-        if not os.path.exists(opts.slm_dir):
-            logger.info("Creating %s", opts.slm_dir)
-            os.makedirs(opts.slm_dir)
-        if not os.path.exists(opts.cluster_dir):
-            logger.info("Creating %s", opts.cluster_dir)
+        self.opts = self.parser.opts
+        if not os.path.exists(self.opts.out_dir):
+            logger.info("Creating %s", self.opts.out_dir)
+            os.makedirs(self.opts.out_dir)
+        if not os.path.exists(self.opts.slm_dir):
+            logger.info("Creating %s", self.opts.slm_dir)
+            os.makedirs(self.opts.slm_dir)
+        if not os.path.exists(self.opts.cluster_dir):
+            logger.info("Creating %s", self.opts.cluster_dir)
             os.makedirs(opts.cluster_dir)
 
     def __getattr__(self, name):

@@ -40,7 +40,7 @@ from .tooltip import createToolTip
 from queue import Queue, Empty
 from gaussfit.logger import DelayedMultiprocessHandler
 from gaussfit.logger import GUIHandler
-from gaussfit.args import Opts, VERSION
+from gaussfit.args import get_args, VERSION
 from gaussfit.parse import Parse
 from gaussfit.parse import readfiles
 from .libparse.ParseThread import ParseThread
@@ -83,7 +83,7 @@ class ChooseFiles(tk.Frame):
             self.last_input_path = os.getcwd()
         except KeyError:
             self.last_input_path = os.path.expanduser('~')
-        self.opts = Opts
+        self.opts_parser, self.opts = get_args()
         self.degfreedom = {'init': self.opts.degfree, 'user': self.opts.degfree}
         self.master.tk_setPalette(background=GREY, activeBackground=GREY)
         self.master.title(f"RCCLab EGaIn Data Parser v{VERSION}")
@@ -337,7 +337,7 @@ class ChooseFiles(tk.Frame):
 
     def SettingsClick(self):
         self.checkOptions()
-        PreferencesWindow(self.master, self.opts)
+        PreferencesWindow(self.master, self.opts_parser, self.opts)
 
     def RemoveFileClick(self):
         self.checkOptions()
