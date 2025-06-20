@@ -1,5 +1,5 @@
 '''
-Copyright (C) 2022 Ryan Chiechi <ryan.chiechi@ncsu.edu>
+Copyright (C) 2025 Ryan Chiechi <ryan.chiechi@ncsu.edu>
 Description:
 
     This absolute mess outputs parsed data into text files and plots. If

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 '''
-Copyright (C) 2023 Ryan Chiechi <ryan.chiechi@ncsu.edu>
+Copyright (C) 2025 Ryan Chiechi <ryan.chiechi@ncsu.edu>
 Description:
 
     This is the main parsing logic for GaussFit. It was built up over
@@ -32,7 +32,8 @@ import os
 import logging
 from logging.handlers import QueueListener
 from queue import Queue
-import threading
+# import threading
+import multiprocessing
 import warnings
 import time
 import pickle
@@ -74,14 +75,16 @@ warnings.filterwarnings('error', '.*Degrees of freedom <= 0 for slice.*', Runtim
 # warnings.filterwarnings('ignore','.*impossible result.*',UserWarning)
 
 def background(func, *args):
-    conn = Queue()
-    thread = threading.Thread(target=func, args=(conn, *args))
+    # conn = Queue()
+    # thread = threading.Thread(target=func, args=(conn, *args))
+    conn = multiprocessing.Queue()
+    thread = multiprocessing.Process(target=func, args=(conn, *args))
     thread.start()
     return conn, thread
 
 def get_result(child):
-    child[1].join()
     result = child[0].get()
+    child[1].join()
     if isinstance(result, Exception):
         raise result
     else:
@@ -136,7 +139,7 @@ class Parse():
                'n_clusters': 0}  # Clustering results
     segments = {}
     segments_nofirst = {}
-    logqueue = Queue()
+    logqueue = multiprocessing.Queue()
 
     def __init__(self, df, **kwargs):
         self.df = df
@@ -203,7 +206,9 @@ class Parse():
         self.SLM['Vtposavg'] = self.FN["pos"]
         self.SLM['Vtnegavg'] = self.FN["neg"]
         R = self.dorect(xy)
+        self.logger.debug("Getting doLag")
         lag = get_result(children['doLag'])
+        self.logger.debug("Getting dodjdv")
         self.ohmic,  self.DJDV, self.GHists, self.NDC, self.NDCHists, self.filtered = get_result(children['dodjdv'])
         children['doconductance'] = background(doconductance, self.opts, self.logqueue, self.ohmic, self.avg.copy())
         self.logger.info("* * * * * * Computing Gaussians  * * * * * * * * *")
@@ -228,7 +233,8 @@ class Parse():
             for x in self.XY:
                 self.GHists[x] = {}
                 self.GHists[x]['hist'] = self.XY[x]['hist']
-        children['findSegments'][1].join()
+        # children['findSegments'][1].join()
+        self.logger.debug("Getting findSegments")
         self.error, self.segments, self.segmenthists_nofirst, nofirsttrace = get_result(children['findSegments'])
         if nofirsttrace:
             for x, group in xy:
@@ -240,6 +246,7 @@ class Parse():
         self.loghandler.flush()
         for x in self.XY:
             self.XY[x]['VT'] = abs(x**2 / 10**self.XY[x]['hist']['mean'])
+        self.logger.debug("Getting doconductance")
         self.SLM.update(get_result(children['doconductance']))
         self.logger.info("* * * * * * Computing SLM from Gaussian LogJ  * * * * * * * * *")
         self.loghandler.flush()
@@ -263,6 +270,7 @@ class Parse():
         self.logger.info(f"{self.SLM['Gauss']['FN']['vt_pos']:0.2f} / {self.SLM['Gauss']['FN']['vt_neg']:0.2f}")
         self.logger.info("SLM from Gaussian LogJ data:")
         self.logger.info(f"G = {self.SLM['Gauss']['G']:0.2E}, ε = {epsillon:0.2f}, γ = {gamma:0.2f}, Γ = {big_gamma:0.2E}")
+        self.logger.debug("Getting doclustering")
         self.cluster = get_result(children['doclustering'])
         if self.cluster.get('n_clusters', 0) > 0:
             self.logger.info(f"Found {self.cluster['n_clusters']} clusters from clustering analysis.")
