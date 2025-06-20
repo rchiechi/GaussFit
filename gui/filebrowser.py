@@ -87,7 +87,8 @@ class ChooseFiles(tk.Frame):
         self.degfreedom = {'init': self.opts.degfree, 'user': self.opts.degfree}
         self.master.tk_setPalette(background=GREY, activeBackground=GREY)
         self.master.title(f"RCCLab EGaIn Data Parser v{VERSION}")
-        self.master.geometry('800x1000+250+250')\
+        self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.master.geometry('800x1000+250+250')
 
         self.pack(fill=BOTH)
         self.__createWidgets()
@@ -256,15 +257,49 @@ class ChooseFiles(tk.Frame):
             self.master.attributes('-topmost', 0)
         self.master.lift()
 
-    def QuitClick(self):
-        self.Quit()
-
-    def Quit(self):
+    def on_closing(self):
+        """Handles application shutdown gracefully."""
+        self.logger.info("Shutdown initiated...")
+    
+        # 1. Signal all background threads to stop by calling their stop() method
+        if self.gothreads and any(t.is_alive() for t in self.gothreads):
+            self.logger.info("Stopping parse thread...")
+            for thread in self.gothreads:
+                thread.stop() # This is the new, clean way to signal shutdown
+                thread.join(timeout=5.0)
+                if thread.is_alive():
+                    self.logger.warning("Parse thread did not exit cleanly.")
+    
+        # 2. Wait for all threads to finish
+        # Check if a thread is running before trying to join
+        if self.gothreads and any(t.is_alive() for t in self.gothreads):
+            self.logger.info("Waiting for parse thread to finish...")
+            for thread in self.gothreads:
+                thread.join(timeout=5.0) # Wait for the thread to exit
+                if thread.is_alive():
+                    self.logger.warning("Parse thread did not exit cleanly.")
+        
+        # 3. Clean up multiprocessing resources
+        try:
+            self.logger.info("Closing resource queue...")
+            self.logque.close()
+            # This ensures the queue's background thread can terminate
+            self.logque.join_thread()
+        except Exception as e:
+            self.logger.error(f"Error closing log queue: {e}")
+    
+        # 4. Close all Matplotlib figures explicitly
+        # This is good practice to ensure the backend shuts down
+        # Import pyplot if it's not already available here
+        from matplotlib import pyplot as plt
+        plt.close('all')
+    
+        # 5. Destroy the Tkinter window
+        self.logger.info("Exiting.")
         self.master.destroy()
 
-    # def ParseClick(self):        
-    #     self.checkOptions()
-    #     self.GUIParse()
+    def QuitClick(self):
+        self.on_closing()
 
     def ParseClick(self):
         self.checkOptions()  # Assuming this is synchronous
