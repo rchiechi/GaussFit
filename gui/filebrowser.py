@@ -407,13 +407,21 @@ class ChooseFiles(tk.Frame):
 
     def SpawnInputDialogClick(self):
         self.checkOptions()
-        # Final, stable configuration for filetypes on macOS.
-        # The '*_data.txt' pattern causes a crash, so we use a more general
-        # but safe pattern as the default.
-        file_types = [
-            ('Text files', ['*.txt']),
-            ('All files', ['*'])
-        ]
+        # The '*_data.txt' pattern is useful but causes a crash on macOS due to a
+        # bug in its Tcl/Tk implementation. We build the filetypes list
+        # conditionally to work around this.
+        if platform.system() == "Darwin":
+            file_types = [
+                ('Text files', ['*.txt']),
+                ('All files', ['*'])
+            ]
+        else:
+            file_types = [
+                ('Data files', ['*_data.txt']),
+                ('Text files', ['*.txt']),
+                ('All files', ['*'])
+            ]
+
         self.opts.in_files += filedialog.askopenfilename(
             title="Files to parse",
             multiple=True,
