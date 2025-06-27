@@ -69,7 +69,7 @@ class Writer():
             os.makedirs(self.opts.slm_dir)
         if not os.path.exists(self.opts.cluster_dir):
             logger.info("Creating %s", self.opts.cluster_dir)
-            os.makedirs(opts.cluster_dir)
+            os.makedirs(self.opts.cluster_dir)
 
     def __getattr__(self, name):
         try:
