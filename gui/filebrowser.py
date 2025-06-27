@@ -407,12 +407,18 @@ class ChooseFiles(tk.Frame):
 
     def SpawnInputDialogClick(self):
         self.checkOptions()
+        # Final, stable configuration for filetypes on macOS.
+        # The '*_data.txt' pattern causes a crash, so we use a more general
+        # but safe pattern as the default.
+        file_types = [
+            ('Text files', ['*.txt']),
+            ('All files', ['*'])
+        ]
         self.opts.in_files += filedialog.askopenfilename(
             title="Files to parse",
             multiple=True,
             initialdir=self.last_input_path,
-            filetypes=[('Data files', '*_data.txt'),
-                       ('Text files', '*.txt'), ('All files', '*')])
+            filetypes=file_types)
         if len(self.opts.in_files):
             self.last_input_path = os.path.split(self.opts.in_files[0])[0]
             if not self.outdir:
