@@ -85,7 +85,6 @@ class ChooseFiles(tk.Frame):
         except KeyError:
             self.last_input_path = os.path.expanduser('~')
         self.opts_parser, self.opts = get_args()
-        self.degfreedom = {'init': self.opts.degfree, 'user': self.opts.degfree}
         self.master.iconphoto(True, self.icon )
         self.master.tk_setPalette(background=GREY, activeBackground=GREY)
         self.master.title(f"RCCLab EGaIn Data Parser v{VERSION}")
@@ -353,14 +352,12 @@ class ChooseFiles(tk.Frame):
 
     def preParse(self):
         '''We need to check a couple of things right before we start parsing'''
-        self.degfreedom = self.opts.degfree
-        if self.opts.degfree == 1 and len(self.opts.in_files) > 1:
+        if self.opts.degfree < 2 and len(self.opts.in_files) > 1:
             self.opts.degfree = len(self.opts.in_files) - 1
 
     def postParse(self):
         '''We need to check a couple of things right after we finish parsing'''
         self.ButtonParse['state'] = NORMAL
-        self.opts.degfree = self.degfreedom
         self.logger.info("Parse complete!")
         try:
             gothread = self.gothreads.pop()
