@@ -354,6 +354,8 @@ class ChooseFiles(tk.Frame):
         '''We need to check a couple of things right before we start parsing'''
         if self.opts.degfree < 2 and len(self.opts.in_files) > 1:
             self.opts.degfree = len(self.opts.in_files) - 1
+        self.opts.slm_dir = os.path.join(self.opts.out_dir, 'SLM')
+        self.opts.cluster_dir = os.path.join(self.opts.out_dir, 'cluster')
 
     def postParse(self):
         '''We need to check a couple of things right after we finish parsing'''
