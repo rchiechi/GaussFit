@@ -1,5 +1,7 @@
 # GaussFit
 
+Migrated repo to [Codeberg](https://codeberg.org/rcclab/GaussFit)
+
 ## Synopsis
 
 This is a set of python scripts to parse raw I/V data, perform statistical analyses, generate plots and output parsed data as CSV files.
